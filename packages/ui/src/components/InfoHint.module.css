@@ -1,0 +1,70 @@
+.hint {
+  position: relative;
+  display: inline-flex;
+  color: var(--uu-ink-soft);
+  cursor: help;
+  border-radius: 50%;
+}
+
+/* A label as the trigger: underlined with dots, the convention for a term
+   with a definition behind it, so it reads as text you can ask about rather
+   than as a link. */
+.term {
+  position: relative;
+  display: inline;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  text-underline-offset: 3px;
+  cursor: help;
+  border-radius: 2px;
+}
+
+.term:hover {
+  text-decoration-color: currentColor;
+}
+
+.term:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+.hint svg {
+  width: 14px;
+  height: 14px;
+}
+
+.hint:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+.text {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -8px;
+  z-index: 3;
+  width: max-content;
+  /* Never wider than the window, less its margins. */
+  max-width: min(290px, calc(100vw - 16px));
+  padding: 8px 10px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.1);
+  color: var(--uu-ink);
+  /* Its own type, not the title's it sits in. */
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-align: left;
+  white-space: normal;
+  /* Out of the layout while closed, not just invisible: an invisible box
+     still counts towards the page width, and the one on a row's last card
+     reached past the window and gave every page a horizontal scrollbar. */
+  display: none;
+}
+
+.text[data-open] {
+  display: block;
+}

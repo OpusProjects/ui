@@ -1,0 +1,303 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* Icon and title share one line, centred on it whatever the title holds. */
+.title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* The menu's icon for this section, at the title's scale and in a quieter
+   tone, so it marks where you are without competing with the words. */
+.titleIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--uu-ink-soft);
+}
+
+.titleIcon svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 1.75;
+}
+
+.description {
+  margin: 6px 0 0;
+  color: var(--uu-ink-soft);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.search {
+  position: relative;
+  display: block;
+  max-width: 560px;
+  margin-bottom: 20px;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 17px;
+  height: 17px;
+  color: var(--uu-ink-soft);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search input {
+  width: 100%;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  color: var(--uu-ink);
+  font: inherit;
+}
+
+.search[data-size="compact"] {
+  max-width: none;
+  margin-bottom: 0;
+}
+
+.search[data-size="compact"] input {
+  padding: 6px 10px 6px 32px;
+  font-size: 14px;
+}
+
+.search[data-size="compact"] .searchIcon {
+  left: 10px;
+  width: 15px;
+  height: 15px;
+}
+
+.search input:focus-visible {
+  border-color: var(--uu-accent);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--uu-line-strong);
+  border-radius: var(--uu-radius-small);
+  /* Its own white ground, not the surface under it: a button on the grey
+     page and one on a white panel are then the same button. */
+  background: var(--uu-surface);
+  color: var(--uu-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--uu-accent);
+  color: var(--uu-accent-strong);
+}
+
+.button[data-variant="primary"] {
+  border-color: var(--uu-accent);
+  background: var(--uu-accent);
+  color: var(--uu-accent-ink);
+}
+
+.button[data-variant="primary"]:hover:not(:disabled) {
+  background: var(--uu-accent-strong);
+  color: var(--uu-accent-ink);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.buttonIcon {
+  display: inline-flex;
+}
+
+.buttonIcon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 420px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.empty {
+  padding: 40px 24px;
+  border: 1px dashed var(--uu-line-strong);
+  border-radius: var(--uu-radius);
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.emptyBody {
+  max-width: 60ch;
+  margin: 6px auto 0;
+  color: var(--uu-ink-soft);
+}
+
+.notice {
+  padding: 14px 18px;
+  border: 1px solid var(--uu-failing);
+  border-radius: var(--uu-radius);
+  background: var(--uu-failing-wash);
+}
+
+.noticeTitle {
+  margin: 0 0 4px;
+  color: var(--uu-failing);
+  font-weight: 600;
+}
+
+.panel {
+  margin-bottom: 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.panelDescription {
+  margin: 4px 0 0;
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  padding: 1px 8px;
+  border: 1px solid var(--uu-line);
+  border-radius: 4px;
+  background: var(--uu-surface-sunken);
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+}
+
+/* A chip that opens what it names: the link colour, underlined on hover, so
+   it reads as a way in rather than a label. */
+.chipLink {
+  color: var(--uu-accent-strong);
+  text-decoration: none;
+}
+
+.chipLink:hover {
+  border-color: var(--uu-accent);
+  text-decoration: underline;
+}
+
+.chipLink:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+/* A chip-sized button in the link colour: it opens or folds the list. */
+.chipToggle {
+  padding: 1px 8px;
+  border: 1px dashed var(--uu-line-strong);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--uu-accent-strong);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chipToggle:hover {
+  border-color: var(--uu-accent);
+  background: color-mix(in srgb, var(--uu-accent) 8%, transparent);
+}
+
+.chipEmpty {
+  color: var(--uu-ink-soft);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge[data-tone="neutral"] {
+  background: var(--uu-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--uu-line);
+}
+
+.badge[data-tone="accent"] {
+  background: color-mix(in srgb, var(--uu-accent) 14%, transparent);
+  color: var(--uu-accent-strong);
+}
+
+.badge[data-tone="off"] {
+  color: var(--uu-ink-soft);
+  box-shadow: inset 0 0 0 1px var(--uu-line);
+}

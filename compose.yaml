@@ -1,0 +1,26 @@
+# Local demo: unified-api with its bundled sample config, and the UI in front.
+#   docker compose up --build    then open http://localhost:${UI_PORT:-18190}
+#
+# To look at a real instance instead, put these in .env (git-ignored) and
+# start only the UI:   docker compose up -d --build --no-deps ui
+#   UNIFIED_API_URL=https://unified-api.example.net
+#   UNIFIED_API_KEY=...
+#   UI_READ_ONLY=true
+services:
+  unified-api:
+    image: ghcr.io/opusprojects/unified-api:0.33.0
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      # Loopback only: the proxy adds the API key, so the page must not be
+      # reachable from the network.
+      - "127.0.0.1:${UI_PORT:-18190}:8080"
+    environment:
+      UNIFIED_API_URL: ${UNIFIED_API_URL:-http://unified-api:8182}
+      UNIFIED_API_KEY: ${UNIFIED_API_KEY:-}
+      UI_READ_ONLY: ${UI_READ_ONLY:-false}
+    depends_on:
+      - unified-api

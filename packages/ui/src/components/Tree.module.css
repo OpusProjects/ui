@@ -1,0 +1,150 @@
+/* Root on the left, each level of children in a column to its right.
+   Connectors: every child draws the horizontal stub to its left and its part
+   of the vertical spine; the first and last children trim the spine so it
+   runs exactly from the first child's middle to the last one's. */
+.tree,
+.children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree {
+  --tree-gap: 48px;
+  --tree-line: var(--uu-line-strong);
+  overflow-x: auto;
+  /* Room above the first card, so it does not touch the text over it. */
+  padding: 8px 0 4px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+}
+
+/* The root is as wide as its own content (title, tag, facts), between a
+   floor and a ceiling: no blank card wider than it needs, no squeezed one.
+   The levels after it share the rest, out to the page's edge as the rows
+   above the tree do, so their facts sit on one line instead of wrapping
+   into a tall narrow column. */
+.node {
+  flex: none;
+  width: max-content;
+  min-width: 280px;
+  max-width: 640px;
+}
+
+.children {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.children > .item > .node {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 300px;
+  max-width: none;
+}
+
+.children {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: var(--tree-gap);
+}
+
+/* The stub from the parent to the spine. */
+.children::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: calc(var(--tree-gap) / 2);
+  border-top: 1px solid var(--tree-line);
+}
+
+.children > .item {
+  position: relative;
+}
+
+/* Each child: the stub from the spine, and its share of the spine. */
+.children > .item::before,
+.children > .item::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--tree-gap) / -2);
+}
+
+.children > .item::before {
+  top: 50%;
+  width: calc(var(--tree-gap) / 2);
+  border-top: 1px solid var(--tree-line);
+}
+
+.children > .item::after {
+  top: -8px;
+  bottom: -8px;
+  border-left: 1px solid var(--tree-line);
+}
+
+.children > .item:first-child::after {
+  top: 50%;
+}
+
+.children > .item:last-child::after {
+  bottom: 50%;
+}
+
+.children > .item:only-child::after {
+  display: none;
+}
+
+/* Narrow screens: one column, each level indented under its parent, the
+   spine down the left. */
+@media (max-width: 760px) {
+  .item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .node,
+  .children > .item > .node {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .children {
+    gap: 12px;
+    padding: 12px 0 0 20px;
+  }
+
+  .children::before {
+    display: none;
+  }
+
+  .children > .item::before {
+    top: 24px;
+    left: -12px;
+    width: 12px;
+  }
+
+  .children > .item::after {
+    top: -12px;
+    bottom: -12px;
+    left: -12px;
+  }
+
+  .children > .item:first-child::after {
+    top: -12px;
+  }
+
+  .children > .item:last-child::after {
+    bottom: calc(100% - 24px);
+  }
+
+  .children > .item:only-child::after {
+    display: block;
+  }
+}

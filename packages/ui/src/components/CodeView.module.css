@@ -1,0 +1,75 @@
+/* The variables as one document: grey ground like the code elsewhere, long
+   lines wrapped rather than scrolled sideways, and no height cap of its own,
+   so the page scrolls it (and the host list beside it stays in view). */
+.code {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface-sunken);
+  color: var(--uu-ink);
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+
+/* Names in the informational blue (as on version tags), values in full ink,
+   typed values (numbers, booleans, null) in the accent, and the syntax
+   itself recessive: the eye lands on names and values, not on quotes. */
+.key {
+  color: color-mix(in srgb, var(--uu-series-1) 78%, var(--uu-ink));
+}
+
+.string {
+  color: var(--uu-ink);
+}
+
+.number,
+.literal {
+  color: var(--uu-accent-strong);
+}
+
+.punct {
+  color: var(--uu-ink-soft);
+}
+
+/* Drawn like the Button beside it (same border, corners, type and height),
+   so the toolbar reads as one row of controls; the chosen side is filled. */
+.switch {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--uu-line-strong);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+}
+
+.switch button {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--uu-ink-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.switch button:hover {
+  color: var(--uu-accent-strong);
+}
+
+.switch button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--uu-accent) 13%, transparent);
+  color: var(--uu-accent-strong);
+}
+
+.switch button:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}

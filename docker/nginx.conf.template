@@ -1,0 +1,70 @@
+# A request another website made the browser send says so in
+# Sec-Fetch-Site. It must not borrow the key below (any page could otherwise
+# sync or reload through this demo as its owner): it goes on without the
+# key, and a write is refused. Tools like curl send no such header and are
+# treated as this page.
+map $http_sec_fetch_site $cross_site {
+    default    0;
+    cross-site 1;
+    same-site  1;
+}
+
+map $cross_site $demo_key {
+    1       "";
+    default "${UNIFIED_API_KEY}";
+}
+
+server {
+    listen 8080;
+    root /usr/share/nginx/html;
+
+    # /metrics is the UI's Metrics page for a browser and Prometheus's
+    # endpoint for everything else: a navigation asks for text/html, a
+    # scraper (or the page's own fetch) never does.
+    location = /metrics {
+        if ($http_accept ~* "text/html") {
+            rewrite ^ /index.html last;
+        }
+        proxy_pass ${UNIFIED_API_URL};
+        proxy_set_header X-API-Key $demo_key;
+        proxy_ssl_server_name on;
+    }
+
+    # Everything unified-api answers goes to unified-api. The key, when set, is
+    # added here so it never reaches the browser; anyone who can open this page
+    # acts with it, which is why this image is for local demos only.
+    location ~ ^/(api|swagger-ui|api-docs|metrics|healthz|readyz)(/|$) {
+        # UI_READ_ONLY=true refuses every write (sync, pull, run) before it
+        # leaves this proxy: for looking at a production instance without
+        # being able to change it from here.
+        set $writes "${UI_READ_ONLY}";
+        set $cross_write "$cross_site";
+        if ($request_method !~ ^(GET|HEAD)$) {
+            set $writes "${writes}:write";
+            set $cross_write "${cross_write}:write";
+        }
+        if ($cross_write = "1:write") {
+            add_header Content-Type application/json always;
+            return 403 '{"error":"Refused: a write from another site"}';
+        }
+        if ($writes = "true:write") {
+            add_header Content-Type application/json always;
+            return 403 '{"error":"Read-only demo: writes are disabled (UI_READ_ONLY=true)"}';
+        }
+
+        proxy_pass ${UNIFIED_API_URL};
+        proxy_set_header X-API-Key $demo_key;
+        # TLS upstreams behind an ingress route by name.
+        proxy_ssl_server_name on;
+    }
+
+    # Hashed file names never change content, so they can be cached for good.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Client-side routes (/sources, /projects...) all load the app.
+    location / {
+        try_files $uri /index.html;
+    }
+}

@@ -1,0 +1,166 @@
+/*
+ * Design tokens for every unified-* UI.
+ *
+ * Apps never hard-code a color or a size: they use these variables, so a
+ * product can be rethemed (or a dark mode fixed) in one place. The palette is
+ * cool steel and fiber-optic aqua: the colors of the racks and patch cables
+ * these tools inventory.
+ */
+:root {
+  --uu-font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --uu-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --uu-canvas: #edf0f3;
+  --uu-surface: #ffffff;
+  --uu-surface-sunken: #f5f7f9;
+  --uu-line: #d6dce3;
+  --uu-line-strong: #b9c2cd;
+  --uu-ink: #1b2533;
+  --uu-ink-soft: #5a6678;
+
+  --uu-rail: #1f2e40;
+  --uu-rail-ink: #c9d3df;
+  --uu-rail-ink-strong: #ffffff;
+  --uu-rail-active: #2c4058;
+
+  --uu-accent: #00838f;
+  --uu-accent-strong: #006a74;
+  --uu-accent-ink: #ffffff;
+
+  /* Chart marks: the accent's hue, stepped to pass the data-colour checks
+     (chroma floor and lightness band, validated per surface). The accent
+     itself reads slightly grey as a data colour. */
+  --uu-chart: #00899c;
+
+  /* Series identity: the eight hues of the validated categorical palette, in
+     its fixed order (blue, orange, aqua, yellow, magenta, green, violet,
+     red), then brown and olive for lists that need ten. Those two pass the
+     per-colour checks but sit closest to orange and yellow-green: use them
+     only where every mark is also labelled. The dark values are the same
+     hues stepped for the dark surface. */
+  --uu-series-1: #2a78d6;
+  --uu-series-2: #eb6834;
+  --uu-series-3: #1baf7a;
+  --uu-series-4: #eda100;
+  --uu-series-5: #e87ba4;
+  --uu-series-6: #008300;
+  --uu-series-7: #6250d6;
+  --uu-series-8: #e34948;
+  --uu-series-9: #9b4f12;
+  --uu-series-10: #7f8c00;
+
+  /* Health states: the one place color carries meaning. */
+  --uu-fresh: #2f8745;
+  --uu-stale: #b7791f;
+  --uu-failing: #c0392b;
+  --uu-pending: #8a94a3;
+  --uu-failing-wash: #fbeceb;
+
+  --uu-radius: 10px;
+  --uu-radius-small: 6px;
+  --uu-focus: 0 0 0 3px color-mix(in srgb, var(--uu-accent) 45%, transparent);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --uu-canvas: #131a23;
+    --uu-surface: #1b2430;
+    --uu-surface-sunken: #17202a;
+    --uu-line: #2b3746;
+    --uu-line-strong: #3d4b5d;
+    --uu-ink: #e4e9ef;
+    --uu-ink-soft: #9aa6b5;
+    --uu-rail: #0f1620;
+    --uu-rail-active: #1f2e40;
+    --uu-accent: #3fb6bf;
+    --uu-accent-strong: #67c9d0;
+    --uu-accent-ink: #0f1620;
+    --uu-chart: #31a6b3;
+    --uu-series-1: #3987e5;
+    --uu-series-2: #d95926;
+    --uu-series-3: #199e70;
+    --uu-series-4: #c98500;
+    --uu-series-5: #d55181;
+    --uu-series-6: #008300;
+    --uu-series-7: #9085e9;
+    --uu-series-8: #e66767;
+    --uu-series-9: #b8692a;
+    --uu-series-10: #8f9c10;
+    --uu-series-9: #b8692a;
+    --uu-series-10: #8f9c10;
+    --uu-fresh: #4fb067;
+    --uu-stale: #d9a03f;
+    --uu-failing: #e5675a;
+    --uu-pending: #7d8796;
+    --uu-failing-wash: #3a2224;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --uu-canvas: #131a23;
+  --uu-surface: #1b2430;
+  --uu-surface-sunken: #17202a;
+  --uu-line: #2b3746;
+  --uu-line-strong: #3d4b5d;
+  --uu-ink: #e4e9ef;
+  --uu-ink-soft: #9aa6b5;
+  --uu-rail: #0f1620;
+  --uu-rail-active: #1f2e40;
+  --uu-accent: #3fb6bf;
+  --uu-accent-strong: #67c9d0;
+  --uu-accent-ink: #0f1620;
+  --uu-chart: #31a6b3;
+  --uu-series-1: #3987e5;
+  --uu-series-2: #d95926;
+  --uu-series-3: #199e70;
+  --uu-series-4: #c98500;
+  --uu-series-5: #d55181;
+  --uu-series-6: #008300;
+  --uu-series-7: #9085e9;
+  --uu-series-8: #e66767;
+  --uu-series-9: #b8692a;
+  --uu-series-10: #8f9c10;
+  --uu-fresh: #4fb067;
+  --uu-stale: #d9a03f;
+  --uu-failing: #e5675a;
+  --uu-pending: #7d8796;
+  --uu-failing-wash: #3a2224;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  /* No elastic overscroll: at the end of a page the browser stretched the
+     whole page, sticky sidebar included, and the menu seemed to move. */
+  overscroll-behavior: none;
+  margin: 0;
+  background: var(--uu-canvas);
+  color: var(--uu-ink);
+  font-family: var(--uu-font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,66 @@
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+}
+
+.count,
+.position {
+  font-variant-numeric: tabular-nums;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.buttons button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  color: var(--uu-ink);
+  cursor: pointer;
+}
+
+.buttons button:hover:not(:disabled) {
+  border-color: var(--uu-accent);
+  color: var(--uu-accent-strong);
+}
+
+.buttons button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.buttons svg {
+  width: 16px;
+  height: 16px;
+}
+
+.size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+}
+
+.size select {
+  padding: 4px 6px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  color: var(--uu-ink);
+  font: inherit;
+  font-size: 13px;
+}

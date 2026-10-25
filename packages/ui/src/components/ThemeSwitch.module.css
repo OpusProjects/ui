@@ -1,0 +1,67 @@
+/* The same rule and spacing as the line over the menu's foot. */
+.wrap {
+  margin-top: 8.5px;
+  padding-top: 18px;
+  border-top: 1px solid color-mix(in srgb, var(--uu-rail-ink) 18%, transparent);
+}
+
+/* Sits in the rail, so it takes the rail's colours: a dark track, the
+   chosen option lifted onto the rail's active shade. */
+.switch {
+  display: flex;
+  gap: 2px;
+  margin: 0 10px;
+  padding: 3px;
+  border-radius: var(--uu-radius-small);
+  background: color-mix(in srgb, var(--uu-rail-ink) 10%, transparent);
+}
+
+.switch button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--uu-rail-ink);
+  cursor: pointer;
+}
+
+.switch button:hover {
+  color: var(--uu-rail-ink-strong);
+}
+
+.switch button[aria-pressed="true"] {
+  background: var(--uu-rail-active);
+  color: var(--uu-rail-ink-strong);
+}
+
+.switch button:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+.switch svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* In the phone's top bar: no rule of its own (the foot's row has one), at
+   the row's end. */
+@media (max-width: 760px) {
+  .wrap {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .switch {
+    margin: 0;
+  }
+
+  .switch button {
+    padding: 5px 8px;
+  }
+}

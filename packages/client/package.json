@@ -1,0 +1,37 @@
+{
+  "name": "@opusprojects/unified-client",
+  "version": "0.1.0",
+  "description": "Non-visual pieces the unified-* UIs share: the API session, health rules, metrics and the stored theme",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpusProjects/unified-ui.git",
+    "directory": "packages/client"
+  },
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "openapi-fetch": ">=0.17.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.1",
+    "typescript": "~5.9.3"
+  }
+}

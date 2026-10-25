@@ -1,0 +1,200 @@
+/* One card per area, sharing the row between them: five on a laptop,
+   wrapping to fewer on a narrower screen, never leaving an empty end. */
+.areas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* The whole card is the link into its area. */
+.area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+  color: var(--uu-ink);
+  text-decoration: none;
+}
+
+.area:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+.areaTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.areaIcon,
+.areaIcon svg {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+
+/* The healthy count large, the total beside it quiet. */
+.areaCount {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.areaOf {
+  color: var(--uu-ink-soft);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.areaLabel {
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+}
+
+.areaEmpty {
+  margin-top: 6px;
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+}
+
+/* Every item's state in one bar, sized by count, in the summary's order. */
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  margin-top: 12px;
+}
+
+.bar > span {
+  min-width: 6px;
+  border-radius: 3px;
+}
+
+.bar > [data-state="fresh"] {
+  background: var(--uu-fresh);
+}
+
+.bar > [data-state="stale"] {
+  background: var(--uu-stale);
+}
+
+.bar > [data-state="failing"] {
+  background: var(--uu-failing);
+}
+
+.bar > [data-state="pending"] {
+  background: var(--uu-pending);
+}
+
+/* What needs a person beside the numbers about this instance. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 16px;
+  /* Both cards as tall as the taller one, so the row ends level. */
+  align-items: stretch;
+}
+
+.columns > section {
+  margin-bottom: 0;
+}
+
+@media (max-width: 960px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.issues {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One issue a line, marked by how bad it is: broken in red, late in amber. */
+.issues li {
+  position: relative;
+  padding: 9px 0 9px 18px;
+  border-bottom: 1px solid var(--uu-line);
+  font-size: 14px;
+}
+
+.issues li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.issues li::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--uu-failing);
+}
+
+.issues li:last-child::before {
+  top: 16px;
+}
+
+.issues li:not([data-severity="0"])::before {
+  background: var(--uu-stale);
+}
+
+.issues a {
+  /* The app's link colour, as on the cards' links: each line is a way in. */
+  color: var(--uu-accent-strong);
+  text-decoration: none;
+}
+
+/* The link icon after the line, as on the cards' links. */
+.issues a svg {
+  width: 13px;
+  height: 13px;
+  margin-left: 6px;
+  vertical-align: -1px;
+}
+
+.issues a:hover {
+  text-decoration: underline;
+}
+
+.issues b {
+  font-family: var(--uu-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.allClear {
+  margin: 0;
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+}
+
+/* One column of facts: the panel is narrow. */
+.instanceFacts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+/* The full-width chart under the two cards, a row's gap below them. */
+.requestsCard {
+  margin-top: 16px;
+}

@@ -1,0 +1,94 @@
+/* The same grid and card frame as CardGrid and ResourceCard, so swapping the
+   placeholders for the real cards moves nothing. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 420px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card,
+.summary {
+  padding: 18px 20px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+}
+
+.summary {
+  margin-bottom: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 284px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--uu-line);
+}
+
+.header > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+/* One slow sweep across every bone at once, so the page reads as one thing
+   loading rather than many things flickering. Turned off with the system's
+   reduced-motion setting by the theme's global rule. */
+.bone {
+  display: block;
+  border-radius: 4px;
+  background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--uu-surface) 70%, transparent) 50%,
+      transparent 100%
+    )
+    color-mix(in srgb, var(--uu-line) 55%, var(--uu-surface));
+  background-size: 200% 100%;
+  background-attachment: fixed;
+  animation: sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

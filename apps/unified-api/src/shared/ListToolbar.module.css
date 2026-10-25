@@ -1,0 +1,24 @@
+/* One bar of controls: every button as tall as the search box. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.toolbar button {
+  align-self: stretch;
+  padding-inline: 16px;
+}
+
+.toolbar > label {
+  flex: 0 1 560px;
+  margin-bottom: 0;
+}
+
+/* "Show all" beside it does this job (and more); the browser's own little
+   "x" inside the box would be a second control for part of it. */
+.toolbar input::-webkit-search-cancel-button {
+  display: none;
+}

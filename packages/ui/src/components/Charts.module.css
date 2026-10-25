@@ -1,0 +1,292 @@
+/* Stat tiles */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+}
+
+.tile[data-tone="failing"] {
+  border-color: color-mix(in srgb, var(--uu-failing) 45%, var(--uu-line));
+}
+
+.tileLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--uu-ink-soft);
+  font-size: 13.5px;
+}
+
+/* Proportional figures at display size: tabular digits look loose here. */
+.tileValue {
+  margin-top: 2px;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.tileDetail {
+  margin-top: 2px;
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+}
+
+.sparkline {
+  height: 32px;
+  margin-top: 8px;
+}
+
+.sparkPath {
+  fill: none;
+  stroke: var(--uu-line-strong);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkDot {
+  fill: var(--series, var(--uu-chart));
+  stroke: var(--uu-surface);
+  stroke-width: 2;
+}
+
+/* Line chart */
+
+.chart {
+  position: relative;
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart svg:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+  border-radius: 4px;
+}
+
+.chartEmpty {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--uu-line-strong);
+  border-radius: var(--uu-radius-small);
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+}
+
+.grid {
+  stroke: var(--uu-line);
+  stroke-width: 1;
+}
+
+.axisY,
+.axisX {
+  fill: var(--uu-ink-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.axisY {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.line {
+  fill: none;
+  stroke: var(--series, var(--uu-chart));
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.area {
+  fill: var(--series, var(--uu-chart));
+  opacity: 0.1;
+}
+
+.endDot {
+  fill: var(--series, var(--uu-chart));
+  stroke: var(--uu-surface);
+  stroke-width: 2;
+}
+
+.crosshair {
+  stroke: var(--uu-line-strong);
+  stroke-width: 1;
+}
+
+.tooltip,
+.barTip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.1);
+  font-size: 12.5px;
+  pointer-events: none;
+}
+
+.tooltip strong,
+.barTip strong {
+  font-size: 15px;
+}
+
+.tooltip span,
+.barTip span {
+  color: var(--uu-ink-soft);
+}
+
+/* Bar list */
+
+.bars {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Same type and rule as a table header (.table th), aligned to the rows'
+   two columns. */
+.barHeadings {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 6px;
+  padding: 6px;
+  border-bottom: 1px solid var(--uu-line-strong);
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.barRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: var(--uu-radius-small);
+  outline: none;
+}
+
+.barRow[data-active] {
+  background: var(--uu-surface-sunken);
+}
+
+.barRow:focus-visible {
+  box-shadow: var(--uu-focus);
+}
+
+.barLabel {
+  overflow: hidden;
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.barArea {
+  display: flex;
+  min-width: 0;
+}
+
+/* Square at the baseline, rounded at the data end. */
+.bar {
+  flex: none;
+  height: 14px;
+  border-radius: 0 4px 4px 0;
+  background: var(--series, var(--uu-chart));
+}
+
+.barValue {
+  flex: none;
+  color: var(--uu-ink);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.barTip {
+  top: 100%;
+  left: 34%;
+  margin-top: 2px;
+}
+
+.barTip[data-above] {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+
+/* Table */
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--uu-line-strong);
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--uu-line);
+}
+
+/* No rule under the last row: nothing follows it. Its padding stays, since
+   the rows highlight on hover and the highlight needs room round the text. */
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table [data-numeric] {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.table tbody tr:hover {
+  background: var(--uu-surface-sunken);
+}

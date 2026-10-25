@@ -1,0 +1,31 @@
+/* Pointed at, or with keyboard focus inside it, the element lifts off the
+   page with a deeper shadow under it, as AWX's dashboard cards do: it says
+   "this opens" more plainly than a border change. Use it only on things that
+   open something; a lift on a card that does nothing promises a click. */
+.lift {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.lift:hover,
+.lift:has(:focus-visible) {
+  border-color: var(--uu-line-strong);
+  box-shadow:
+    0 10px 24px rgb(0 0 0 / 0.1),
+    0 2px 6px rgb(0 0 0 / 0.06);
+  transform: translateY(-3px);
+}
+
+/* Motion turned off: the shadow still says it, without the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .lift,
+  .lift:hover,
+  .lift:has(:focus-visible) {
+    transform: none;
+    transition:
+      box-shadow 160ms ease,
+      border-color 160ms ease;
+  }
+}

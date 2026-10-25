@@ -1,0 +1,202 @@
+/* Two cards side by side, like the rest of the app's white cards on grey:
+   the hosts to pick from, and the host picked. */
+.browser {
+  display: grid;
+  /* Wide enough for the longest FQDNs whole (53 characters, once the card's
+     and the list's own padding, the selected row's bar and the list's
+     scrollbar when it scrolls are taken off). */
+  grid-template-columns: minmax(300px, 516px) minmax(0, 1fr);
+  gap: 16px;
+  /* The hosts card runs as tall as the host beside it, so the block inside
+     it has room to stay in view while the variables scroll. */
+  align-items: stretch;
+}
+
+.hostCard,
+.varsCard {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* The card's content fills it top to bottom: a sticky block can only travel
+   inside its own container, so that container must run the card's height. */
+.hostCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.hostCard > div {
+  flex: 1;
+}
+
+/* From the host search down: what stays in view; the heading above it
+   scrolls away with the page. Never taller than the window (16px clear
+   above and below): the search and the pager keep their size, and the list
+   takes what is left, scrolling inside itself when the rows do not fit (a
+   short laptop screen, or 100 rows per page). */
+.hostSticky {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+}
+
+.hostSticky > * {
+  flex: none;
+}
+
+.hostSticky > .hostList {
+  flex: 0 1 auto;
+  min-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--uu-line-strong) transparent;
+}
+
+@media (max-width: 860px) {
+  .browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked, nothing stays in view, so nothing needs capping either: a
+     scroll area inside a phone's page only traps the thumb. */
+  .hostSticky {
+    position: static;
+    max-height: none;
+  }
+
+  .hostSticky > .hostList {
+    overflow-y: visible;
+  }
+}
+
+/* Each column's heading: "Hosts" and the selected host, on the same line
+   and of the same height, so both columns start level with each other. The
+   reserved height fits the host's two lines (name, then count). */
+.columnHead {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 52px;
+  margin-bottom: 12px;
+}
+
+.columnTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The controls above each column, at the same height on both sides so the
+   two columns start level. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  margin-bottom: 12px;
+}
+
+.toolbar > label {
+  flex: 1;
+  min-width: 0;
+}
+
+.select {
+  flex: none;
+  max-width: 45%;
+  padding: 6px 8px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  color: var(--uu-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* Framed like the search and the select above it: the same border and
+   corners, so the list reads as one field to choose from. */
+.hostList {
+  /* Options measure their offsetTop from here (keeping the selection in
+     view when the list scrolls). */
+  position: relative;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  outline: none;
+}
+
+.hostList:focus-visible {
+  border-color: var(--uu-accent);
+  box-shadow: var(--uu-focus);
+}
+
+.hostOption {
+  /* Room on the left for the selected row's bar (4px) on every row, so a
+     name does not shift when it is selected; the space beside the bar is
+     a little wider than it looks, as in the menu. */
+  position: relative;
+  padding: 5px 8px 5px 15px;
+  overflow: hidden;
+  border-radius: 4px;
+  color: var(--uu-ink);
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hostOption:hover {
+  background: var(--uu-surface-sunken);
+}
+
+.hostOption[aria-selected="true"] {
+  background: color-mix(in srgb, var(--uu-accent) 12%, transparent);
+  color: var(--uu-accent-strong);
+  font-weight: 600;
+}
+
+/* The selected row's mark, as the menu's: a bar down its whole left edge,
+   clipped by the row's rounded corners (the row already hides overflow, for
+   its ellipsis), so its outer side curves and its inner side stays straight. */
+.hostOption[aria-selected="true"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: var(--uu-accent);
+}
+
+.varCount {
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+}
+
+/* Same type as "Hosts" beside it (it is the other column's heading), cut
+   short with an ellipsis when the name is longer than the column; the full
+   name is in its title. */
+.hostName {
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The variables search fills the line up to the format switch and Copy. */
+.varsSearch {
+  flex: 1;
+  min-width: 0;
+}

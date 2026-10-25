@@ -1,0 +1,321 @@
+/* Each state maps to its token once; everything below reads --tone. */
+[data-state="fresh"] {
+  --tone: var(--uu-fresh);
+}
+[data-state="stale"] {
+  --tone: var(--uu-stale);
+}
+[data-state="failing"] {
+  --tone: var(--uu-failing);
+}
+[data-state="pending"] {
+  --tone: var(--uu-pending);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 13%, transparent);
+  color: color-mix(in srgb, var(--tone) 75%, var(--uu-ink));
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pillDetail {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* Summary */
+
+.summary {
+  margin-bottom: 24px;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+}
+
+.headline {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.bar {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  margin-bottom: 12px;
+}
+
+.segment {
+  min-width: 12px;
+  border-radius: 3px;
+  background: var(--tone);
+  transition: opacity 160ms ease;
+}
+
+.segment[data-dimmed] {
+  opacity: 0.2;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter,
+.clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px;
+  border: 1px solid var(--uu-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--uu-ink);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.filter:hover,
+.clear:hover {
+  border-color: var(--uu-line-strong);
+}
+
+.filter[aria-pressed="true"] {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+
+.count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.clear {
+  border-style: dashed;
+  color: var(--uu-ink-soft);
+}
+
+/* Card */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+}
+
+/* A card that opens something: the title's link covers the whole card
+   (the stretched-link pattern), and anything interactive inside sits above
+   it so it still gets its own clicks. */
+.card[data-linked] {
+  position: relative;
+}
+
+.cardLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cardLink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--uu-radius);
+}
+
+.cardLink:focus-visible {
+  outline: none;
+}
+
+.cardLink:focus-visible::after {
+  box-shadow: var(--uu-focus);
+}
+
+.card[data-linked] :is(button, a:not(.cardLink), [tabindex]) {
+  position: relative;
+  z-index: 1;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--uu-line);
+}
+
+.cardTitles {
+  min-width: 0;
+}
+
+/* Centred, not on the baseline: the tag is smaller type in a box, and a
+   shared baseline left it sitting visibly low against the title. */
+.cardTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cardId {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--uu-ink-soft);
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The app's link colour, as on "Open dataset": the address is something to
+   follow, and should read as one. */
+.cardIdLink {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin-top: 2px;
+  color: var(--uu-accent-strong);
+  text-decoration: none;
+}
+
+.cardIdLink code {
+  overflow: hidden;
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardIdLink svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+/* Underlined at rest, so it reads as a link without colour alone. */
+.cardIdLink code {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cardIdLink:hover code {
+  text-decoration-thickness: 2px;
+}
+
+/* A label, not a control: a soft fill and no border, so it does not read
+   as a button or a field next to the title. Blue, the informational tint,
+   so it is not mistaken for an identifier chip (grey), a link (aqua) or a
+   state (green, amber, red). Amber only when it flags something (a version
+   out of step), never as decoration. */
+.tag {
+  padding: 1px 7px;
+  line-height: 1.35;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--uu-series-1) 13%, transparent);
+  color: color-mix(in srgb, var(--uu-series-1) 70%, var(--uu-ink));
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tag[data-tone="warning"] {
+  background: color-mix(in srgb, var(--uu-stale) 16%, transparent);
+  color: color-mix(in srgb, var(--uu-stale) 75%, var(--uu-ink));
+  cursor: help;
+}
+
+.facts {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0 0;
+}
+
+/* Labels line up with the first line of their value: a value that wraps
+   (an opened list of chips) keeps its label at the top, not floating in
+   the middle. */
+.fact {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+
+.fact dt {
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+}
+
+.fact dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-failing-wash);
+  color: color-mix(in srgb, var(--uu-failing) 70%, var(--uu-ink));
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.meter {
+  position: relative;
+  flex: 1 1 60px;
+  max-width: 110px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--uu-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--uu-line);
+}
+
+.meterFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--tone);
+}
