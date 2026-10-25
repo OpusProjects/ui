@@ -1,6 +1,6 @@
 # Demo image: the unified-api UI served by nginx, which forwards API calls to a
 # unified-api instance. The production path is different: the unified-api
-# binary embeds these same built assets and serves them itself.
+# image builds this same UI in and serves it itself (server.ui.assets_dir).
 
 FROM node:22-alpine AS build
 WORKDIR /src

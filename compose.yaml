@@ -8,7 +8,7 @@
 #   UI_READ_ONLY=true
 services:
   unified-api:
-    image: ghcr.io/opusprojects/unified-api:0.33.0
+    image: ghcr.io/opusprojects/unified-api:0.34.0
 
   ui:
     build:
