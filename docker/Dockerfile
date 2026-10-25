@@ -2,7 +2,7 @@
 # unified-api instance. The production path is different: the unified-api
 # image builds this same UI in and serves it itself (server.ui.assets_dir).
 
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/client/package.json packages/client/
