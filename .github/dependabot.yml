@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # Keep the GitHub Actions used in workflows up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # One PR per action bump: each lands (or fails CI) on its own, so a broken
+    # bump never blocks the rest of the week's updates.
+    # Match the repo's Conventional Commits style: "build(deps): bump ..."
+    commit-message:
+      prefix: "build"
+      include: "scope"
+
+  # Keep npm dependencies up to date; the root package-lock.json covers every
+  # workspace (packages/*, apps/*), so one entry at "/" bumps them all
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # One PR per package bump, same reasoning as above
+    commit-message:
+      prefix: "build"
+      include: "scope"
+
+  # Keep the Dockerfile base images (node, nginx) up to date
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+    # One PR per image bump, same reasoning as above
+    commit-message:
+      prefix: "build"
+      include: "scope"
