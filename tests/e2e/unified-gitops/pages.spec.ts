@@ -12,6 +12,8 @@ const PAGES: [string, string][] = [
   ["/projects", "Projects"],
   ["/projects/prj-state", "prj-state"],
   ["/credentials", "Credentials"],
+  ["/notifications", "Notifications"],
+  ["/notifications/ntf-ascender-drift", "ntf-ascender-drift"],
   ["/metrics", "Metrics"],
   ["/config", "Configuration"],
 ];

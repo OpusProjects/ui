@@ -66,6 +66,31 @@ export function useCredentials() {
   });
 }
 
+// Each notification with its last send, which a run can change at any time.
+export function useNotifications() {
+  return useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => unwrap(await api.GET("/api/v1/notifications")),
+    refetchInterval: POLL_MS,
+    retry: false,
+  });
+}
+
+// One notification with its recent sends, for its page.
+export function useNotification(name: string) {
+  return useQuery({
+    queryKey: ["notifications", name],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/v1/notifications/{id}", {
+          params: { path: { id: name } },
+        }),
+      ),
+    refetchInterval: POLL_MS,
+    retry: false,
+  });
+}
+
 export function useSettings() {
   return useQuery({
     queryKey: ["settings"],

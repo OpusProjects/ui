@@ -244,6 +244,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/notifications": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["list_notifications"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["get_notification"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/notifications/{id}/test": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["test_notification"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/projects": {
     parameters: {
       query?: never;
@@ -381,6 +429,8 @@ export interface components {
       docs: string;
       health: string;
       metrics: string;
+      /** @description Admin-only; absent for a restricted key */
+      notifications?: string | null;
       /** @description Admin-only route; absent for a restricted key */
       projects?: string | null;
       ready: string;
@@ -537,6 +587,7 @@ export interface components {
       applications: number;
       connectors: number;
       credentials: number;
+      notifications: number;
       projects: number;
     };
     ConnectorInfo: {
@@ -590,6 +641,19 @@ export interface components {
       ldap: boolean;
       projects: string[];
     };
+    Delivery: {
+      application?: string | null;
+      /** Format: int64 */
+      at: number;
+      /** Format: int32 */
+      attempts: number;
+      error?: string | null;
+      event: string;
+      job?: string | null;
+      ok: boolean;
+      /** Format: int32 */
+      status?: number | null;
+    };
     DeltaInfo: {
       added?: string[];
       changed?: string[];
@@ -599,6 +663,13 @@ export interface components {
       /** @description Human-readable explanation. Stable enough to log, not to match on. */
       error: string;
     };
+    /** @enum {string} */
+    Event:
+      | "drift_detected"
+      | "out_of_sync"
+      | "sync_succeeded"
+      | "sync_failed"
+      | "back_in_sync";
     FileKeyInfo: {
       name: string;
       path: string;
@@ -621,6 +692,8 @@ export interface components {
        */
       written_at: number;
     };
+    /** @enum {string} */
+    JobTrigger: "webhook" | "launch";
     LdapInfo: {
       access: components["schemas"]["AccessRuleInfo"][];
       /** @description credentials.yaml id holding the service account (its secret is not shown) */
@@ -655,6 +728,39 @@ export interface components {
       /** @description Whether the login form offers a directory account */
       ldap: boolean;
     };
+    NotificationDetail: components["schemas"]["NotificationInfo"] & {
+      /**
+       * @description Its sends since this process started, newest first, at most 50.
+       *     Retries of one message count as one send
+       */
+      history: components["schemas"]["Delivery"][];
+    };
+    NotificationInfo: {
+      /** @description Applications it listens to; empty = every application */
+      applications: string[];
+      credentials: string[];
+      description?: string | null;
+      /**
+       * @description Where it sends: scheme and host only, never a path or query, which
+       *     can carry a receiver's secret
+       */
+      destination: string;
+      events: components["schemas"]["Event"][];
+      /**
+       * Format: int64
+       * @description ascender and awx: the job template (or workflow job template) it starts
+       */
+      job_template?: number | null;
+      last?: components["schemas"]["Delivery"] | null;
+      /** @description The item's identity, as in the configuration */
+      name: string;
+      trigger?: components["schemas"]["JobTrigger"] | null;
+      type: components["schemas"]["NotificationType"];
+      /** Format: int64 */
+      workflow_job_template?: number | null;
+    };
+    /** @enum {string} */
+    NotificationType: "webhook" | "ascender" | "awx";
     /** @enum {string} */
     OpKind: "create" | "update" | "delete";
     Operation: {
@@ -755,6 +861,7 @@ export interface components {
       credentials: components["schemas"]["DeltaInfo"];
       /** Format: int64 */
       generation: number;
+      notifications: components["schemas"]["DeltaInfo"];
       projects: components["schemas"]["DeltaInfo"];
       /**
        * @description config.yaml keys this process cannot adopt without a restart. Present
@@ -1696,6 +1803,117 @@ export interface operations {
       };
       /** @description API key is not admin */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  list_notifications: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Every notification: its events, applications and destination, and its last send */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificationInfo"][];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  get_notification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Notification name */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One notification, with its recent sends */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificationDetail"];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description No such notification */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  test_notification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Notification name */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Sent once, now, without retrying: the outcome, also kept as the notification's last send */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Delivery"];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description No such notification */
+      404: {
         headers: {
           [name: string]: unknown;
         };

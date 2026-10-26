@@ -229,6 +229,54 @@ const credentials: Schemas["CredentialInfo"][] = [
   },
 ];
 
+// One that last sent fine, one whose receiver is failing.
+const notifications = (): Schemas["NotificationInfo"][] => [
+  {
+    name: "ntf-ascender-drift",
+    description: "Drift report in Ascender",
+    type: "ascender",
+    events: ["drift_detected"],
+    applications: ["drifted"],
+    destination: "https://ascender.example.com",
+    job_template: 12,
+    workflow_job_template: null,
+    trigger: "webhook",
+    credentials: ["cred-store"],
+    last: {
+      event: "drift_detected",
+      application: "drifted",
+      at: now() - 300,
+      ok: true,
+      attempts: 1,
+      status: 202,
+      job: null,
+      error: null,
+    },
+  },
+  {
+    name: "ntf-failures",
+    description: "Every failure, to the alerts receiver",
+    type: "webhook",
+    events: ["sync_failed", "back_in_sync"],
+    applications: [],
+    destination: "https://alerts.example.com",
+    job_template: null,
+    workflow_job_template: null,
+    trigger: null,
+    credentials: [],
+    last: {
+      event: "sync_failed",
+      application: "broken",
+      at: now() - 60,
+      ok: false,
+      attempts: 4,
+      status: 503,
+      job: null,
+      error: "HTTP 503: Service Unavailable",
+    },
+  },
+];
+
 const settings: Schemas["Settings"] = {
   version: "9.9.9",
   uptime_seconds: 3600,
@@ -326,6 +374,26 @@ export async function mockApi(
 ): Promise<Calls> {
   const calls: Calls = { writes: [] };
   const s = state();
+  const sent = notifications();
+  // Each one's sends, newest first: its last, and an older one that failed.
+  const history: Record<string, Schemas["Delivery"][]> = Object.fromEntries(
+    sent.map((n) => [
+      n.name,
+      [
+        n.last!,
+        {
+          event: "sync_failed",
+          application: "broken",
+          at: now() - 7200,
+          ok: false,
+          attempts: 4,
+          status: null,
+          job: null,
+          error: "could not connect: connection refused",
+        },
+      ],
+    ]),
+  );
   for (let i = 0; i < olderRuns; i++)
     s.history.synced.push(
       run({ id: -1 - i, started_at: now() - 3600 - 120 * i }),
@@ -466,8 +534,42 @@ export async function mockApi(
         duration_ms: 120,
       } satisfies Schemas["ProjectSyncResult"]);
     }
+    // A test send: always accepted here, and kept as the last send.
+    const test = /^\/api\/v1\/notifications\/([^/]+)\/test$/.exec(path);
+    if (request.method() === "POST" && test) {
+      calls.writes.push({ method: "POST", path, headers: request.headers() });
+      const n = sent.find((x) => x.name === decodeURIComponent(test[1]));
+      if (!n) return json(route, { error: "not configured" }, 404);
+      n.last = {
+        event: "test",
+        application: null,
+        at: now(),
+        ok: true,
+        attempts: 1,
+        status: 202,
+        job: null,
+        error: null,
+      };
+      history[n.name]!.unshift(n.last);
+      return adminOnly(route, n.last);
+    }
     if (request.method() !== "GET")
       return json(route, { error: "not mocked" }, 405);
+
+    const one = /^\/api\/v1\/notifications\/([^/]+)$/.exec(path);
+    if (one) {
+      const n = sent.find((x) => x.name === decodeURIComponent(one[1]));
+      if (!n)
+        return json(
+          route,
+          { error: `notification '${one[1]}' is not configured` },
+          404,
+        );
+      return adminOnly(route, {
+        ...n,
+        history: history[n.name],
+      } satisfies Schemas["NotificationDetail"]);
+    }
 
     if (path === "/api/v1/applications")
       return json(
@@ -567,6 +669,7 @@ export async function mockApi(
       "/api/v1/connectors": connectors,
       "/api/v1/projects": projects,
       "/api/v1/credentials": credentials,
+      "/api/v1/notifications": sent,
       "/api/v1/settings": settings,
     };
     if (path in fixed) return json(route, fixed[path]);
