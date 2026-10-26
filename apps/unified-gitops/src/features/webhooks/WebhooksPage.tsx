@@ -43,7 +43,7 @@ export function WebhooksPage() {
       <PageHeader
         icon={ICONS.webhooks}
         title="Webhooks"
-        description="When an application changes, drifts or fails, a webhook sends what changed to an endpoint."
+        description="When an application changes, drifts or fails, a webhook can send what changed to an endpoint."
       />
       {webhooks.isPending && (
         <>
