@@ -42,7 +42,7 @@ export function WebhooksPage() {
       <PageHeader
         icon={ICONS.webhooks}
         title="Webhooks"
-        description="What the applications report, and where it goes: any receiver, or an Ascender or AWX job template's webhook."
+        description="When an application changes, drifts or fails, a webhook sends what changed to an endpoint."
       />
       {webhooks.isPending && (
         <>
