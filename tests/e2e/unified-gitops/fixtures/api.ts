@@ -354,6 +354,8 @@ const METRICS = (
 ) => `# TYPE unified_gitops_connector_calls_total counter
 unified_gitops_connector_calls_total{application="drifted",connector="kv",command="list",outcome="success"} ${6 * scrape}
 unified_gitops_connector_calls_total{application="drifted",connector="kv",command="apply",outcome="success"} ${2 * scrape}
+# TYPE unified_gitops_git_requests_total counter
+unified_gitops_git_requests_total{project="prj-state",operation="pull",outcome="success"} ${3 * scrape}
 # TYPE unified_gitops_connector_call_duration_seconds histogram
 unified_gitops_connector_call_duration_seconds_bucket{application="drifted",connector="kv",command="list",le="0.5"} ${6 * scrape}
 unified_gitops_connector_call_duration_seconds_bucket{application="drifted",connector="kv",command="list",le="1"} ${6 * scrape}

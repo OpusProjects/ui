@@ -162,7 +162,7 @@ function CallPanels({ scrapes }: { scrapes: Scrape[] }) {
   return (
     <MetricsRow>
       <Panel
-        title="Requests to applications per minute"
+        title="Requests sent to applications (per minute)"
         hint={`The rate of ${CALLS} between samples, times 60: every request this instance made to an application through its connector. list reads one kind, apply writes one change, describe starts each run. The tooltip splits it into reads, writes and failures.`}
         description={
           latestRate === null ? (
@@ -178,7 +178,7 @@ function CallPanels({ scrapes }: { scrapes: Scrape[] }) {
         <LineChart
           points={calls}
           series={3}
-          label="Requests to applications per minute"
+          label="Requests sent to applications (per minute)"
           format={(v) => `${compact(v)} per minute`}
           empty={COLLECTING}
         />

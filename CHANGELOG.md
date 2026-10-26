@@ -16,6 +16,7 @@ unified-ui version it builds into its image.
 
 ### Changed
 
+- unified-gitops Overview: "Requests sent to applications (per minute)", and under it "Requests sent to repositories (per minute)" in its own colour (every clone, pull and rollback fetch, from `unified_gitops_git_requests_total`); This instance counts the two on separate rows. Rate charts in both apps put the unit in parentheses, and This instance's labels share one column as wide as the longest.
 - Detail panels' facts sit in at most three columns, as Ascender and AWX lay out theirs: two when the panel is under 1024px wide, one under 672px (they filled as many 320px columns as fitted, four or five on a wide screen).
 - A fact with several values (`ValueList`: a source's credentials, a webhook's events, CORS origins, config keys) has "+N more" beside its first value instead of on a line of its own; "Show fewer" stays on its own line after the open list.
 - A fact whose value is a web address (an http or https URL, whole) is a link out, opened in a new tab with the external-link icon, in both apps (`linkify`, in `Fact` and `ValueList`); a webhook's Sends to is one.

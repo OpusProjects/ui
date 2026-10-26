@@ -97,12 +97,14 @@ test("the overview charts the calls made to the systems", async ({ page }) => {
   await mockApi(page);
   await page.goto("/");
   await expect(
-    page.getByText("Requests to applications per minute"),
+    page.getByText("Requests sent to applications (per minute)"),
   ).toBeVisible();
   await expect(page.getByText("Requests per minute")).toHaveCount(0);
   // Each point counts a whole minute, so the first needs a minute of samples.
   await page.clock.runFor(70_000);
-  const chart = page.getByLabel(/^Requests to applications per minute, latest/);
+  const chart = page.getByLabel(
+    /^Requests sent to applications \(per minute\), latest/,
+  );
   await expect(chart).toBeVisible();
   await chart.focus();
   const tip = page.getByRole("status").filter({ hasText: "in the minute" });
@@ -145,10 +147,10 @@ test("the metrics page charts calls to systems, not requests received", async ({
   await mockApi(page);
   await page.goto("/metrics");
   await expect(
-    page.getByText("Requests to applications per minute"),
+    page.getByText("Requests sent to applications (per minute)"),
   ).toBeVisible();
   await expect(page.getByText("Connector response time")).toBeVisible();
-  await expect(page.getByText("Incoming requests per minute")).toHaveCount(0);
+  await expect(page.getByText("Incoming requests (per minute)")).toHaveCount(0);
   // 6 reads at 300 ms and 2 writes at 900 ms a sample: a 450 ms mean.
   const chart = page.getByLabel(/^Mean connector response time, latest/);
   await expect(chart).toBeVisible({ timeout: 25_000 });
@@ -251,3 +253,23 @@ for (const [width, columns] of [
     expect(new Set(lefts).size).toBe(columns);
   });
 }
+
+test("the overview charts requests to applications and to repositories apart", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Requests sent to applications (per minute)",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Requests sent to repositories (per minute)",
+    }),
+  ).toBeVisible();
+  const instance = page.locator("section", { hasText: "This instance" });
+  await expect(instance.getByText("Requests to applications")).toBeVisible();
+  await expect(instance.getByText("Requests to repositories")).toBeVisible();
+});

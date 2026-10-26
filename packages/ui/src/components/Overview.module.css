@@ -187,11 +187,18 @@
   font-size: 14px;
 }
 
-/* One column of facts: the panel is narrow. */
+/* One column of facts: the panel is narrow. The labels share one column as
+   wide as the longest of them ("Requests to repositories"), so none wraps
+   and every value starts at the same place. */
 .instanceFacts {
   display: grid;
-  gap: 8px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 28px;
   margin: 0;
+}
+
+.instanceFacts > div {
+  display: contents;
 }
 
 /* The full-width chart under the two cards, a row's gap below them. */

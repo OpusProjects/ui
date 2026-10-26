@@ -191,7 +191,7 @@ export function TrafficPanels({
   return (
     <MetricsRow>
       <Panel
-        title="Incoming requests per minute"
+        title="Incoming requests (per minute)"
         hint={`The rate of ${prefix}_http_requests_total between samples, times 60. Requests to /metrics are left out, since this page makes them itself.`}
         description={
           latestRate === null ? (
@@ -207,7 +207,7 @@ export function TrafficPanels({
         <LineChart
           points={series}
           series={3}
-          label="Incoming requests per minute"
+          label="Incoming requests (per minute)"
           format={(v) => `${compact(v)} per minute`}
           empty={COLLECTING}
         />
