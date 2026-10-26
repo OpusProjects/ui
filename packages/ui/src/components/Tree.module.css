@@ -1,7 +1,6 @@
-/* Root on the left, each level of children in a column to its right.
-   Connectors: every child draws the horizontal stub to its left and its part
-   of the vertical spine; the first and last children trim the spine so it
-   runs exactly from the first child's middle to the last one's. */
+/* Root on the left, each level of children in a column to its right. The
+   lines are an SVG layer under each branch (Tree.tsx measures where the
+   cards are); on a narrow screen they become borders down the left. */
 .tree,
 .children {
   margin: 0;
@@ -10,14 +9,19 @@
 }
 
 .tree {
-  --tree-gap: 48px;
+  --tree-gap: 96px;
+  /* On a very wide screen the lines lengthen to the right edge, up to this:
+     past it a line is a long walk for the eye, not more information. */
+  max-width: 1600px;
   --tree-line: var(--uu-line-strong);
+  --tree-width: 3px;
   overflow-x: auto;
   /* Room above the first card, so it does not touch the text over it. */
   padding: 8px 0 4px;
 }
 
 .item {
+  position: relative;
   display: flex;
   align-items: center;
 }
@@ -28,123 +32,157 @@
    above the tree do, so their facts sit on one line instead of wrapping
    into a tall narrow column. */
 .node {
+  position: relative;
+  z-index: 1;
   flex: none;
   width: max-content;
-  min-width: 280px;
+  min-width: 520px;
   max-width: 640px;
 }
 
 .children {
   flex: 1 1 0;
   min-width: 0;
-}
-
-.children > .item > .node {
-  flex: 1 1 auto;
-  width: auto;
-  min-width: 300px;
-  max-width: none;
-}
-
-.children {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding-left: var(--tree-gap);
 }
 
-/* The stub from the parent to the spine. */
-.children::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: calc(var(--tree-gap) / 2);
-  border-top: 1px solid var(--tree-line);
-}
-
+/* The cards keep their width (Tree matches them); room left over goes into
+   the lines, an auto margin pushing each child to the far edge. Never past
+   the start: with no room to spare the margin is nothing and the tree
+   scrolls sideways, where pinning to the edge slid the cards back over the
+   parent. */
 .children > .item {
-  position: relative;
+  margin-left: auto;
 }
 
-/* Each child: the stub from the spine, and its share of the spine. */
-.children > .item::before,
-.children > .item::after {
-  content: "";
+/* The children size to their content too (no longer stretched to the
+   page's edge); Tree then gives every card the widest one's width. */
+.children > .item > .node {
+  flex: none;
+  width: max-content;
+  min-width: 520px;
+  max-width: 640px;
+}
+
+.tree[data-matched] .node {
+  width: var(--tree-card-width);
+}
+
+.links {
   position: absolute;
-  left: calc(var(--tree-gap) / -2);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.children > .item::before {
-  top: 50%;
-  width: calc(var(--tree-gap) / 2);
-  border-top: 1px solid var(--tree-line);
+.link {
+  stroke: var(--tree-line);
+  stroke-width: var(--tree-width);
+  stroke-linecap: round;
 }
 
-.children > .item::after {
-  top: -8px;
-  bottom: -8px;
-  border-left: 1px solid var(--tree-line);
+.link[data-link="ok"] {
+  /* A little lighter than the status green, so a page of lines is not a
+     page of solid green. */
+  stroke: color-mix(in srgb, var(--uu-fresh) 62%, #fff);
 }
 
-.children > .item:first-child::after {
-  top: 50%;
+/* The light's halo: its gradient's stops, a white heart fading through
+   the line's green into nothing, faint enough that the line shows through. */
+.pulseCore {
+  stop-color: #fff;
+  stop-opacity: 1;
 }
 
-.children > .item:last-child::after {
-  bottom: 50%;
+.pulseMid {
+  stop-color: color-mix(in srgb, var(--uu-fresh) 30%, #fff);
+  stop-opacity: 0.35;
 }
 
-.children > .item:only-child::after {
-  display: none;
+.pulseEdge {
+  stop-color: var(--uu-fresh);
+  stop-opacity: 0;
+}
+
+/* The light's heart: small and solid, on the line. */
+.pulseCoreDot {
+  fill: #fff;
+}
+
+/* Motion is decoration here: none for those who ask for less. */
+@media (prefers-reduced-motion: reduce) {
+  .pulses {
+    display: none;
+  }
+}
+
+.link[data-link="failing"] {
+  stroke: var(--uu-failing);
 }
 
 /* Narrow screens: one column, each level indented under its parent, the
-   spine down the left. */
+   spine down the left and a stub into each child in that child's colour. */
 @media (max-width: 760px) {
+  .links {
+    display: none;
+  }
+
   .item {
     flex-direction: column;
     align-items: stretch;
   }
 
+  .children > .item {
+    margin-left: 0;
+  }
+
   .node,
-  .children > .item > .node {
+  .children > .item > .node,
+  .tree[data-matched] .node {
     width: auto;
     min-width: 0;
     max-width: none;
   }
 
   .children {
+    position: relative;
     gap: 12px;
     padding: 12px 0 0 20px;
   }
 
-  .children::before {
-    display: none;
+  .children > .item::before,
+  .children > .item::after {
+    content: "";
+    position: absolute;
+    left: -12px;
   }
 
   .children > .item::before {
     top: 24px;
-    left: -12px;
     width: 12px;
+    border-top: var(--tree-width) solid var(--tree-stub, var(--tree-line));
   }
 
   .children > .item::after {
     top: -12px;
-    bottom: -12px;
-    left: -12px;
-  }
-
-  .children > .item:first-child::after {
-    top: -12px;
-  }
-
-  .children > .item:last-child::after {
     bottom: calc(100% - 24px);
+    border-left: var(--tree-width) solid var(--tree-line);
   }
 
-  .children > .item:only-child::after {
-    display: block;
+  .children > .item:not(:last-child)::after {
+    bottom: -12px;
+  }
+
+  .children > .item[data-link="ok"] {
+    --tree-stub: var(--uu-fresh);
+  }
+
+  .children > .item[data-link="failing"] {
+    --tree-stub: var(--uu-failing);
   }
 }

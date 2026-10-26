@@ -118,12 +118,19 @@ export function EmptyState({ title, children }: EmptyStateProps) {
 interface NoticeProps {
   title: string;
   children?: ReactNode;
+  // "failing" (red, the default): something broke. "stale" (amber): a
+  // state someone chose and has to come back to, like a rollback.
+  tone?: "failing" | "stale";
 }
 
 // A failure to load the page itself, as opposed to a failing resource on it.
-export function Notice({ title, children }: NoticeProps) {
+export function Notice({ title, children, tone = "failing" }: NoticeProps) {
   return (
-    <div className={styles.notice} role="alert">
+    <div
+      className={styles.notice}
+      data-tone={tone}
+      role={tone === "failing" ? "alert" : "status"}
+    >
       <p className={styles.noticeTitle}>{title}</p>
       {children && <div>{children}</div>}
     </div>
@@ -232,7 +239,9 @@ export function ChipList({
 }
 
 interface BadgeProps {
-  tone?: "accent" | "neutral" | "off";
+  // good / warning / danger carry a state (a create, an update, a delete in
+  // a gitops plan), in the health colours, with the word inside saying it.
+  tone?: "accent" | "neutral" | "off" | "good" | "warning" | "danger";
   children: ReactNode;
 }
 

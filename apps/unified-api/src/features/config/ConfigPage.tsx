@@ -1,9 +1,8 @@
 import { Link } from "react-router";
-import { ChevronDown } from "lucide-react";
 import {
-  Badge,
-  ChipList,
   EmptyState,
+  SecretsPanel,
+  SignInPanels,
   Fact,
   Notice,
   PageHeader,
@@ -13,6 +12,7 @@ import {
   formatBytes,
   formatSpan,
 } from "@opusprojects/unified-ui";
+import { ValueList } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
 import {
   useAuth,
@@ -20,9 +20,8 @@ import {
   useProjects,
   useSettings,
 } from "../../api/queries";
-import { common } from "../../shared/Detail";
+import { Clip, detailStyles as common, onOff } from "@opusprojects/unified-ui";
 import { ICONS } from "../../sections";
-import styles from "../../shared/pages.module.css";
 
 type AuthInfo = Schemas["AuthInfo"];
 type Settings = Schemas["Settings"];
@@ -42,7 +41,7 @@ const HINTS: Record<string, string> = {
   Checkouts:
     "The configured git projects with a clone on this instance's disk. One missing cannot run its scripts.",
   Address:
-    "server.host and server.port. Where this instance listens." + AT_START,
+    "server.url: where people reach this instance, the address it is known by. Unset: server.host and server.port, where the process listens (restart-only).",
   "Web UI":
     "server.ui.enabled. Whether this interface and its sign-in page are served." +
     AT_START,
@@ -73,27 +72,6 @@ const HINTS: Record<string, string> = {
   "Config API":
     "config_api.enabled. Whether the configuration files can be read, pushed and reloaded over /api/v1/config." +
     AT_START,
-  "Secret cache":
-    "secrets.cache_ttl_seconds. How long a resolved secret is reused, which is also how long a rotated secret takes to be picked up.",
-  Vault:
-    "secrets.vault.address. The Vault credentials can be read from (with vault_path in credentials.yaml). Not used: secrets come only from environment variables and files.",
-  Credentials:
-    "The credentials configured, and whether their secrets resolve right now. The Credentials page has each one.",
-  "Vault timeout":
-    "secrets.vault.timeout_seconds. How long a Vault call may take before resolution fails.",
-  "Vault mount": "secrets.vault.mount. The KV v2 engine secrets are read from.",
-  "Vault sign-in":
-    "secrets.vault.kubernetes_role, or token_env. How this instance signs in to Vault: as its Kubernetes service account, or with a token from an environment variable.",
-  Server: "server.ui.ldap.url. The directory sign-ins are checked against.",
-  Encryption:
-    "ldaps:// is encrypted from the start; ldap:// with server.ui.ldap.starttls upgrades the connection first.",
-  "Trusted CA":
-    "server.ui.ldap.ca_file. The certificate authority the directory's certificate must chain to.",
-  "LDAP sign-in":
-    "server.ui.ldap. Whether people can sign in with their directory username and password. API keys are always accepted, by header or on the sign-in page.",
-  "Bind account":
-    "server.ui.ldap.bind_credential. The credential of the service account that looks users up.",
-  "Search base": "server.ui.ldap.search_base. Where users are looked for.",
 };
 
 // Read-only on purpose: every setting here is declared in the configuration
@@ -144,12 +122,8 @@ export function ConfigPage() {
   );
 }
 
-const onOff = (on: boolean | null | undefined) =>
-  on == null ? "Unknown" : on ? "On" : "Off";
-
 function ServerPanels({ settings }: { settings: Settings }) {
   const { server, cache, projects, secrets, config_api } = settings;
-  const vault = secrets.vault;
   const projectList = useProjects().data;
   const credentialList = useCredentials().data;
   const missing = credentialList?.filter((c) => !c.resolves).length ?? 0;
@@ -157,7 +131,7 @@ function ServerPanels({ settings }: { settings: Settings }) {
     ? "…"
     : missing > 0
       ? `${missing} of ${credentialList.length} missing`
-      : `${credentialList.length}, all resolve`;
+      : `${credentialList.length}, all working`;
   const checkouts = projectList
     ? `${projectList.filter((p) => p.checkout_present).length} of ${projectList.length} on disk`
     : "…";
@@ -171,7 +145,19 @@ function ServerPanels({ settings }: { settings: Settings }) {
             v{settings.version}
           </Fact>
           <Fact label="Address" hint={HINTS["Address"]}>
-            {server.host != null ? (
+            {server.url ? (
+              <a
+                className={`${common.link} ${common.clipText}`}
+                href={server.url}
+                title={
+                  server.host != null
+                    ? `Listens on ${server.host}:${server.port}`
+                    : undefined
+                }
+              >
+                {server.url}
+              </a>
+            ) : server.host != null ? (
               <code className={common.mono}>
                 {server.host}:{server.port}
               </code>
@@ -199,16 +185,7 @@ function ServerPanels({ settings }: { settings: Settings }) {
               : "Any source synced"}
           </Fact>
           <Fact label="Browser origins" hint={HINTS["Browser origins"]}>
-            {server.cors_allowed_origins.length > 0 ? (
-              <span
-                className={common.clipText}
-                title={server.cors_allowed_origins.join(", ")}
-              >
-                {server.cors_allowed_origins.join(", ")}
-              </span>
-            ) : (
-              "None"
-            )}
+            <ValueList values={server.cors_allowed_origins} mono />
           </Fact>
           <Fact label="Request size" hint={HINTS["Request size"]}>
             Up to {formatBytes(server.max_body_bytes)}
@@ -231,12 +208,7 @@ function ServerPanels({ settings }: { settings: Settings }) {
         <dl className={common.facts}>
           <Fact label="Cache snapshot" hint={HINTS["Cache snapshot"]}>
             {cache.persistence_path ? (
-              <code
-                className={`${common.mono} ${common.clipText}`}
-                title={cache.persistence_path}
-              >
-                {cache.persistence_path}
-              </code>
+              <Clip value={cache.persistence_path} />
             ) : (
               "Off"
             )}
@@ -257,16 +229,7 @@ function ServerPanels({ settings }: { settings: Settings }) {
           </Fact>
 
           <Fact label="Projects folder" hint={HINTS["Projects folder"]}>
-            {projects.dir ? (
-              <code
-                className={`${common.mono} ${common.clipText}`}
-                title={projects.dir}
-              >
-                {projects.dir}
-              </code>
-            ) : (
-              "Unknown"
-            )}
+            {projects.dir ? <Clip value={projects.dir} /> : "Unknown"}
           </Fact>
           <Fact label="Checkouts" hint={HINTS["Checkouts"]}>
             {checkouts}
@@ -277,204 +240,47 @@ function ServerPanels({ settings }: { settings: Settings }) {
         </dl>
       </Panel>
 
-      <Panel
-        title="Secrets"
+      <SecretsPanel
+        secrets={secrets}
+        credentialSummary={credentialSummary}
         aside={
           <Link to="/credentials" className={common.link}>
             See every credential
           </Link>
         }
-      >
-        <dl className={common.facts}>
-          <Fact label="Secret cache" hint={HINTS["Secret cache"]}>
-            {formatSpan(secrets.cache_ttl_seconds)}
-          </Fact>
-          <Fact label="Vault" hint={HINTS["Vault"]}>
-            {vault ? (
-              <code
-                className={`${common.mono} ${common.clipText}`}
-                title={vault.address}
-              >
-                {vault.address}
-              </code>
-            ) : (
-              "Not used"
-            )}
-          </Fact>
-          <Fact label="Credentials" hint={HINTS["Credentials"]}>
-            {credentialSummary}
-          </Fact>
-          {vault && (
-            <>
-              <Fact label="Vault mount" hint={HINTS["Vault mount"]}>
-                <code className={common.mono}>{vault.mount}</code>
-              </Fact>
-              <Fact label="Vault sign-in" hint={HINTS["Vault sign-in"]}>
-                {vault.auth === "kubernetes"
-                  ? `Kubernetes role ${vault.kubernetes_role ?? ""}`
-                  : `Token from ${vault.token_env ?? "an env var"}`}
-              </Fact>
-              <Fact label="Vault timeout" hint={HINTS["Vault timeout"]}>
-                {formatSpan(vault.timeout_seconds)}
-              </Fact>
-            </>
-          )}
-        </dl>
-      </Panel>
+      />
     </>
   );
-}
-
-// "src-vmware, ep-ansible-full", or Everything for an admin.
-function scope(role: string, sources: string[], endpoints: string[]) {
-  if (role === "admin") return "Everything";
-  const all = [...sources, ...endpoints];
-  return all.length > 0 ? all.join(", ") : "Nothing";
 }
 
 function SignIn({ auth }: { auth: AuthInfo }) {
   const { me, methods, ldap, api_keys } = auth;
   if (me.role !== "admin") return null;
   return (
-    <>
-      <Panel title="LDAP">
-        <dl className={common.facts}>
-          <Fact label="LDAP sign-in" hint={HINTS["LDAP sign-in"]}>
-            {methods.ldap ? "On" : "Off"}
-          </Fact>
-          {ldap && (
-            <>
-              <Fact label="Server" hint={HINTS["Server"]}>
-                <code
-                  className={`${common.mono} ${common.clipText}`}
-                  title={ldap.url}
-                >
-                  {ldap.url}
-                </code>
-              </Fact>
-              <Fact label="Encryption" hint={HINTS["Encryption"]}>
-                {ldap.url.toLowerCase().startsWith("ldaps://")
-                  ? "LDAPS"
-                  : ldap.starttls
-                    ? "StartTLS"
-                    : "None"}
-              </Fact>
-              <Fact label="Bind account" hint={HINTS["Bind account"]}>
-                <Link
-                  className={common.link}
-                  to={`/credentials/${encodeURIComponent(ldap.bind_credential)}`}
-                >
-                  {ldap.bind_credential}
-                </Link>
-              </Fact>
-              <Fact label="Search base" hint={HINTS["Search base"]}>
-                <code
-                  className={`${common.mono} ${common.clipText}`}
-                  title={ldap.search_base}
-                >
-                  {ldap.search_base}
-                </code>
-              </Fact>
-              <Fact label="Trusted CA" hint={HINTS["Trusted CA"]}>
-                {ldap.ca_file ? (
-                  <code
-                    className={`${common.mono} ${common.clipText}`}
-                    title={ldap.ca_file}
-                  >
-                    {ldap.ca_file}
-                  </code>
-                ) : (
-                  "System trust store"
-                )}
-              </Fact>
-            </>
-          )}
-        </dl>
-        {!ldap && (
-          <p className={common.note}>
-            To let people sign in with their directory account, add
-            server.ui.ldap to config.yaml with the groups that may sign in (see
-            docs/ldap-login.md in unified-api).
-          </p>
-        )}
-        {ldap && (
-          // Folded by default: who may sign in is looked up now and then,
-          // the directory's settings above every time.
-          <details className={styles.fold}>
-            <summary title="Who may sign in with LDAP, and what they may use. Combined: admin in any matching rule is admin. Someone no rule names cannot sign in, even with the right password.">
-              LDAP access rules ({ldap.access.length})
-              <ChevronDown aria-hidden />
-            </summary>
-            <div className={styles.plainWrap}>
-              <table className={styles.plain}>
-                <thead>
-                  <tr>
-                    <th scope="col">Rule</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">Who</th>
-                    <th scope="col">May use</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ldap.access.map((rule) => (
-                    <tr key={rule.name}>
-                      <th scope="row">{rule.name}</th>
-                      <td>
-                        <Badge
-                          tone={rule.role === "admin" ? "accent" : "neutral"}
-                        >
-                          {rule.role === "admin" ? "Admin" : "Restricted"}
-                        </Badge>
-                      </td>
-                      <td>
-                        <ChipList
-                          items={[...rule.groups, ...rule.users]}
-                          limit={3}
-                        />
-                      </td>
-                      <td>{scope(rule.role, rule.sources, rule.endpoints)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        )}
-      </Panel>
-
-      {api_keys && (
-        <Panel
-          title="API keys"
-          hint="For automation, and break-glass access when the directory is down. Declared in api_keys.yaml; only names and scopes are shown, never a key."
+    <SignInPanels
+      ldapOn={methods.ldap}
+      ldap={
+        ldap && {
+          ...ldap,
+          access: ldap.access.map((rule) => ({
+            ...rule,
+            scope: [...rule.sources, ...rule.endpoints],
+          })),
+        }
+      }
+      apiKeys={api_keys?.map((key) => ({
+        ...key,
+        scope: [...key.sources, ...key.endpoints],
+      }))}
+      bindAccountLink={(id, className) => (
+        <Link
+          className={className}
+          to={`/credentials/${encodeURIComponent(id)}`}
         >
-          <div className={styles.plainWrap}>
-            <table className={styles.plain}>
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Role</th>
-                  <th scope="col">May use</th>
-                </tr>
-              </thead>
-              <tbody>
-                {api_keys.map((key) => (
-                  <tr key={key.name}>
-                    <th scope="row">
-                      <code className={common.mono}>{key.name}</code>
-                    </th>
-                    <td>
-                      <Badge tone={key.role === "admin" ? "accent" : "neutral"}>
-                        {key.role === "admin" ? "Admin" : "Restricted"}
-                      </Badge>
-                    </td>
-                    <td>{scope(key.role, key.sources, key.endpoints)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+          {id}
+        </Link>
       )}
-    </>
+      ldapDocs="docs/ldap-login.md in unified-api"
+    />
   );
 }

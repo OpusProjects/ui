@@ -100,6 +100,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/connectors": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["list_connectors"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/connectors/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["get_connector"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/credentials": {
     parameters: {
       query?: never;
@@ -324,6 +356,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/sources/{id}/groups/{group}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["get_source_group"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/sources/{id}/hosts": {
     parameters: {
       query?: never;
@@ -420,6 +468,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/topology/federation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["get_federation"];
+    put: operations["put_federation"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/healthz": {
     parameters: {
       query?: never;
@@ -485,6 +549,8 @@ export interface components {
       auth: string;
       /** @description Admin-only, and only when config_api.enabled is on */
       config?: string | null;
+      /** @description Admin-only route; absent for a restricted key */
+      connectors?: string | null;
       /** @description Configured credentials and whether they resolve (admin-only) */
       credentials: string;
       docs: string;
@@ -645,6 +711,7 @@ export interface components {
     };
     ConfigSummary: {
       api_keys: number;
+      connectors: number;
       credentials: number;
       endpoints: number;
       enrichers: number;
@@ -652,8 +719,64 @@ export interface components {
       sources: number;
       views: number;
     };
+    /** @description What a sync-health summary across a connector's sources says at a glance. */
+    ConnectorHealth: {
+      /** @description Last attempt failed (consecutive_failures > 0) */
+      failing: number;
+      /** @description Last attempt succeeded */
+      healthy: number;
+      /** @description No attempt recorded yet in this process */
+      never_synced: number;
+      sources: number;
+    };
+    ConnectorInfo: {
+      /** @description One of the connectors every instance has, which no item defines */
+      built_in: boolean;
+      /** @description The connector's identity: what a source writes after `connector:` */
+      connector_id: string;
+      /** @description "script", "ssh", "remote" or "static_inventory" */
+      connector_type: string;
+      /** @description Those sources' sync health, counted */
+      health: components["schemas"]["ConnectorHealth"];
+      host_args: string[];
+      /** @description Its description, or the identity when it has none */
+      name: string;
+      /** @description "native" or "ansible" for a script connector; null otherwise */
+      output_format?: string | null;
+      /** @description Null for the built-ins */
+      path?: string | null;
+      /**
+       * @description The project whose checkout holds the script. Null for ssh (the script
+       *     runs on the remote host) and for the built-ins (a static_inventory
+       *     source names its own project)
+       */
+      project_id?: string | null;
+      script_args: string[];
+      /**
+       * Format: int64
+       * @description The connector's own bound on a sync; a source may override it. Null for
+       *     the built-ins, whose sources fall back to 300
+       */
+      timeout_seconds?: number | null;
+      /** @description The sources that name this connector, by id */
+      used_by: components["schemas"]["ConnectorUser"][];
+    };
     /** @enum {string} */
     ConnectorType: "script" | "ssh" | "static_inventory" | "remote";
+    ConnectorUser: {
+      /** @description Whether the last sync of this source failed */
+      failing: boolean;
+      name: string;
+      source_id: string;
+      /** @description Whether it has synced successfully at least once in this process */
+      synced: boolean;
+      /**
+       * Format: int64
+       * @description The timeout this source actually syncs under (its override, or the
+       *     connector's)
+       */
+      timeout_seconds: number;
+    };
     CredentialInfo: {
       /**
        * @description Where the secrets are read from: `vault`, `env`, `file`, or `files`
@@ -781,6 +904,32 @@ export interface components {
       hosts_dropped: number;
       source_id: string;
     };
+    Federation: {
+      /**
+       * Format: int64
+       * @description Seconds since it arrived. Senders push every minute, so an old one
+       *     means the sender stopped (or lost its way here).
+       */
+      age_seconds: number;
+      /** @description The API key the sender authenticated with: which instance it was */
+      pushed_by: string;
+      sender: components["schemas"]["InstanceSummary"];
+      /** @description The sender's address, when its `server.url` declares one */
+      sender_url?: string | null;
+      topology: components["schemas"]["Topology"];
+      /** @description This instance's address, as the sender spells it */
+      url: string;
+    };
+    FederationPush: {
+      /** @description The sender's own facts */
+      sender?: components["schemas"]["InstanceSummary"];
+      /** @description The sender's own address (its `server.url`), when it declares one */
+      sender_url?: string | null;
+      /** @description The sender's topology, this instance included as one of its peers */
+      topology: components["schemas"]["Topology"];
+      /** @description This instance's address, as the sender's remote sources spell it */
+      url: string;
+    };
     FileKeyInfo: {
       name: string;
       path: string;
@@ -811,10 +960,20 @@ export interface components {
        *     page says what is parameterised without widening who can read it.
        */
       config_keys: string[];
+      /**
+       * @description The connector this source names: a connector item
+       *     (`/api/v1/connectors/{id}`) or a built-in (`remote`, `static_inventory`)
+       */
+      connector: string;
       connector_type: components["schemas"]["ConnectorType"];
       /** @description Credential ids this connector is given — names, never secrets */
       credential_ids: string[];
-      project_id: string;
+      /**
+       * @description The project whose checkout holds the script (from the connector) or
+       *     the inventory (a static_inventory source's own). Null for remote and
+       *     ssh sources, which run nothing from a checkout
+       */
+      project_id?: string | null;
       /**
        * @description For a remote source, the instance it pulls from (its `config.url`).
        *     The one config value shown: it is an address, not a secret, and
@@ -833,6 +992,14 @@ export interface components {
       sync_mode: components["schemas"]["SyncMode"];
       /** Format: int64 */
       timeout_seconds: number;
+    };
+    GroupDetail: {
+      children: string[];
+      /** @description Unique hosts in the group */
+      host_count: number;
+      name: string;
+      /** @description The group's own variables, sorted by name; empty when it has none */
+      vars: Record<string, never>;
     };
     GroupInfo: {
       children: string[];
@@ -864,6 +1031,20 @@ export interface components {
       is_fresh: boolean;
       /** Format: int64 */
       ttl_seconds: number;
+    };
+    InstanceSummary: {
+      endpoints: number;
+      /** @description Groups across those sources' caches, added up */
+      groups: number;
+      /** @description Hosts across those sources' caches, added up */
+      hosts: number;
+      /**
+       * Format: int64
+       * @description Age of its oldest cached data; null when nothing is cached
+       */
+      oldest_age_seconds?: number | null;
+      /** @description Its source ids, sorted (views left out: they hold no data of their own) */
+      sources: string[];
     };
     LdapInfo: {
       access: components["schemas"]["AccessRuleInfo"][];
@@ -923,6 +1104,12 @@ export interface components {
       groups?: number | null;
       hosts?: number | null;
       last_error?: string | null;
+      /**
+       * Format: int64
+       * @description Seconds since the last pull that worked: when data last moved along
+       *     this link. Absent until one has.
+       */
+      last_pull_age_seconds?: number | null;
       /** @description The source it reads on the peer */
       remote_source: string;
       /** @description The source id on this instance */
@@ -932,9 +1119,13 @@ export interface components {
       branch: string;
       /** @description Whether a checkout currently exists on disk */
       checkout_present: boolean;
+      /** @description The credential it pulls with, when the repository needs one */
+      credential_id?: string | null;
       git_url: string;
       name: string;
       project_id: string;
+      /** @description The commit the checkout is at (full id); null without a checkout */
+      revision?: string | null;
       /** @description Cron expression (UTC) for re-pulls, the alternative to an interval */
       schedule?: string | null;
       sync_health?: components["schemas"]["SyncHealthInfo"] | null;
@@ -963,8 +1154,14 @@ export interface components {
       success: boolean;
     };
     ProjectUsers: {
+      /** @description Connectors whose scripts live in this checkout */
+      connectors: string[];
       endpoints: string[];
       enrichers: string[];
+      /**
+       * @description Sources that run from it: through their connector, or (static
+       *     inventory) by naming it themselves
+       */
       sources: string[];
     };
     ProjectsSettings: {
@@ -982,6 +1179,7 @@ export interface components {
       api_keys: number;
       /** @description Sections that changed and are now live */
       applied: string[];
+      connectors: components["schemas"]["DeltaInfo"];
       credentials: components["schemas"]["DeltaInfo"];
       endpoints: components["schemas"]["DeltaInfo"];
       enrichers: components["schemas"]["DeltaInfo"];
@@ -1035,6 +1233,8 @@ export interface components {
       host?: string | null;
       max_body_bytes: number;
       metrics_require_auth: boolean;
+      /** @description What this instance is called, as `server.name` declares it */
+      name?: string | null;
       /**
        * Format: int32
        * @description Restart-only, like host
@@ -1047,6 +1247,8 @@ export interface components {
       /** Format: int64 */
       shutdown_grace_seconds: number;
       ui: components["schemas"]["UiSettings"];
+      /** @description This instance's address, as `server.url` declares it; null when unset */
+      url?: string | null;
     };
     Settings: {
       cache: components["schemas"]["CacheSettings"];
@@ -1151,6 +1353,8 @@ export interface components {
       total_hosts: number;
     };
     Topology: {
+      /** @description What the instance is called (its `server.name`), when it says */
+      name?: string | null;
       /** @description The instances it pulls from, by base URL */
       peers?: components["schemas"]["Peer"][];
       /**
@@ -1478,7 +1682,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description File name, e.g. sources.yaml */
+        /** @description Path inside the configuration directory, e.g. sources/acme/src-d42-acme.yaml (slashes allowed) */
         file: string;
       };
       cookie?: never;
@@ -1529,7 +1733,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        /** @description File name, e.g. sources.yaml */
+        /** @description Path inside the configuration directory, e.g. sources/acme/src-d42-acme.yaml (slashes allowed) */
         file: string;
       };
       cookie?: never;
@@ -1605,7 +1809,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        /** @description File name, e.g. enrichers.yaml */
+        /** @description Path inside the configuration directory, e.g. sources/acme/src-d42-acme.yaml (slashes allowed) */
         file: string;
       };
       cookie?: never;
@@ -1659,6 +1863,76 @@ export interface operations {
       };
       /** @description If-Match did not match the file's current ETag */
       412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  list_connectors: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Every connector (the configured ones and the two built-ins), what it runs, the sources that use it and their health */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConnectorInfo"][];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  get_connector: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Connector identifier, e.g. d42, or a built-in: remote, static_inventory */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One connector, what it runs, the sources that use it and their health */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConnectorInfo"];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description No such connector */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -2407,6 +2681,49 @@ export interface operations {
       };
     };
   };
+  get_source_group: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Source identifier */
+        id: string;
+        /** @description Group name */
+        group: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The group: its variables, its child groups and how many hosts it has */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GroupDetail"];
+        };
+      };
+      /** @description API key not allowed to read this source */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Source not in cache, or no such group in it */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
   list_source_hosts: {
     parameters: {
       query?: {
@@ -2738,6 +3055,93 @@ export interface operations {
       };
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  get_federation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One entry per instance that reads from this one and pushed its map in the last ten minutes. Empty on an instance nothing reads from */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Federation"][];
+        };
+      };
+      /** @description Not authenticated */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Not an admin key */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  put_federation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FederationPush"];
+      };
+    };
+    responses: {
+      /** @description Stored under the sending key's name, replacing that key's previous push */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The body is not a federation push */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Not authenticated */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Signed in through the UI rather than with an API key */
+      403: {
         headers: {
           [name: string]: unknown;
         };

@@ -15,10 +15,10 @@ import { Link } from "react-router";
 import { ExternalLink } from "lucide-react";
 import { useEndpoints } from "../../api/queries";
 import { ENDPOINT_LABELS, endpointState } from "./model";
-import { ListToolbar } from "../../shared/ListToolbar";
-import { useListFilter } from "../../shared/useListFilter";
+import { ListToolbar } from "@opusprojects/unified-ui";
+import { useListFilter } from "@opusprojects/unified-client";
 import { ICONS } from "../../sections";
-import styles from "../../shared/pages.module.css";
+import { pageStyles as styles } from "@opusprojects/unified-ui";
 
 type Endpoint = Schemas["EndpointInfo"];
 
@@ -76,7 +76,7 @@ export function EndpointsPage() {
               }
             >
               {items.length === 0
-                ? "Declare an endpoint in endpoints.yaml to serve a source in a consumer's format."
+                ? "Declare one under endpoints: in the configuration to serve a source in a consumer's format."
                 : "Clear the search or the filter to see every endpoint."}
             </EmptyState>
           ) : (
@@ -109,10 +109,14 @@ export function EndpointsPage() {
                   }
                 >
                   <Fact label="Sources">
-                    <strong>
-                      {endpoint.sources_ready} of {endpoint.source_ids.length}
-                    </strong>
-                    <span className={styles.soft}>ready</span>
+                    {/* One phrase, one element: a fact's parts are spaced
+                        as separate items, wider than a word gap. */}
+                    <span>
+                      <strong>
+                        {endpoint.sources_ready} of {endpoint.source_ids.length}
+                      </strong>{" "}
+                      <span className={styles.soft}>ready</span>
+                    </span>
                   </Fact>
                   {endpoint.sources_missing.length > 0 && (
                     <Fact label="Missing">

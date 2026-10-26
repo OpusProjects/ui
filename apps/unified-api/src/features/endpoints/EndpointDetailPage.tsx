@@ -11,10 +11,11 @@ import {
   SkeletonSummary,
   formatSpan,
 } from "@opusprojects/unified-ui";
+import { ValueList } from "@opusprojects/unified-ui";
 import { sum, useMetrics } from "@opusprojects/unified-client";
 import type { Schemas } from "../../api/client";
 import { useEndpointCounts, useEndpoints } from "../../api/queries";
-import { DetailTitle, common } from "../../shared/Detail";
+import { DetailTitle, detailStyles as common } from "@opusprojects/unified-ui";
 import { SourceTable } from "../../shared/SourceTable";
 import { ENDPOINT_LABELS, endpointState } from "./model";
 import { ICONS } from "../../sections";
@@ -24,7 +25,7 @@ type Endpoint = Schemas["EndpointInfo"];
 const outputUrl = (id: string) => `/api/v1/endpoints/${encodeURIComponent(id)}`;
 
 // What each overview fact means, behind its label. Settings start with
-// their key in endpoints.yaml, which is where they are changed.
+// their key in the endpoint's item file, which is where they are changed.
 const HINTS: Record<string, string> = {
   "Sources ready":
     "How many of the sources this endpoint combines have data. Until every one does, a call fails (503) instead of returning part of the inventory.",
@@ -39,8 +40,7 @@ const HINTS: Record<string, string> = {
   "Average time":
     "How long a call takes on average, since this instance started.",
   Script: "script_path. The transformer the output comes from.",
-  Project:
-    "project_id. The git project, from projects.yaml, that holds the script.",
+  Project: "project. The git project that holds the script.",
   Timeout:
     "timeout_seconds. How long the script may run. One that runs longer is stopped and the call fails.",
   Settings:
@@ -126,6 +126,7 @@ function Overview({ endpoint }: { endpoint: Endpoint }) {
   return (
     <Panel
       title="Overview"
+      hint="What this endpoint serves, which sources it combines, and how the output is shaped for its consumers."
       aside={
         <HealthPill state={endpointState(endpoint)} labels={ENDPOINT_LABELS} />
       }
@@ -196,12 +197,7 @@ function Overview({ endpoint }: { endpoint: Endpoint }) {
         )}
         {transform && transform.config_keys.length > 0 && (
           <Fact label="Settings" hint={HINTS["Settings"]}>
-            <span
-              className={common.clipText}
-              title={transform.config_keys.join(", ")}
-            >
-              {transform.config_keys.join(", ")}
-            </span>
+            <ValueList values={transform.config_keys} mono />
           </Fact>
         )}
       </dl>

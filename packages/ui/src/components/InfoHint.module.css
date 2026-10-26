@@ -39,13 +39,13 @@
 }
 
 .text {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: -8px;
-  z-index: 3;
+  /* Fixed: placed in the window's coordinates by InfoHint, so it never
+     counts towards the page's size, and so never adds a scrollbar. */
+  position: fixed;
+  z-index: 60;
   width: max-content;
   /* Never wider than the window, less its margins. */
-  max-width: min(290px, calc(100vw - 16px));
+  max-width: min(290px, calc(100vw - 32px));
   padding: 8px 10px;
   border: 1px solid var(--uu-line);
   border-radius: var(--uu-radius-small);

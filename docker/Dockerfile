@@ -8,10 +8,11 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/client/package.json packages/client/
 COPY packages/ui/package.json packages/ui/
 COPY apps/unified-api/package.json apps/unified-api/
+COPY apps/unified-gitops/package.json apps/unified-gitops/
 RUN npm ci --no-audit --no-fund
 COPY packages/ packages/
 COPY apps/ apps/
-RUN npm run build
+RUN npm run build:api
 
 FROM nginx:1.29-alpine
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template

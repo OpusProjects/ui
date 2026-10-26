@@ -1,23 +1,10 @@
-import {
-  ChartLine,
-  Database,
-  FolderGit2,
-  KeyRound,
-  LayoutDashboard,
-  Network,
-  SlidersHorizontal,
-  Waypoints,
-} from "lucide-react";
+import { Database, Network, Waypoints } from "lucide-react";
+import { SECTION_ICONS } from "@opusprojects/unified-ui";
 
-// Each section's icon, once: the menu and the page titles show the same one,
-// so a page is recognisable as the menu item it came from.
+// Each section's icon: the shared ones, and this app's own.
 export const ICONS = {
-  overview: <LayoutDashboard />,
+  ...SECTION_ICONS,
   sources: <Database />,
   endpoints: <Waypoints />,
-  projects: <FolderGit2 />,
-  credentials: <KeyRound />,
   topology: <Network />,
-  metrics: <ChartLine />,
-  config: <SlidersHorizontal />,
 };

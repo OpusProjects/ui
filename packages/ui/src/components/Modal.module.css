@@ -1,0 +1,100 @@
+/* The dialog: in the middle of the screen, over the page. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--uu-ink) 35%, transparent);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: 76vh;
+  overflow: hidden;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.22);
+}
+
+/* Focused by a click on its text (to keep the keys in it): no ring. */
+.dialog:focus {
+  outline: none;
+}
+
+/* The dialog's title, and the way out of it, on one line. */
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 10px 12px 16px;
+  border-bottom: 1px solid var(--uu-line);
+}
+
+.title {
+  margin: 0;
+  color: var(--uu-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.close {
+  display: inline-flex;
+  padding: 5px;
+  border: 0;
+  border-radius: var(--uu-radius-small);
+  background: transparent;
+  color: var(--uu-ink-soft);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--uu-surface-sunken);
+  color: var(--uu-ink);
+}
+
+.close:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+.close svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* A question rather than a tool: narrower, so its lines stay readable. */
+.dialog[data-size="narrow"] {
+  width: min(460px, 100%);
+}
+
+/* Grows to the dialog's height, then scrolls: a long list of changes must
+   not push the buttons off the screen. */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 16px;
+  color: var(--uu-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Cancel, then the action, on the right: the order every dialog uses. */
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--uu-line);
+}

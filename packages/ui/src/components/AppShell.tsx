@@ -1,8 +1,12 @@
+import { ConfirmProvider } from "./Modal";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 import styles from "./AppShell.module.css";
 
 interface AppShellProps {
   product: string;
+  // The product's mark, over its name: the same image as the browser tab's
+  // icon, so the two are recognisably one app.
+  logo?: string;
   version?: string;
   nav: ReactNode;
   footer?: ReactNode;
@@ -20,6 +24,7 @@ interface AppShellProps {
 // version, the product's own navigation, and the page.
 export function AppShell({
   product,
+  logo,
   version,
   nav,
   footer,
@@ -27,25 +32,29 @@ export function AppShell({
   search,
   children,
 }: AppShellProps) {
+  // Every page's confirmations (useConfirm) open in the app's own dialog.
   return (
-    <div className={styles.shell}>
-      <aside className={styles.rail}>
-        <div className={styles.brand}>
-          {homeLink ? (
-            homeLink(product, `${styles.product} ${styles.productLink}`)
-          ) : (
-            <span className={styles.product}>{product}</span>
-          )}
-          {version && <span className={styles.version}>v{version}</span>}
-        </div>
-        {search && <div className={styles.search}>{search}</div>}
-        <nav className={styles.nav} aria-label="Main">
-          {nav}
-        </nav>
-        {footer && <div className={styles.footer}>{footer}</div>}
-      </aside>
-      <main className={styles.main}>{children}</main>
-    </div>
+    <ConfirmProvider>
+      <div className={styles.shell}>
+        <aside className={styles.rail}>
+          <div className={styles.brand}>
+            {logo && <img className={styles.logo} src={logo} alt="" />}
+            {homeLink ? (
+              homeLink(product, `${styles.product} ${styles.productLink}`)
+            ) : (
+              <span className={styles.product}>{product}</span>
+            )}
+            {version && <span className={styles.version}>v{version}</span>}
+          </div>
+          {search && <div className={styles.search}>{search}</div>}
+          <nav className={styles.nav} aria-label="Main">
+            {nav}
+          </nav>
+          {footer && <div className={styles.footer}>{footer}</div>}
+        </aside>
+        <main className={styles.main}>{children}</main>
+      </div>
+    </ConfirmProvider>
   );
 }
 

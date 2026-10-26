@@ -3,8 +3,12 @@
 // every page that names an instance (Topology, a remote source's overview).
 export function instanceName(url: string) {
   try {
-    const host = new URL(url).hostname.split(".")[0];
-    return host.replace(/^unified-api-?/, "") || host;
+    const { hostname, host } = new URL(url);
+    // An address, not a name ("10.0.4.17", "localhost"): its first part says
+    // nothing, so the address and port name it.
+    if (hostname === "localhost" || /^[\d.]+$|^\[/.test(hostname)) return host;
+    const first = hostname.split(".")[0];
+    return first.replace(/^unified-api-?/, "") || first;
   } catch {
     return url;
   }

@@ -134,6 +134,7 @@
 }
 
 .cardLink {
+  min-width: 0;
   color: inherit;
   text-decoration: none;
 }
@@ -167,6 +168,15 @@
   border-bottom: 1px solid var(--uu-line);
 }
 
+/* The status pill on the title's line, centred on it: the header aligns to
+   the top (a description under the title must not drag the pill down), so
+   the pill is made exactly as tall as the title's line (17px at 1.3) by
+   giving its text the same line height. At its default it stood 2.6px
+   taller and sat 1.3px low. */
+.cardHeader > .pill {
+  line-height: 1.3;
+}
+
 .cardTitles {
   min-width: 0;
 }
@@ -175,13 +185,26 @@
    shared baseline left it sitting visibly low against the title. */
 .cardTitle {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin: 0;
   font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
+}
+
+/* One line, cut short with "…" (the whole title on hover): a title that
+   wrapped made its card taller than the others in the row. */
+.cardTitleText {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardTitle .tag {
+  flex: none;
 }
 
 .cardId {
@@ -191,6 +214,15 @@
   color: var(--uu-ink-soft);
   font-family: var(--uu-font-mono);
   font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardDescription {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--uu-ink-soft);
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -279,7 +311,30 @@
   gap: 10px;
   min-width: 0;
   margin: 0;
+  /* One size for every value, the labels' own: plain text, italics and
+     links alike. Code keeps its 13px, which reads as the same size in a
+     monospace face. */
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
+}
+
+.fact dd a {
+  font-size: inherit;
+}
+
+/* The error box's amber twin, in the body font: words, not a log line. */
+.note {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: var(--uu-radius-small);
+  background: color-mix(in srgb, var(--uu-stale) 12%, var(--uu-surface));
+  color: color-mix(in srgb, var(--uu-stale) 75%, var(--uu-ink));
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.note p {
+  margin: 0;
 }
 
 .error {
@@ -296,10 +351,24 @@
 
 .cardFooter {
   display: flex;
+  /* Buttons share the bottom line, always one row: a button short of room
+     writes its outcome above itself, and stretching the others to that
+     height made them tall boxes. */
+  align-items: flex-end;
   justify-content: flex-end;
   gap: 8px;
   margin-top: auto;
   padding-top: 14px;
+}
+
+/* Only the first button gives way, by moving its outcome above itself: the
+   others shrinking too pushed the last one past the card's edge. */
+.cardFooter > * {
+  flex-shrink: 0;
+}
+
+.cardFooter > :first-child {
+  flex-shrink: 1;
 }
 
 .meter {

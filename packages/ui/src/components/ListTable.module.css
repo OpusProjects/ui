@@ -1,0 +1,161 @@
+.wrap {
+  overflow-x: auto;
+}
+
+/* Hairlines only. ListTable sizes the columns from their contents, with the
+   same gap after each (see `fitted`), so the space between columns is even
+   whatever they hold. */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+/* Measured widths are exact: the columns take them, whatever the cells
+   would ask for. Until measured (and when the content is too wide for even
+   gaps), the browser's own layout, which grows the state column to its
+   pills. */
+.table[data-fitted] {
+  table-layout: fixed;
+}
+
+.table thead th {
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--uu-line-strong);
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table tbody th,
+.table td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--uu-line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  /* The last row needs no line under it, nor the padding that keeps rows
+     apart: the panel's own padding is the space below the table, as it is
+     above the title. */
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.table tbody th {
+  font-weight: 400;
+}
+
+/* The name to read, the id under it to search or paste. */
+.nameLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.name {
+  display: block;
+  min-width: 0;
+  color: var(--uu-accent-strong);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+a.name:hover {
+  text-decoration: underline;
+}
+
+.label {
+  display: block;
+  color: var(--uu-ink-soft);
+  font-size: 13px;
+}
+
+.number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A long id or description is cut short rather than pushing into the next
+   column; the full id is in the cell's title. */
+.name,
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soft,
+.empty {
+  color: var(--uu-ink-soft);
+}
+
+.empty {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* A label, not a control: the informational blue the app's other tags use
+   (green, amber and red mean health, which the State column carries). */
+.tag {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--uu-series-1) 13%, transparent);
+  color: color-mix(in srgb, var(--uu-series-1) 70%, var(--uu-ink));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: help;
+}
+
+.tag:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+/* The last column: no padding past the right edge. A state column is also
+   as narrow as its widest pill (never wrapped), heading and pills from its
+   left like every other column. */
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+
+.table [data-role="state"] {
+  white-space: nowrap;
+}
+
+/* Every cell's content, on one line and never wider than its column: what
+   ListTable measures to size the columns. */
+.fit {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* A cell's long text (and the name) is cut short, whole on hover. */
+.clip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The pager, inside the panel under the last row, set off by the same
+   line as the header row: the table is framed top and bottom alike.
+   Nothing to page, no pager and no line. */
+.footer {
+  /* The same space above the line as the pager keeps below it (the last
+     row has no bottom padding of its own). */
+  margin-top: 10px;
+  border-top: 1px solid var(--uu-line-strong);
+}
+
+.footer:empty {
+  display: none;
+}
