@@ -9,6 +9,10 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Added
+
+- unified-gitops Notifications: a page per notification and a list of them, each with its type, applications, what it starts (Ascender and AWX) and its last send; a notification's page shows its events, destination and credentials, the applications it listens to and a history of its sends (Event, When, Application, Answer, Error, Result), with Send test. The Overview counts them and names one whose last send failed.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added
