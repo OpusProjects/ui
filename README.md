@@ -34,22 +34,6 @@ hour of metrics in memory.
 
 ---
 
-## 🚀 Getting started
-
-**Using it:** run unified-api 0.34.0 or later with the UI turned on. The image ships this UI and
-its bundled config turns it on; see unified-api's
-[docs/ui.md](https://github.com/OpusProjects/unified-api/blob/main/docs/ui.md).
-
-**Working on it:**
-
-```bash
-npm install
-UNIFIED_API_URL=http://localhost:8182 npm run dev    # Vite on :5173, proxying the API
-npm run test:e2e                                     # Playwright, against a mocked API
-```
-
----
-
 ## 📚 Documentation
 
 | Document                           | What it covers                                                        |
@@ -65,14 +49,9 @@ npm run test:e2e                                     # Playwright, against a moc
 
 ## 🤝 Contributing
 
-Contributions are welcome through pull requests against `main`. Every PR runs the same checks as
-[docs/development.md](docs/development.md) describes: formatting, typecheck, build, the end-to-end
-suite and the demo image. Commit messages and PR titles follow
-[Conventional Commits](https://www.conventionalcommits.org/).
+Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md) covers the PR workflow, commit style, CI gates and design rules.
 
-Security issues: please report them privately through
-[GitHub's security advisories](https://github.com/OpusProjects/unified-ui/security/advisories/new),
-not in a public issue.
+Security issues: see [SECURITY.md](SECURITY.md) for private reporting.
 
 ---
 
