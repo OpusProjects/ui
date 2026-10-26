@@ -33,6 +33,7 @@ unified-ui version it builds into its image.
 - One search in both apps (`SiteSearch`), called Search: configured items by name first, each opening its page, then the app's own (hosts, objects). Its hint and footer keep to one line.
 - The menu: API docs and Sign out follow the last section, no dividers; the theme switch stays at the foot. The app's icon sits over its name.
 - Tables size their columns to their contents with an even gap between them, page inside their panel once past 10 rows (`usePagination`), and keep the page in the address (`?history-page=2`). The pager shows the range only ("1–10 of 23").
+- The Metrics tables (requests by route, by application, check health) space their columns evenly too, numbers still aligned right.
 - Status words line up: projects Synced, credentials and connectors Working, overview cards capitalized.
 - Configuration shows `server.url` as the Address when set.
 - unified-api Overview: the requests card is called Incoming requests per minute.

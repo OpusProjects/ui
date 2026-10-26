@@ -482,6 +482,40 @@ export interface Column<T> {
   render: (row: T) => ReactNode;
 }
 
+// The least space between one column's content and the next; below it the
+// browser's own layout.
+const MIN_GAP = 24;
+// The padding outside the first and last columns, where a row's hover
+// highlight needs room round the text.
+const EDGE = 10;
+
+// Width of each column in pixels, so the space between one column's content
+// and the next is the same everywhere. Each gap goes inside the column whose
+// content is aligned away from it: after a left-aligned column's content,
+// before a right-aligned (numeric) one's. Between a numeric column and a
+// left-aligned one neither side has room, so the second is padded. Null when
+// the gaps would be under MIN_GAP.
+function evenColumns(content: number[], numeric: boolean[], total: number) {
+  const gaps = content.length - 1;
+  const inner = total - 2 * EDGE;
+  if (gaps <= 0 || inner <= 0) return null;
+  const gap = (inner - content.reduce((a, b) => a + b, 0)) / gaps;
+  if (gap < MIN_GAP) return null;
+  const width = content.slice();
+  const pad = content.map(() => 0);
+  for (let i = 0; i < gaps; i++) {
+    if (!numeric[i]) width[i] += gap;
+    else {
+      width[i + 1] += gap;
+      if (!numeric[i + 1]) pad[i + 1] = gap;
+    }
+  }
+  width[0] += EDGE;
+  width[gaps] += EDGE;
+  const px = (n: number) => `${Number(n.toFixed(2))}px`;
+  return { width: width.map(px), pad: pad.map((n) => (n ? px(n) : undefined)) };
+}
+
 export function DataTable<T>({
   columns,
   rows,
@@ -491,18 +525,65 @@ export function DataTable<T>({
   rows: T[];
   rowKey: (row: T) => string;
 }) {
+  // Measured after every render and whenever the panel resizes, as ListTable
+  // does; the widths change only when the measurement does.
+  const table = useRef<HTMLTableElement>(null);
+  const [widths, setWidths] = useState<ReturnType<typeof evenColumns>>(null);
+  useLayoutEffect(() => {
+    const el = table.current;
+    const box = el?.parentElement;
+    if (!el || !box) return;
+    const measure = () => {
+      const content = columns.map(() => 0);
+      el.querySelectorAll<HTMLElement>("[data-col]").forEach((cell) => {
+        const i = Number(cell.dataset.col);
+        content[i] = Math.max(content[i], cell.scrollWidth);
+      });
+      const next = evenColumns(
+        content,
+        columns.map((c) => !!c.numeric),
+        box.clientWidth,
+      );
+      setWidths((prev) =>
+        JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  });
+
+  // Each cell's content in one measurable box, as wide as it naturally is.
+  const fit = (i: number, content: ReactNode) => (
+    <span className={styles.fit} data-col={i}>
+      {content}
+    </span>
+  );
   return (
     <div className={styles.tableWrap}>
-      <table className={styles.table}>
+      <table
+        className={styles.table}
+        ref={table}
+        data-fitted={widths ? "" : undefined}
+      >
+        {widths && (
+          <colgroup>
+            {columns.map((column, i) => (
+              <col key={column.key} style={{ width: widths.width[i] }} />
+            ))}
+          </colgroup>
+        )}
         <thead>
           <tr>
-            {columns.map((column) => (
+            {columns.map((column, i) => (
               <th
                 key={column.key}
                 data-numeric={column.numeric || undefined}
                 scope="col"
+                style={{ paddingLeft: widths?.pad[i] }}
               >
-                {column.label}
+                {fit(i, column.label)}
               </th>
             ))}
           </tr>
@@ -510,9 +591,13 @@ export function DataTable<T>({
         <tbody>
           {rows.map((row) => (
             <tr key={rowKey(row)}>
-              {columns.map((column) => (
-                <td key={column.key} data-numeric={column.numeric || undefined}>
-                  {column.render(row)}
+              {columns.map((column, i) => (
+                <td
+                  key={column.key}
+                  data-numeric={column.numeric || undefined}
+                  style={{ paddingLeft: widths?.pad[i] }}
+                >
+                  {fit(i, column.render(row))}
                 </td>
               ))}
             </tr>
