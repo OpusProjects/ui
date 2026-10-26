@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router";
+import { ExternalLink } from "lucide-react";
 import {
   EmptyState,
   Fact,
@@ -29,6 +30,7 @@ import {
   eventWords,
   notificationState,
   sentEvent,
+  templatePage,
   templateText,
   triggerText,
 } from "./model";
@@ -46,6 +48,7 @@ const HINTS: Record<string, string> = {
   "Sends to":
     "The receiver's address, without its path or query, which can carry a secret. The full URL is in the configuration.",
   Starts: "job_template or workflow_job_template. The template it starts.",
+  Link: "The template's own page in the controller, in a new tab: what it runs, its webhook key and its jobs.",
   Trigger:
     "trigger. webhook posts the message to the template's own receiver, with its key; launch starts it as a user, with the message in extra_vars.",
   Credentials:
@@ -163,6 +166,22 @@ function Overview({ notification: n }: { notification: Notification }) {
         {triggerText(n) && (
           <Fact label="Trigger" hint={HINTS["Trigger"]}>
             {triggerText(n)}
+          </Fact>
+        )}
+        {templatePage(n) && (
+          <Fact
+            label={n.type === "awx" ? "AWX link" : "Ascender link"}
+            hint={HINTS["Link"]}
+          >
+            <a
+              className={`${common.link} ${common.out}`}
+              href={templatePage(n)!}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open the template
+              <ExternalLink aria-hidden />
+            </a>
           </Fact>
         )}
         <Fact label="Credentials" hint={HINTS["Credentials"]}>

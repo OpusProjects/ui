@@ -55,6 +55,20 @@ export const templateText = (n: Notification): string | null =>
       ? `Workflow job template ${n.workflow_job_template}`
       : null;
 
+// The template's own page in Ascender or AWX: both use hash routes, the
+// same for each. Null for a webhook. The controller's address is the one
+// the notification sends to, so a controller under a path is not followed.
+export function templatePage(n: Notification): string | null {
+  const [kind, id] =
+    n.job_template != null
+      ? ["job_template", n.job_template]
+      : n.workflow_job_template != null
+        ? ["workflow_job_template", n.workflow_job_template]
+        : [null, null];
+  if (!kind) return null;
+  return `${n.destination}/#/templates/${kind}/${id}/details`;
+}
+
 // How a job template is started: through its own webhook receiver, or by
 // its launch API as a user. Null for a webhook notification.
 export const triggerText = (n: Notification): string | null =>

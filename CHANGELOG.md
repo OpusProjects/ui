@@ -11,7 +11,7 @@ unified-ui version it builds into its image.
 
 ### Added
 
-- unified-gitops Notifications: a page per notification and a list of them, each with its type, applications (every one, some, or none), what it starts (Ascender and AWX) and its last send; a notification's page shows its events, destination and credentials, the applications it listens to and a history of its sends (Event, When, Application, Answer, Message, Result), with Send test. The Overview counts them and names one whose last send failed.
+- unified-gitops Notifications: a page per notification and a list of them, each with its type, applications (every one, some, or none), what it starts (Ascender and AWX, with a link to the template's own page) and its last send; a notification's page shows its events, destination and credentials, the applications it listens to and a history of its sends (Event, When, Application, Answer, Message, Result), with Send test. The Overview counts them and names one whose last send failed.
 - Every age in both apps (last check, last attempt, data from, last pull, sends, run history) counts on live, every second, between polls (`LiveAge`, on one shared clock that `LiveSpan` uses too).
 
 ### Changed

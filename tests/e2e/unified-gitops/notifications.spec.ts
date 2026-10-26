@@ -51,6 +51,12 @@ test("a notification's page shows its overview, last send and applications", asy
     overview.getByText("Job template 12", { exact: true }),
   ).toBeVisible();
   await expect(overview.getByText("The template's webhook")).toBeVisible();
+  const page_ = overview.getByRole("link", { name: "Open the template" });
+  await expect(page_).toHaveAttribute(
+    "href",
+    "https://ascender.example.com/#/templates/job_template/12/details",
+  );
+  await expect(page_).toHaveAttribute("target", "_blank");
   await expect(
     overview.getByText("https://ascender.example.com"),
   ).toBeVisible();
