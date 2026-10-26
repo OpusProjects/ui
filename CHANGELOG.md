@@ -11,114 +11,53 @@ unified-ui version it builds into its image.
 
 ### Added
 
-- unified-api Topology on an edge: the federation the central pushed, with the central at the root
-  and this instance marked; the Overview's Instances card counts the same map.
-- unified-api source page: each credential links to its page, one per line under the value
-  column (detail style `stack`).
-- Topology: the lines meet their cards and re-measure as cards resize; a softer green, with a
-  soft glowing dot crossing a link each time a pull lands on it (none with reduced motion),
-  so a busy link shows often and a quiet one stays still. Oldest data counts on live.
-  Cards share one width (the widest one's content, capped); wide screens get longer lines.
-- unified-api source page: a Hosts | Groups switch (`SegmentedSwitch`, which YAML | JSON now
-  uses too) replaces the group filter; Groups lists the source's groups and shows a group's own
-  variables. Instances are named by their `server.name` where they set one.
-- unified-api source page: a group's card switches between Hosts and Variables (JSON | YAML,
-  then Hosts | Variables, then Copy); Hosts lists the group's own hosts one per line, in the same
-  box as the variables, searchable and copied as plain lines. `LinesView`; `SegmentedSwitch`
-  and `FormatSwitch` take `disabled`.
-- unified-gitops applications: a View changes button between Check and Push, usable when an
-  application is out of sync with changes to apply; it opens the plan with Push at its foot.
+- unified-api Topology on an edge: the federation the central pushed, with the central at the root and this instance marked; the Overview's Instances card counts the same map.
+- unified-api source page: each credential links to its page, one per line under the value column (detail style `stack`).
+- Topology: the lines meet their cards and re-measure as cards resize; a softer green, with a soft glowing dot crossing a link each time a pull lands on it (none with reduced motion), so a busy link shows often and a quiet one stays still. Oldest data counts on live. Cards share one width (the widest one's content, capped); wide screens get longer lines.
+- unified-api source page: a Hosts | Groups switch (`SegmentedSwitch`, which YAML | JSON now uses too) replaces the group filter; Groups lists the source's groups and shows a group's own variables. Instances are named by their `server.name` where they set one.
+- unified-api source page: a group's card switches between Hosts and Variables (JSON | YAML, then Hosts | Variables, then Copy); Hosts lists the group's own hosts one per line, in the same box as the variables, searchable and copied as plain lines. `LinesView`; `SegmentedSwitch` and `FormatSwitch` take `disabled`.
+- unified-gitops applications: a View changes button between Check and Push, usable when an application is out of sync with changes to apply; it opens the plan with Push at its foot.
 - `Tree` takes a `link` state per node ("ok" green, "failing" red); its lines are 3px.
 
-- The unified-gitops web UI (`apps/unified-gitops`): an overview of
-  applications by sync status and what needs fixing, the applications with
-  their connector, commit, pending changes and Check/Push, each one's page
-  (its description in the header, an overview and the run history); connectors,
-  projects, credentials,
-  metrics and the configuration. Admin-only sections are left out of a
-  restricted key's menu. `npm run dev:gitops`, `npm run build:gitops`.
-- Object search in the gitops menu ("Find an object", `/` or Ctrl+K): finds
-  objects in every application's local copy by key or by value, with the
-  field that matched, whether git declares it and how old the copy is; Enter
-  opens its application.
-- A connector page in the gitops UI (`/connectors/{name}`, linked from each connector
-  card and from an application's page): its script, project and time limit,
-  its kinds in apply order with key and dependencies, and a table of the
-  applications using it with their status and changes to apply. Connector chips
-  on project cards link to it.
-- A project page in the gitops UI (`/projects/{name}`, linked from each
-  project card, a connector's page and an application's page): its repository
-  (never with a token), branch, credential, pull health and settings, Pull
-  now, and a table of the applications and connectors reading from it.
-- `QuickSearch` in `@opusprojects/unified-ui`: the menu's search button and
-  dialog (shortcuts, debounced query, keyboard choice, focus return) with the
-  query and the result rows left to the app. unified-api's host search now
-  uses it, unchanged in look and behaviour.
+- The unified-gitops web UI (`apps/unified-gitops`): an overview of applications by sync status and what needs fixing, the applications with their connector, commit, pending changes and Check/Push, each one's page (its description in the header, an overview and the run history); connectors, projects, credentials, metrics and the configuration. Admin-only sections are left out of a restricted key's menu. `npm run dev:gitops`, `npm run build:gitops`.
+- Object search in the gitops menu ("Find an object", `/` or Ctrl+K): finds objects in every application's local copy by key or by value, with the field that matched, whether git declares it and how old the copy is; Enter opens its application.
+- A connector page in the gitops UI (`/connectors/{name}`, linked from each connector card and from an application's page): its script, project and time limit, its kinds in apply order with key and dependencies, and a table of the applications using it with their status and changes to apply. Connector chips on project cards link to it.
+- A project page in the gitops UI (`/projects/{name}`, linked from each project card, a connector's page and an application's page): its repository (never with a token), branch, credential, pull health and settings, Pull now, and a table of the applications and connectors reading from it.
+- `QuickSearch` in `@opusprojects/unified-ui`: the menu's search button and dialog (shortcuts, debounced query, keyboard choice, focus return) with the query and the result rows left to the app. unified-api's host search now uses it, unchanged in look and behaviour.
 - Badge tones `good`, `warning` and `danger`, in the health colours.
-- `ResourceCard` takes an optional `description`: a line of plain words
-  under the title, for cards whose title is the name in the configuration.
-- End-to-end tests for the gitops app against its own mocked API; the suite
-  now runs one Playwright project per app.
+- `ResourceCard` takes an optional `description`: a line of plain words under the title, for cards whose title is the name in the configuration.
+- End-to-end tests for the gitops app against its own mocked API; the suite now runs one Playwright project per app.
 
 ### Changed
 
-- One search in both apps (`SiteSearch`), called Search: configured items by name first, each
-  opening its page, then the app's own (hosts, objects). Its hint and footer keep to one line.
-- The menu: API docs and Sign out follow the last section, no dividers; the theme switch stays
-  at the foot. The app's icon sits over its name.
-- Tables size their columns to their contents with an even gap between them, page inside their
-  panel once past 10 rows (`usePagination`), and keep the page in the address
-  (`?history-page=2`). The pager shows the range only ("1–10 of 23").
-- Status words line up: projects Synced, credentials and connectors Working, overview cards
-  capitalized.
+- One search in both apps (`SiteSearch`), called Search: configured items by name first, each opening its page, then the app's own (hosts, objects). Its hint and footer keep to one line.
+- The menu: API docs and Sign out follow the last section, no dividers; the theme switch stays at the foot. The app's icon sits over its name.
+- Tables size their columns to their contents with an even gap between them, page inside their panel once past 10 rows (`usePagination`), and keep the page in the address (`?history-page=2`). The pager shows the range only ("1–10 of 23").
+- Status words line up: projects Synced, credentials and connectors Working, overview cards capitalized.
 - Configuration shows `server.url` as the Address when set.
-- Times are exact everywhere: "43d 23h 4m 3s", "2m 13s ago", "every 10m" (zero parts
-  left out). "Running for" counts on live, a second at a time.
-- Overview: per-minute figures and charts count the real last minute; the requests chart's
-  tooltip parts add up to its total. unified-api's cards follow the menu (Sources, Connectors,
-  Endpoints, Projects, Credentials).
-- An instance reached by IP address or `localhost` is named by its address and port
-  (`127.0.0.1:8191`) instead of "127".
+- Times are exact everywhere: "43d 23h 4m 3s", "2m 13s ago", "every 10m" (zero parts left out). "Running for" counts on live, a second at a time.
+- Overview: per-minute figures and charts count the real last minute; the requests chart's tooltip parts add up to its total. unified-api's cards follow the menu (Sources, Connectors, Endpoints, Projects, Credentials).
+- An instance reached by IP address or `localhost` is named by its address and port (`127.0.0.1:8191`) instead of "127".
 
-- What both apps did alike now lives once in the packages, and each app passes only its own
-  words and data: `startApp` (the shell, menu, routing, sign-out), `ListPage` (every list page's
-  frame), `CredentialsPage`/`CredentialOverview`, `ProjectsPage`/`ProjectOverview`/`Commit`,
-  the Metrics page frame, `SECTION_ICONS`, `Clip`/`onOff`, and `createApi`/`describeUsers` in
-  the client. `@opusprojects/unified-ui` takes `react-router` as a peer dependency.
-- unified-api project cards and pages show the commit and the credential, as unified-gitops does;
-  its menu hides admin-only sections from restricted keys; its hints name the 0.35 keys and item
-  files.
-- unified-gitops application history: the result is a status pill with its dot; the Errors column
-  is gone (a run's errors open with its changes); a View column opens a run's changes as a diff,
-  as the rollback dialog shows a rollback's.
+- What both apps did alike now lives once in the packages, and each app passes only its own words and data: `startApp` (the shell, menu, routing, sign-out), `ListPage` (every list page's frame), `CredentialsPage`/`CredentialOverview`, `ProjectsPage`/`ProjectOverview`/`Commit`, the Metrics page frame, `SECTION_ICONS`, `Clip`/`onOff`, and `createApi`/`describeUsers` in the client. `@opusprojects/unified-ui` takes `react-router` as a peer dependency.
+- unified-api project cards and pages show the commit and the credential, as unified-gitops does; its menu hides admin-only sections from restricted keys; its hints name the 0.35 keys and item files.
+- unified-gitops application history: the result is a status pill with its dot; the Errors column is gone (a run's errors open with its changes); a View column opens a run's changes as a diff, as the rollback dialog shows a rollback's.
 - unified-gitops: a credential named on the Configuration page opens that credential's page.
 
 - Buttons drop "now": Sync, Pull (was Sync now, Pull now), in both apps.
-- unified-gitops: Sync is now Push (Push, Push all, "Pushing…"), with its own icon, and an
-  applying run's type reads Push; Check has its own icon too.
-- Button labels stay on one line, and a card's buttons share the bottom line in one row: only
-  the first gives way, by writing its outcome above itself.
+- unified-gitops: Sync is now Push (Push, Push all, "Pushing…"), with its own icon, and an applying run's type reads Push; Check has its own icon too.
+- Button labels stay on one line, and a card's buttons share the bottom line in one row: only the first gives way, by writing its outcome above itself.
 
-- Pieces both apps use moved into the packages instead of being copied:
-  `DetailTitle`, `ListToolbar`, `RunButton` (now with `variant` and `icon`),
-  `RunAllButton`, the Overview cards and lists, the Metrics panels and route
-  table (by metric prefix), the sign-in and secrets panels and the shared page
-  styles into `@opusprojects/unified-ui`; `useListFilter`, the git URL helpers
-  and the credential labels into `@opusprojects/unified-client`. The
-  unified-api UI looks and behaves as before.
-- `@opusprojects/unified-ui` now has `@tanstack/react-query` as a peer
-  dependency (for the run buttons).
+- Pieces both apps use moved into the packages instead of being copied: `DetailTitle`, `ListToolbar`, `RunButton` (now with `variant` and `icon`), `RunAllButton`, the Overview cards and lists, the Metrics panels and route table (by metric prefix), the sign-in and secrets panels and the shared page styles into `@opusprojects/unified-ui`; `useListFilter`, the git URL helpers and the credential labels into `@opusprojects/unified-client`. The unified-api UI looks and behaves as before.
+- `@opusprojects/unified-ui` now has `@tanstack/react-query` as a peer dependency (for the run buttons).
 - A notice keeps a panel's spacing below it.
 
 ### Fixed
 
-- Dialogs: keyboard focus reaches links and expandable rows, and a long diff scrolls by
-  keyboard; a click on the dialog's text no longer sends focus out of it.
+- Dialogs: keyboard focus reaches links and expandable rows, and a long diff scrolls by keyboard; a click on the dialog's text no longer sends focus out of it.
 - Search: when the host or object search fails, name matches still show, with a notice.
-- Tables: going back to page 1 keeps a page size that came from a shared link; Hosts and
-  Groups keep a page size each.
-- Topology: lines follow a peer swapped for another, and a refetch no longer sends a dot along
-  a link that has not pulled again.
+- Tables: going back to page 1 keeps a page size that came from a shared link; Hosts and Groups keep a page size each.
+- Topology: lines follow a peer swapped for another, and a refetch no longer sends a dot along a link that has not pulled again.
 
 ## [0.1.0] - 2026-10-25
 
