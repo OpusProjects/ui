@@ -4,7 +4,7 @@ import { api, unwrap } from "../../api/client";
 // shows beside it.
 export async function sendTest(name: string) {
   const delivery = unwrap(
-    await api.POST("/api/v1/notifications/{id}/test", {
+    await api.POST("/api/v1/webhooks/{id}/test", {
       params: { path: { id: name } },
     }),
   );

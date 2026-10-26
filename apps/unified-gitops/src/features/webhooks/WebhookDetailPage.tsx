@@ -21,26 +21,26 @@ import {
   detailStyles as common,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
-import { useApplications, useNotification } from "../../api/queries";
+import { useApplications, useWebhook } from "../../api/queries";
 import { ICONS } from "../../sections";
 import { applicationColumns } from "../applications/columns";
 import {
   LABELS,
   TYPE_WORDS,
   eventWords,
-  notificationState,
+  webhookState,
   sentEvent,
   templatePage,
   templateText,
-  triggerText,
+  payloadVariable,
 } from "./model";
 import { sendTest } from "./test";
 
-type Notification = Schemas["NotificationInfo"];
+type Webhook = Schemas["WebhookSummary"];
 type Delivery = Schemas["Delivery"];
 
 // What each fact means, behind its label, starting with its key in the
-// notification's YAML, which is where it is changed.
+// webhook's YAML, which is where it is changed.
 const HINTS: Record<string, string> = {
   Type: "type. webhook sends to any HTTP receiver; ascender and awx start a job template.",
   Events:
@@ -49,8 +49,8 @@ const HINTS: Record<string, string> = {
     "The receiver's address, without its path or query, which can carry a secret. The full URL is in the configuration.",
   Starts: "job_template or workflow_job_template. The template it starts.",
   Link: "The template's own page in the controller, in a new tab: what it runs, its webhook key and its jobs.",
-  Trigger:
-    "trigger. webhook posts the message to the template's own receiver, with its key; launch starts it as a user, with the message in extra_vars.",
+  Payload:
+    "The variable the template's playbook finds the message in: the controller passes the webhook's body as ascender_webhook_payload (awx_webhook_payload in AWX; tower_webhook_payload in both).",
   Credentials:
     "credentials. Where the token, key or password it sends comes from; never their values.",
   Authentication:
@@ -63,8 +63,6 @@ const HINTS: Record<string, string> = {
     "timeout_seconds. How long one attempt may take before it counts as unanswered.",
   Retries:
     "retries. How many more times a message is sent when the receiver does not answer, is overloaded (429) or fails (5xx). Never on a 4xx.",
-  "Extra vars":
-    "extra_vars. Variables sent beside the event, which arrives as unified_gitops; their values are in the configuration.",
 };
 
 const AUTH_WORDS: Record<string, string> = {
@@ -73,80 +71,80 @@ const AUTH_WORDS: Record<string, string> = {
   none: "None",
 };
 
-const authText = (w: Schemas["WebhookInfo"]) =>
+const authText = (w: Schemas["RequestInfo"]) =>
   w.auth === "header"
     ? `Header ${w.auth_header ?? ""}`
     : (AUTH_WORDS[w.auth] ?? w.auth);
 
-export function NotificationDetailPage() {
+export function WebhookDetailPage() {
   const { name = "" } = useParams();
-  // 404 for a name that is not configured: shown as "No such notification".
-  const notifications = useNotification(name);
-  const notification = notifications.data;
+  // 404 for a name that is not configured: shown as "No such webhook".
+  const webhooks = useWebhook(name);
+  const webhook = webhooks.data;
   const missing =
-    notifications.isError && /not configured/.test(notifications.error.message);
+    webhooks.isError && /not configured/.test(webhooks.error.message);
 
   return (
     <>
       <PageHeader
-        icon={ICONS.notifications}
+        icon={ICONS.webhooks}
         title={
-          <DetailTitle section="Notifications" to="/notifications">
+          <DetailTitle section="Webhooks" to="/webhooks">
             {name}
           </DetailTitle>
         }
         description={
-          notification?.description ??
-          "Which events this notification reports, and where it sends them."
+          webhook?.description ??
+          "Which events this webhook reports, and where it sends them."
         }
         actions={
-          notification && (
-            // Keyed by the notification: a send still running must not show
-            // on the next notification's page.
+          webhook && (
+            // Keyed by the webhook: a send still running must not show
+            // on the next webhook's page.
             <RunButton
               key={name}
               label="Send test"
               busyLabel="Sending…"
-              invalidate={[["notifications"]]}
+              invalidate={[["webhooks"]]}
               run={() => sendTest(name)}
             />
           )
         }
       />
-      {notifications.isPending && <SkeletonSummary />}
-      {notifications.isError && !missing && (
-        <Notice title="Could not load this notification">
-          {notifications.error.message}
+      {webhooks.isPending && <SkeletonSummary />}
+      {webhooks.isError && !missing && (
+        <Notice title="Could not load this webhook">
+          {webhooks.error.message}
         </Notice>
       )}
       {missing && (
-        <EmptyState title="No such notification">
+        <EmptyState title="No such webhook">
           Nothing called {name} is configured.{" "}
-          <Link to="/notifications">See every notification</Link>.
+          <Link to="/webhooks">See every webhook</Link>.
         </EmptyState>
       )}
-      {notification && (
+      {webhook && (
         <>
-          <Overview notification={notification} />
+          <Overview webhook={webhook} />
           <Panel
             title="Applications"
             hint="The applications whose events it reports: applications: all for every one, or their names. Left out or empty, none."
           >
-            <Listens notification={notification} />
+            <Listens webhook={webhook} />
           </Panel>
-          <History history={notification.history} />
+          <History history={webhook.history} />
         </>
       )}
     </>
   );
 }
 
-function Overview({ notification: n }: { notification: Notification }) {
+function Overview({ webhook: n }: { webhook: Webhook }) {
   return (
     <Panel
       title="Overview"
       hint="What it reports and where: the events, the receiver, and the credentials it sends with."
-      aside={<HealthPill state={notificationState(n)} labels={LABELS} />}
+      aside={<HealthPill state={webhookState(n)} labels={LABELS} />}
     >
       <dl className={common.facts}>
         <Fact label="Type" hint={HINTS["Type"]}>
@@ -163,9 +161,9 @@ function Overview({ notification: n }: { notification: Notification }) {
             {templateText(n)}
           </Fact>
         )}
-        {triggerText(n) && (
-          <Fact label="Trigger" hint={HINTS["Trigger"]}>
-            {triggerText(n)}
+        {payloadVariable(n) && (
+          <Fact label="Payload" hint={HINTS["Payload"]}>
+            <code className={common.mono}>{payloadVariable(n)}</code>
           </Fact>
         )}
         {templatePage(n) && (
@@ -197,29 +195,24 @@ function Overview({ notification: n }: { notification: Notification }) {
             ))}
           />
         </Fact>
-        {n.webhook && (
+        {n.request && (
           <>
             <Fact label="Authentication" hint={HINTS["Authentication"]}>
-              {authText(n.webhook)}
+              {authText(n.request)}
             </Fact>
             <Fact label="Headers" hint={HINTS["Headers"]}>
-              <ValueList values={n.webhook.headers} mono />
+              <ValueList values={n.request.headers} mono />
             </Fact>
             <Fact label="Signature" hint={HINTS["Signature"]}>
-              {n.webhook.signature_header ? (
+              {n.request.signature_header ? (
                 <code className={common.mono}>
-                  {n.webhook.signature_header}
+                  {n.request.signature_header}
                 </code>
               ) : (
                 "None"
               )}
             </Fact>
           </>
-        )}
-        {n.trigger === "launch" && (
-          <Fact label="Extra vars" hint={HINTS["Extra vars"]}>
-            <ValueList values={n.extra_vars} mono />
-          </Fact>
         )}
         <Fact label="Timeout" hint={HINTS["Timeout"]}>
           {formatSpan(n.timeout_seconds)} per attempt
@@ -270,7 +263,7 @@ const historyColumns: ListColumn<Delivery>[] = [
   {
     key: "answer",
     label: "Answer",
-    render: (d) => (d.job ? `${answer(d)}, job ${d.job}` : answer(d)),
+    render: answer,
   },
   {
     // "OK" when the receiver took it; why not, when it did not.
@@ -315,7 +308,7 @@ function History({ history }: { history: Delivery[] }) {
   );
 }
 
-function Listens({ notification: n }: { notification: Notification }) {
+function Listens({ webhook: n }: { webhook: Webhook }) {
   const applications = useApplications();
   if (applications.isPending) return <SkeletonSummary />;
   if (applications.isError)

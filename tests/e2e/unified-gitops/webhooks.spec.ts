@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./fixtures/api";
 
-test("the list shows each notification, what it sends and how its last send went", async ({
+test("the list shows each webhook, what it sends and how its last send went", async ({
   page,
 }) => {
   await mockApi(page);
-  await page.goto("/notifications");
-  const drift = page.locator("article", { hasText: "ntf-ascender-drift" });
+  await page.goto("/webhooks");
+  const drift = page.locator("article", { hasText: "wh-ascender-drift" });
   await expect(drift.getByText("Sent", { exact: true })).toBeVisible();
   await expect(drift.getByText("Ascender job template")).toBeVisible();
   await expect(
@@ -14,7 +14,7 @@ test("the list shows each notification, what it sends and how its last send went
   ).toBeVisible();
   await expect(drift.getByText("Sends to")).toHaveCount(0);
 
-  const failures = page.locator("article", { hasText: "ntf-failures" });
+  const failures = page.locator("article", { hasText: "wh-failures" });
   await expect(failures.getByText("Last send failed")).toBeVisible();
   await expect(
     failures.getByText("HTTP 503: Service Unavailable"),
@@ -26,21 +26,21 @@ test("the list shows each notification, what it sends and how its last send went
   await expect(failures.getByText("Starts")).toHaveCount(0);
 
   // applications left out or []: none, and so never sent.
-  const paused = page.locator("article", { hasText: "ntf-paused" });
+  const paused = page.locator("article", { hasText: "wh-paused" });
   await expect(paused.getByText("None", { exact: true })).toBeVisible();
   await expect(paused.getByText("Not sent yet")).toBeVisible();
   await expect(failures.getByText("Events")).toHaveCount(0);
 });
 
-test("a notification's page shows its overview, last send and applications", async ({
+test("a webhook's page shows its overview, last send and applications", async ({
   page,
 }) => {
   await mockApi(page);
-  await page.goto("/notifications");
+  await page.goto("/webhooks");
   await page
-    .getByRole("link", { name: "ntf-ascender-drift", exact: true })
+    .getByRole("link", { name: "wh-ascender-drift", exact: true })
     .click();
-  await expect(page).toHaveURL("/notifications/ntf-ascender-drift");
+  await expect(page).toHaveURL("/webhooks/wh-ascender-drift");
   await expect(
     page.locator("header").getByText("Drift report in Ascender"),
   ).toBeVisible();
@@ -50,7 +50,9 @@ test("a notification's page shows its overview, last send and applications", asy
   await expect(
     overview.getByText("Job template 12", { exact: true }),
   ).toBeVisible();
-  await expect(overview.getByText("The template's webhook")).toBeVisible();
+  await expect(
+    overview.getByText("ascender_webhook_payload", { exact: true }),
+  ).toBeVisible();
   const page_ = overview.getByRole("link", { name: "Open the template" });
   await expect(page_).toHaveAttribute(
     "href",
@@ -60,7 +62,7 @@ test("a notification's page shows its overview, last send and applications", asy
   await expect(
     overview.getByText("https://ascender.example.com"),
   ).toBeVisible();
-  // The events are on the notification's page, not on its card.
+  // The events are on the webhook's page, not on its card.
   await expect(
     overview.getByText("Drift detected", { exact: true }),
   ).toBeVisible();
@@ -101,7 +103,7 @@ test("a webhook's page says how it sends, never with a value", async ({
   page,
 }) => {
   await mockApi(page);
-  await page.goto("/notifications/ntf-failures");
+  await page.goto("/webhooks/wh-failures");
   const overview = page.locator("section", { hasText: "Overview" });
   await expect(overview.getByText("Header X-Alerts-Token")).toBeVisible();
   await expect(overview.getByText("X-Hub-Signature-256")).toBeVisible();
@@ -114,7 +116,7 @@ test("a webhook's page says how it sends, never with a value", async ({
   await expect(sendsTo).toHaveAttribute("href", "https://alerts.example.com");
   await expect(sendsTo).toHaveAttribute("target", "_blank");
   // A job template has none of a webhook's lines.
-  await page.goto("/notifications/ntf-ascender-drift");
+  await page.goto("/webhooks/wh-ascender-drift");
   await expect(overview.getByText("Authentication")).toHaveCount(0);
   await expect(overview.getByText("30s per attempt")).toBeVisible();
 });
@@ -123,7 +125,7 @@ test("events and credentials stack, the rest behind +N more", async ({
   page,
 }) => {
   await mockApi(page);
-  await page.goto("/notifications/ntf-failures");
+  await page.goto("/webhooks/wh-failures");
   const events = page
     .locator("section", { hasText: "Overview" })
     .locator("dl > div", { has: page.locator("dt", { hasText: "Events" }) });
@@ -137,7 +139,7 @@ test("events and credentials stack, the rest behind +N more", async ({
 
 test("send test posts once and adds it to the history", async ({ page }) => {
   const calls = await mockApi(page);
-  await page.goto("/notifications/ntf-failures");
+  await page.goto("/webhooks/wh-failures");
   const rows = page
     .locator("section", {
       has: page.getByRole("heading", { name: /^History/ }),
@@ -148,7 +150,7 @@ test("send test posts once and adds it to the history", async ({ page }) => {
   await page.getByRole("button", { name: "Send test" }).click();
   await expect(page.getByText("Test sent")).toBeVisible();
   expect(calls.writes.map((w) => w.path)).toEqual([
-    "/api/v1/notifications/ntf-failures/test",
+    "/api/v1/webhooks/wh-failures/test",
   ]);
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(0)).toContainText("Test");
@@ -156,29 +158,25 @@ test("send test posts once and adds it to the history", async ({ page }) => {
   await expect(rows.nth(0)).toContainText("Sent");
 });
 
-test("an unknown notification says so", async ({ page }) => {
+test("an unknown webhook says so", async ({ page }) => {
   await mockApi(page);
-  await page.goto("/notifications/nope");
-  await expect(page.getByText("No such notification")).toBeVisible();
+  await page.goto("/webhooks/nope");
+  await expect(page.getByText("No such webhook")).toBeVisible();
 });
 
-test("the overview names a notification that could not send", async ({
-  page,
-}) => {
+test("the overview names a webhook that could not send", async ({ page }) => {
   await mockApi(page);
   await page.goto("/");
   await expect(
     page.getByText(
-      "Notification ntf-failures could not send: HTTP 503: Service Unavailable",
+      "Webhook wh-failures could not send: HTTP 503: Service Unavailable",
     ),
   ).toBeVisible();
 });
 
-test("a restricted key has no notifications section", async ({ page }) => {
+test("a restricted key has no webhooks section", async ({ page }) => {
   await mockApi(page, "restricted");
   await page.goto("/applications");
   const menu = page.getByRole("navigation", { name: "Main" });
-  await expect(menu.getByRole("link", { name: "Notifications" })).toHaveCount(
-    0,
-  );
+  await expect(menu.getByRole("link", { name: "Webhooks" })).toHaveCount(0);
 });

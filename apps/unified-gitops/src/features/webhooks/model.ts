@@ -1,18 +1,18 @@
 import type { HealthState } from "@opusprojects/unified-client";
 import type { Schemas } from "../../api/client";
 
-type Notification = Schemas["NotificationInfo"];
+type Webhook = Schemas["WebhookSummary"];
 type Event = Schemas["Event"];
 
-// A notification is working when its last send went through. The same words
-// on the overview's card, the list and a notification's page.
+// A webhook is working when its last send went through. The same words
+// on the overview's card, the list and a webhook's page.
 export const LABELS = {
   fresh: "Sent",
   failing: "Last send failed",
   pending: "Not sent yet",
 };
 
-export const notificationState = (n: Notification): HealthState =>
+export const webhookState = (n: Webhook): HealthState =>
   !n.last ? "pending" : n.last.ok ? "fresh" : "failing";
 
 // Each event in words, in the order a reader thinks of them.
@@ -40,15 +40,15 @@ export const eventWords = (events: Event[]) =>
 export const sentEvent = (event: string) =>
   event === "test" ? "Test" : (EVENT_WORDS[event as Event] ?? event);
 
-export const TYPE_WORDS: Record<Schemas["NotificationType"], string> = {
+export const TYPE_WORDS: Record<Schemas["WebhookType"], string> = {
   webhook: "Webhook",
   ascender: "Ascender job template",
   awx: "AWX job template",
 };
 
-// What an ascender or awx notification starts: "Job template 12". Null for
-// a webhook. The card shows this; the page adds how (triggerText).
-export const templateText = (n: Notification): string | null =>
+// What an ascender or awx webhook starts: "Job template 12". Null for
+// a webhook.
+export const templateText = (n: Webhook): string | null =>
   n.job_template != null
     ? `Job template ${n.job_template}`
     : n.workflow_job_template != null
@@ -57,8 +57,8 @@ export const templateText = (n: Notification): string | null =>
 
 // The template's own page in Ascender or AWX: both use hash routes, the
 // same for each. Null for a webhook. The controller's address is the one
-// the notification sends to, so a controller under a path is not followed.
-export function templatePage(n: Notification): string | null {
+// the webhook sends to, so a controller under a path is not followed.
+export function templatePage(n: Webhook): string | null {
   const [kind, id] =
     n.job_template != null
       ? ["job_template", n.job_template]
@@ -69,13 +69,14 @@ export function templatePage(n: Notification): string | null {
   return `${n.destination}/#/templates/${kind}/${id}/details`;
 }
 
-// How a job template is started: through its own webhook receiver, or by
-// its launch API as a user. Null for a webhook notification.
-export const triggerText = (n: Notification): string | null =>
-  n.trigger === "launch"
-    ? "Launch, as a user"
-    : n.trigger === "webhook"
-      ? "The template's webhook"
+// Where a playbook finds the message a job template was started with: the
+// controller passes the webhook's body as <prefix>_webhook_payload. Null for
+// a plain webhook.
+export const payloadVariable = (n: Webhook): string | null =>
+  n.type === "ascender"
+    ? "ascender_webhook_payload"
+    : n.type === "awx"
+      ? "awx_webhook_payload"
       : null;
 
 // Where a webhook sends, as a card shows it: the host, without the scheme.
@@ -85,12 +86,12 @@ export const hostOf = (destination: string) =>
 
 // applications: all, a list, or none (left out or []), as an API key reads
 // its applications.
-export const applicationsText = (n: Notification) =>
+export const applicationsText = (n: Webhook) =>
   n.all_applications
     ? "Every application"
     : n.applications.length === 0
       ? "None"
       : n.applications.join(", ");
 
-export const searchText = (n: Notification) =>
+export const searchText = (n: Webhook) =>
   `${n.name} ${n.description ?? ""} ${n.type} ${n.destination} ${n.applications.join(" ")} ${n.events.join(" ")}`;

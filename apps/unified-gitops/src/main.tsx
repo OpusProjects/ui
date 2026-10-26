@@ -9,8 +9,8 @@ import { ConfigPage } from "./features/config/ConfigPage";
 import { CredentialsPage } from "./features/credentials/CredentialsPage";
 import { CredentialDetailPage } from "./features/credentials/CredentialDetailPage";
 import { MetricsPage } from "./features/metrics/MetricsPage";
-import { NotificationDetailPage } from "./features/notifications/NotificationDetailPage";
-import { NotificationsPage } from "./features/notifications/NotificationsPage";
+import { WebhookDetailPage } from "./features/webhooks/WebhookDetailPage";
+import { WebhooksPage } from "./features/webhooks/WebhooksPage";
 import { OverviewPage } from "./features/overview/OverviewPage";
 import { ConnectorDetailPage } from "./features/connectors/ConnectorDetailPage";
 import { ConnectorsPage } from "./features/connectors/ConnectorsPage";
@@ -55,10 +55,10 @@ startApp({
       admin: true,
     },
     {
-      path: "/notifications",
-      label: "Notifications",
-      icon: ICONS.notifications,
-      page: <NotificationsPage />,
+      path: "/webhooks",
+      label: "Webhooks",
+      icon: ICONS.webhooks,
+      page: <WebhooksPage />,
       admin: true,
     },
     {
@@ -80,7 +80,7 @@ startApp({
       <Route path="/connectors/:name" element={<ConnectorDetailPage />} />
       <Route path="/projects/:name" element={<ProjectDetailPage />} />
       <Route path="/credentials/:name" element={<CredentialDetailPage />} />
-      <Route path="/notifications/:name" element={<NotificationDetailPage />} />
+      <Route path="/webhooks/:name" element={<WebhookDetailPage />} />
     </>
   ),
   search: <ObjectSearch />,

@@ -16,52 +16,52 @@ import {
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { useListFilter } from "@opusprojects/unified-client";
-import { useNotifications } from "../../api/queries";
+import { useWebhooks } from "../../api/queries";
 import { ICONS } from "../../sections";
 import {
   LABELS,
   TYPE_WORDS,
   applicationsText,
   hostOf,
-  notificationState,
+  webhookState,
   searchText,
   sentEvent,
   templateText,
 } from "./model";
 import { sendTest } from "./test";
 
-export function NotificationsPage() {
-  const notifications = useNotifications();
-  const items = notifications.data ?? [];
-  const filter = useListFilter(items, notificationState, searchText);
+export function WebhooksPage() {
+  const webhooks = useWebhooks();
+  const items = webhooks.data ?? [];
+  const filter = useListFilter(items, webhookState, searchText);
   const remembered = useRememberedCount(
-    "notifications",
-    notifications.isSuccess ? notifications.data?.length : undefined,
+    "webhooks",
+    webhooks.isSuccess ? webhooks.data?.length : undefined,
   );
 
   return (
     <>
       <PageHeader
-        icon={ICONS.notifications}
-        title="Notifications"
-        description="What the applications report, and where it goes: webhooks and job templates."
+        icon={ICONS.webhooks}
+        title="Webhooks"
+        description="What the applications report, and where it goes: any receiver, or an Ascender or AWX job template's webhook."
       />
-      {notifications.isPending && (
+      {webhooks.isPending && (
         <>
           <SkeletonSummary />
           <SkeletonGrid expected={remembered} />
         </>
       )}
-      {notifications.isError && (
-        <Notice title="Could not load notifications">
-          {notifications.error.message}
+      {webhooks.isError && (
+        <Notice title="Could not load webhooks">
+          {webhooks.error.message}
         </Notice>
       )}
-      {notifications.isSuccess && (
+      {webhooks.isSuccess && (
         <>
           <HealthSummary
             counts={filter.counts}
-            noun={["notification", "notifications"]}
+            noun={["webhook", "webhooks"]}
             labels={LABELS}
             good="sending"
             selected={filter.selected}
@@ -70,20 +70,20 @@ export function NotificationsPage() {
           />
           <ListToolbar
             filter={filter}
-            label="Search notifications"
+            label="Search webhooks"
             placeholder="Search by name, description, destination, application or event"
           />
           {filter.visible.length === 0 ? (
             <EmptyState
               title={
                 items.length === 0
-                  ? "No notifications configured"
-                  : "No notifications match"
+                  ? "No webhooks configured"
+                  : "No webhooks match"
               }
             >
               {items.length === 0
-                ? "Declare one under notifications: in the configuration: the events to report, the applications to listen to, and a webhook or a job template to send them to."
-                : "Clear the search or the filter to see every notification."}
+                ? "Declare one under webhooks: in the configuration: the events to report, the applications to listen to, and a webhook or a job template to send them to."
+                : "Clear the search or the filter to see every webhook."}
             </EmptyState>
           ) : (
             <CardGrid>
@@ -92,12 +92,12 @@ export function NotificationsPage() {
                   key={n.name}
                   title={n.name}
                   description={n.description}
-                  state={notificationState(n)}
+                  state={webhookState(n)}
                   labels={LABELS}
                   error={n.last && !n.last.ok ? n.last.error : null}
                   titleLink={(title, className) => (
                     <Link
-                      to={`/notifications/${encodeURIComponent(n.name)}`}
+                      to={`/webhooks/${encodeURIComponent(n.name)}`}
                       className={className}
                     >
                       {title}
@@ -107,7 +107,7 @@ export function NotificationsPage() {
                     <RunButton
                       label="Send test"
                       busyLabel="Sending…"
-                      invalidate={[["notifications"]]}
+                      invalidate={[["webhooks"]]}
                       run={() => sendTest(n.name)}
                     />
                   }

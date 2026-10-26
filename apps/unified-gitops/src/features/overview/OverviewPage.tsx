@@ -27,17 +27,14 @@ import {
   useApplications,
   useConnectors,
   useCredentials,
-  useNotifications,
+  useWebhooks,
   useProjects,
   useSettings,
 } from "../../api/queries";
 import { ICONS } from "../../sections";
 import { APP_LABELS, appState } from "../applications/model";
 import { credentialState } from "../credentials/model";
-import {
-  LABELS as NOTIFICATION_LABELS,
-  notificationState,
-} from "../notifications/model";
+import { LABELS as WEBHOOK_LABELS, webhookState } from "../webhooks/model";
 import {
   LABELS as CONNECTOR_LABELS,
   connectorRequests,
@@ -66,7 +63,7 @@ export function OverviewPage() {
   }));
   const projects = useProjects();
   const credentials = useCredentials();
-  const notifications = useNotifications();
+  const webhooks = useWebhooks();
   const settings = useSettings();
 
   const apps = applications.data ?? [];
@@ -125,18 +122,18 @@ export function OverviewPage() {
         to: "/credentials",
       });
   }
-  for (const n of notifications.data ?? []) {
+  for (const n of webhooks.data ?? []) {
     if (n.last && !n.last.ok)
       issues.push({
-        key: `notification-${n.name}`,
+        key: `webhook-${n.name}`,
         severity: 0,
         text: (
           <>
-            Notification <b>{n.name}</b> could not send
+            Webhook <b>{n.name}</b> could not send
             {n.last.error && `: ${n.last.error}`}
           </>
         ),
-        to: `/notifications/${encodeURIComponent(n.name)}`,
+        to: `/webhooks/${encodeURIComponent(n.name)}`,
       });
   }
   for (const { name, requests: r } of requests)
@@ -228,14 +225,14 @@ export function OverviewPage() {
             goodWord="Working"
           />
         )}
-        {notifications.isSuccess && notifications.data.length > 0 && (
+        {webhooks.isSuccess && webhooks.data.length > 0 && (
           <AreaCard
-            to="/notifications"
+            to="/webhooks"
             link={link}
-            icon={ICONS.notifications}
-            title="Notifications"
-            counts={countStates(notifications.data, notificationState)}
-            labels={NOTIFICATION_LABELS}
+            icon={ICONS.webhooks}
+            title="Webhooks"
+            counts={countStates(webhooks.data, webhookState)}
+            labels={WEBHOOK_LABELS}
             goodWord="Sending"
           />
         )}
@@ -243,7 +240,7 @@ export function OverviewPage() {
 
       <OverviewColumns>
         <NeedsAttention
-          hint="What needs a person, worst first. Red: something broken (an application that failed, a connector whose requests fail, a project that cannot be pulled, a missing credential, a notification that could not send). Amber: git and a system disagree and nobody has synced yet, or a restart is needed. Each line opens the page to act on."
+          hint="What needs a person, worst first. Red: something broken (an application that failed, a connector whose requests fail, a project that cannot be pulled, a missing credential, a webhook that could not send). Amber: git and a system disagree and nobody has synced yet, or a restart is needed. Each line opens the page to act on."
           issues={issues}
           link={link}
           failed={

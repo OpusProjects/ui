@@ -231,9 +231,9 @@ const credentials: Schemas["CredentialInfo"][] = [
 
 // One that last sent fine, one whose receiver is failing, and one that
 // names no application, so it has never sent.
-const notifications = (): Schemas["NotificationInfo"][] => [
+const webhooks = (): Schemas["WebhookSummary"][] => [
   {
-    name: "ntf-ascender-drift",
+    name: "wh-ascender-drift",
     description: "Drift report in Ascender",
     type: "ascender",
     events: ["drift_detected"],
@@ -242,12 +242,10 @@ const notifications = (): Schemas["NotificationInfo"][] => [
     destination: "https://ascender.example.com",
     job_template: 12,
     workflow_job_template: null,
-    trigger: "webhook",
     credentials: ["cred-store"],
     timeout_seconds: 30,
     retries: 3,
-    webhook: null,
-    extra_vars: [],
+    request: null,
     last: {
       event: "drift_detected",
       application: "drifted",
@@ -255,12 +253,11 @@ const notifications = (): Schemas["NotificationInfo"][] => [
       ok: true,
       attempts: 1,
       status: 202,
-      job: null,
       error: null,
     },
   },
   {
-    name: "ntf-failures",
+    name: "wh-failures",
     description: "Every failure, to the alerts receiver",
     type: "webhook",
     events: ["sync_failed", "back_in_sync"],
@@ -269,11 +266,10 @@ const notifications = (): Schemas["NotificationInfo"][] => [
     destination: "https://alerts.example.com",
     job_template: null,
     workflow_job_template: null,
-    trigger: null,
     credentials: [],
     timeout_seconds: 10,
     retries: 3,
-    webhook: {
+    request: {
       method: "POST",
       auth: "header",
       auth_header: "X-Alerts-Token",
@@ -281,7 +277,6 @@ const notifications = (): Schemas["NotificationInfo"][] => [
       templated: true,
       signature_header: "X-Hub-Signature-256",
     },
-    extra_vars: [],
     last: {
       event: "sync_failed",
       application: "broken",
@@ -289,12 +284,11 @@ const notifications = (): Schemas["NotificationInfo"][] => [
       ok: false,
       attempts: 4,
       status: 503,
-      job: null,
       error: "HTTP 503: Service Unavailable",
     },
   },
   {
-    name: "ntf-paused",
+    name: "wh-paused",
     description: null,
     type: "webhook",
     events: ["drift_detected"],
@@ -303,11 +297,10 @@ const notifications = (): Schemas["NotificationInfo"][] => [
     destination: "https://hooks.example.com",
     job_template: null,
     workflow_job_template: null,
-    trigger: null,
     credentials: [],
     timeout_seconds: 30,
     retries: 3,
-    webhook: {
+    request: {
       method: "POST",
       auth: "none",
       auth_header: null,
@@ -315,7 +308,6 @@ const notifications = (): Schemas["NotificationInfo"][] => [
       templated: false,
       signature_header: null,
     },
-    extra_vars: [],
     last: null,
   },
 ];
@@ -417,7 +409,7 @@ export async function mockApi(
 ): Promise<Calls> {
   const calls: Calls = { writes: [] };
   const s = state();
-  const sent = notifications();
+  const sent = webhooks();
   // Each one's sends, newest first: its last, and an older one that failed.
   const history: Record<string, Schemas["Delivery"][]> = Object.fromEntries(
     sent.map((n) => [
@@ -432,7 +424,6 @@ export async function mockApi(
               ok: false,
               attempts: 4,
               status: null,
-              job: null,
               error: "could not connect: connection refused",
             },
           ]
@@ -580,7 +571,7 @@ export async function mockApi(
       } satisfies Schemas["ProjectSyncResult"]);
     }
     // A test send: always accepted here, and kept as the last send.
-    const test = /^\/api\/v1\/notifications\/([^/]+)\/test$/.exec(path);
+    const test = /^\/api\/v1\/webhooks\/([^/]+)\/test$/.exec(path);
     if (request.method() === "POST" && test) {
       calls.writes.push({ method: "POST", path, headers: request.headers() });
       const n = sent.find((x) => x.name === decodeURIComponent(test[1]));
@@ -592,7 +583,6 @@ export async function mockApi(
         ok: true,
         attempts: 1,
         status: 202,
-        job: null,
         error: null,
       };
       history[n.name]!.unshift(n.last);
@@ -601,19 +591,19 @@ export async function mockApi(
     if (request.method() !== "GET")
       return json(route, { error: "not mocked" }, 405);
 
-    const one = /^\/api\/v1\/notifications\/([^/]+)$/.exec(path);
+    const one = /^\/api\/v1\/webhooks\/([^/]+)$/.exec(path);
     if (one) {
       const n = sent.find((x) => x.name === decodeURIComponent(one[1]));
       if (!n)
         return json(
           route,
-          { error: `notification '${one[1]}' is not configured` },
+          { error: `webhook '${one[1]}' is not configured` },
           404,
         );
       return adminOnly(route, {
         ...n,
         history: history[n.name],
-      } satisfies Schemas["NotificationDetail"]);
+      } satisfies Schemas["WebhookDetail"]);
     }
 
     if (path === "/api/v1/applications")
@@ -714,7 +704,7 @@ export async function mockApi(
       "/api/v1/connectors": connectors,
       "/api/v1/projects": projects,
       "/api/v1/credentials": credentials,
-      "/api/v1/notifications": sent,
+      "/api/v1/webhooks": sent,
       "/api/v1/settings": settings,
     };
     if (path in fixed) return json(route, fixed[path]);
