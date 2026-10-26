@@ -48,17 +48,17 @@ startApp({
       admin: true,
     },
     {
-      path: "/credentials",
-      label: "Credentials",
-      icon: ICONS.credentials,
-      page: <CredentialsPage />,
-      admin: true,
-    },
-    {
       path: "/webhooks",
       label: "Webhooks",
       icon: ICONS.webhooks,
       page: <WebhooksPage />,
+      admin: true,
+    },
+    {
+      path: "/credentials",
+      label: "Credentials",
+      icon: ICONS.credentials,
+      page: <CredentialsPage />,
       admin: true,
     },
     {

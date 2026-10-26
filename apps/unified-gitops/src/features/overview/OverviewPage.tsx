@@ -210,6 +210,17 @@ export function OverviewPage() {
             goodWord="Synced"
           />
         )}
+        {webhooks.isSuccess && webhooks.data.length > 0 && (
+          <AreaCard
+            to="/webhooks"
+            link={link}
+            icon={ICONS.webhooks}
+            title="Webhooks"
+            counts={countStates(webhooks.data, webhookState)}
+            labels={WEBHOOK_LABELS}
+            goodWord="Sending"
+          />
+        )}
         {credentials.isSuccess && (
           <AreaCard
             to="/credentials"
@@ -223,17 +234,6 @@ export function OverviewPage() {
             )}
             labels={CREDENTIAL_LABELS}
             goodWord="Working"
-          />
-        )}
-        {webhooks.isSuccess && webhooks.data.length > 0 && (
-          <AreaCard
-            to="/webhooks"
-            link={link}
-            icon={ICONS.webhooks}
-            title="Webhooks"
-            counts={countStates(webhooks.data, webhookState)}
-            labels={WEBHOOK_LABELS}
-            goodWord="Sending"
           />
         )}
       </AreaGrid>
