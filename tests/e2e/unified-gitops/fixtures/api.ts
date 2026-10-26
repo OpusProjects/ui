@@ -229,13 +229,15 @@ const credentials: Schemas["CredentialInfo"][] = [
   },
 ];
 
-// One that last sent fine, one whose receiver is failing.
+// One that last sent fine, one whose receiver is failing, and one that
+// names no application, so it has never sent.
 const notifications = (): Schemas["NotificationInfo"][] => [
   {
     name: "ntf-ascender-drift",
     description: "Drift report in Ascender",
     type: "ascender",
     events: ["drift_detected"],
+    all_applications: false,
     applications: ["drifted"],
     destination: "https://ascender.example.com",
     job_template: 12,
@@ -258,6 +260,7 @@ const notifications = (): Schemas["NotificationInfo"][] => [
     description: "Every failure, to the alerts receiver",
     type: "webhook",
     events: ["sync_failed", "back_in_sync"],
+    all_applications: true,
     applications: [],
     destination: "https://alerts.example.com",
     job_template: null,
@@ -274,6 +277,20 @@ const notifications = (): Schemas["NotificationInfo"][] => [
       job: null,
       error: "HTTP 503: Service Unavailable",
     },
+  },
+  {
+    name: "ntf-paused",
+    description: null,
+    type: "webhook",
+    events: ["drift_detected"],
+    all_applications: false,
+    applications: [],
+    destination: "https://hooks.example.com",
+    job_template: null,
+    workflow_job_template: null,
+    trigger: null,
+    credentials: [],
+    last: null,
   },
 ];
 
@@ -379,19 +396,21 @@ export async function mockApi(
   const history: Record<string, Schemas["Delivery"][]> = Object.fromEntries(
     sent.map((n) => [
       n.name,
-      [
-        n.last!,
-        {
-          event: "sync_failed",
-          application: "broken",
-          at: now() - 7200,
-          ok: false,
-          attempts: 4,
-          status: null,
-          job: null,
-          error: "could not connect: connection refused",
-        },
-      ],
+      n.last
+        ? [
+            n.last,
+            {
+              event: "sync_failed",
+              application: "broken",
+              at: now() - 7200,
+              ok: false,
+              attempts: 4,
+              status: null,
+              job: null,
+              error: "could not connect: connection refused",
+            },
+          ]
+        : [],
     ]),
   );
   for (let i = 0; i < olderRuns; i++)

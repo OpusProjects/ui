@@ -20,6 +20,11 @@ test("the list shows each notification, what it sends and how its last send went
     failures.getByText("HTTP 503: Service Unavailable"),
   ).toBeVisible();
   await expect(failures.getByText("Every application")).toBeVisible();
+
+  // applications left out or []: none, and so never sent.
+  const paused = page.locator("article", { hasText: "ntf-paused" });
+  await expect(paused.getByText("None", { exact: true })).toBeVisible();
+  await expect(paused.getByText("Not sent yet")).toBeVisible();
   await expect(failures.getByText("Events")).toHaveCount(0);
 });
 

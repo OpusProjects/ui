@@ -99,7 +99,7 @@ export function NotificationDetailPage() {
           <Overview notification={notification} />
           <Panel
             title="Applications"
-            hint="The applications whose events it reports. Empty applications: in the configuration means every application."
+            hint="The applications whose events it reports: applications: all for every one, or their names. Left out or empty, none."
           >
             <Listens notification={notification} />
           </Panel>
@@ -250,17 +250,16 @@ function Listens({ notification: n }: { notification: Notification }) {
         {applications.error.message}
       </Notice>
     );
-  const rows =
-    n.applications.length === 0
-      ? applications.data
-      : applications.data.filter((a) => n.applications.includes(a.name));
+  const rows = n.all_applications
+    ? applications.data
+    : applications.data.filter((a) => n.applications.includes(a.name));
 
   return (
     <ListTable
       columns={applicationColumns("connector")}
       rows={rows.map((app) => ({ name: app.name, app }))}
       rowKey={(r) => r.name}
-      empty="No application to listen to."
+      empty="It listens to no application: name some under applications: in the configuration, or write all."
       noun="applications"
     />
   );

@@ -65,8 +65,14 @@ export const triggerText = (n: Notification): string | null =>
       ? "The template's webhook"
       : null;
 
+// applications: all, a list, or none (left out or []), as an API key reads
+// its applications.
 export const applicationsText = (n: Notification) =>
-  n.applications.length === 0 ? "Every application" : n.applications.join(", ");
+  n.all_applications
+    ? "Every application"
+    : n.applications.length === 0
+      ? "None"
+      : n.applications.join(", ");
 
 export const searchText = (n: Notification) =>
   `${n.name} ${n.description ?? ""} ${n.type} ${n.destination} ${n.applications.join(" ")} ${n.events.join(" ")}`;

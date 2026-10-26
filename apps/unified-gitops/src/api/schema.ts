@@ -736,7 +736,12 @@ export interface components {
       history: components["schemas"]["Delivery"][];
     };
     NotificationInfo: {
-      /** @description Applications it listens to; empty = every application */
+      /** @description Every application, present and future (`applications: all`) */
+      all_applications: boolean;
+      /**
+       * @description The applications it listens to, when it names them; empty with
+       *     all_applications false = none
+       */
       applications: string[];
       credentials: string[];
       description?: string | null;
