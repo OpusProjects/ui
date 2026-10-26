@@ -50,9 +50,9 @@ export function Clip({ value }: { value: string }) {
 export const onOff = (on: boolean | null | undefined) =>
   on == null ? "Unknown" : on ? "On" : "Off";
 
-// Several values for one fact: the first, then "+3 more" right under it,
-// which opens the rest one per line (and "Show fewer" closes them), so a
-// list never stretches its row. "None" when there are none.
+// Several values for one fact: the first, with "+3 more" beside it, which
+// opens the rest one per line, and "Show fewer" on a line after them closes
+// them, so a list never stretches its row. "None" when there are none.
 export function ValueList({
   values,
   limit = 1,
@@ -67,28 +67,28 @@ export function ValueList({
   if (values.length === 0) return <>None</>;
   const shown = open ? values : values.slice(0, limit);
   const more = values.length - limit;
+  const valueClass = mono
+    ? `${styles.mono} ${styles.clipText}`
+    : styles.clipText;
+  const toggle = (
+    <button
+      type="button"
+      className={styles.more}
+      aria-expanded={open}
+      onClick={() => setOpen(!open)}
+    >
+      {open ? "Show fewer" : `+${more} more`}
+    </button>
+  );
   return (
     <span className={styles.stack}>
       {shown.map((value, i) => (
-        <span
-          key={i}
-          className={
-            mono ? `${styles.mono} ${styles.clipText}` : styles.clipText
-          }
-        >
-          {value}
+        <span key={i} className={styles.line}>
+          <span className={valueClass}>{value}</span>
+          {more > 0 && !open && i === shown.length - 1 && toggle}
         </span>
       ))}
-      {more > 0 && (
-        <button
-          type="button"
-          className={styles.more}
-          aria-expanded={open}
-          onClick={() => setOpen(!open)}
-        >
-          {open ? "Show fewer" : `+${more} more`}
-        </button>
-      )}
+      {more > 0 && open && toggle}
     </span>
   );
 }

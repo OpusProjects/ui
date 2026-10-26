@@ -62,11 +62,22 @@
   min-width: 0;
 }
 
-/* "+3 more" under a ValueList: a quiet link-like control, aligned with
-   the values above it. */
+/* One value of a ValueList, with "+3 more" beside the first while the list
+   is closed, so a closed list takes one line. The value gives way (ellipsis)
+   before the control does. "Show fewer" sits on a line after an open list. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* "+3 more" beside a ValueList's value: a quiet link-like control. */
 .more {
+  flex: none;
   align-self: flex-start;
   padding: 0;
+  white-space: nowrap;
   border: 0;
   background: none;
   color: var(--uu-accent-strong);

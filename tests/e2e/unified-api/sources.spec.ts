@@ -45,7 +45,7 @@ test("a source's credentials each link to their page, one per line", async ({
     exact: true,
   });
   await expect(first).toHaveAttribute("href", "/credentials/cred-d42");
-  // The first only, then "+1 more", which opens the rest under it.
+  // The first only, with "+1 more" beside it, which opens the rest under it.
   await expect(second).toHaveCount(0);
   await page.getByRole("button", { name: "+1 more" }).click();
   await expect(second).toHaveAttribute("href", "/credentials/cred-inventory");
