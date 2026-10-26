@@ -202,10 +202,11 @@ const historyColumns: ListColumn<Delivery>[] = [
     render: (d) => (d.job ? `${answer(d)}, job ${d.job}` : answer(d)),
   },
   {
-    key: "error",
-    label: "Error",
+    // "OK" when the receiver took it; why not, when it did not.
+    key: "message",
+    label: "Message",
     title: (d) => d.error ?? undefined,
-    render: (d) => (d.error ? d.error : <ListSoft>–</ListSoft>),
+    render: (d) => (d.ok ? "OK" : (d.error ?? "Failed")),
   },
   {
     key: "result",

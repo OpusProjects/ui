@@ -70,6 +70,9 @@ test("a notification's page shows its overview, last send and applications", asy
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0)).toContainText("Drift detected");
   await expect(rows.nth(0)).toContainText("HTTP 202");
+  await expect(
+    rows.nth(0).getByRole("cell", { name: "OK", exact: true }),
+  ).toBeVisible();
   await expect(rows.nth(0)).toContainText("Sent");
   await expect(
     rows.nth(0).getByRole("link", { name: "drifted" }),
