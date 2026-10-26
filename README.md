@@ -21,7 +21,7 @@ Both are built from the same packages, so they look and behave alike.
 **unified-gitops** (`apps/unified-gitops`):
 
 - **Overview**: applications by sync status, and what needs fixing: failed, out of sync, missing
-- **Applications**: each one's status, commit and pending changes; Check compares, Sync applies
+- **Applications**: each one's status, commit and pending changes; Check compares, Push applies
 - **Application page**: its overview (system, project, status, commit) and what past runs did
 - **Connectors**: the scripts that read and change each kind of system, their kinds in apply order
 - **Connector page**: script, project and time limit, kinds in apply order, and the applications using it
@@ -48,23 +48,6 @@ Both are built from the same packages, so they look and behave alike.
 
 ---
 
-## 🚀 Getting started
-
-**Using it:** run unified-api 0.34.0 or later, or unified-gitops, with the UI turned on. Each
-image ships its UI and its bundled config turns it on; see unified-api's
-[docs/ui.md](https://github.com/OpusProjects/unified-api/blob/main/docs/ui.md).
-
-**Working on it:**
-
-```bash
-npm install
-UNIFIED_API_URL=http://localhost:8182 npm run dev            # unified-api UI on :5173
-UNIFIED_GITOPS_URL=http://127.0.0.1:8183 npm run dev:gitops  # unified-gitops UI on :18192
-npm run test:e2e                                             # Playwright, mocked APIs
-```
-
----
-
 ## 📚 Documentation
 
 | Document                           | What it covers                                                        |
@@ -80,14 +63,9 @@ npm run test:e2e                                             # Playwright, mocke
 
 ## 🤝 Contributing
 
-Contributions are welcome through pull requests against `main`. Every PR runs the same checks as
-[docs/development.md](docs/development.md) describes: formatting, typecheck, build, the end-to-end
-suite and the demo image. Commit messages and PR titles follow
-[Conventional Commits](https://www.conventionalcommits.org/).
+Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md) covers the PR workflow, commit style, CI gates and design rules.
 
-Security issues: please report them privately through
-[GitHub's security advisories](https://github.com/OpusProjects/unified-ui/security/advisories/new),
-not in a public issue.
+Security issues: see [SECURITY.md](SECURITY.md) for private reporting.
 
 ---
 
