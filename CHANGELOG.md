@@ -9,10 +9,13 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
 ### Added
 
 - unified-gitops Webhooks: a page per webhook and a list of them, each with its type, applications (every one, some, or none), what it starts (Ascender and AWX, with a link to the template's own page and the variable its playbook reads the message from) and its last send; a webhook's page shows its events, destination and credentials, the applications it listens to and a history of its sends (Event, When, Application, Answer, Message, Result), with Send test. The Overview counts them and names one whose last send failed.
 - Every age in both apps (last check, last attempt, data from, last pull, sends, run history) counts on live, every second, between polls (`LiveAge`, on one shared clock that `LiveSpan` uses too).
+- Requires unified-gitops 0.2.0 for the Webhooks pages and the repositories chart (its `/api/v1/webhooks` routes and `unified_gitops_git_requests_total`).
 
 ### Changed
 
@@ -97,6 +100,7 @@ unified-ui version it builds into its image.
 - A demo image: the built UI behind nginx, forwarding to a unified-api.
 - Requires unified-api 0.34.0 or later, which also serves this UI itself.
 
-[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/OpusProjects/unified-ui/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/OpusProjects/unified-ui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/OpusProjects/unified-ui/releases/tag/v0.1.0
