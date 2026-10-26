@@ -3,48 +3,31 @@
 [![unified-ui CI](https://github.com/OpusProjects/unified-ui/actions/workflows/ci.yaml/badge.svg)](https://github.com/OpusProjects/unified-ui/actions/workflows/ci.yaml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![React](https://img.shields.io/badge/react-19-61dafb.svg?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/typescript-5.9-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-7.0-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 
 The web UIs for [unified-api](https://github.com/OpusProjects/unified-api) and
 [unified-gitops](https://github.com/OpusProjects/unified-gitops), and the shared packages they are
 built from.
 
-Each tool serves its own UI on its own address: open the instance in a browser, sign in, and see
-what it holds and whether it is keeping up. The UIs read the same REST API every other consumer
-uses, and keep no state of their own beyond a theme choice and half an hour of metrics in memory.
-Both are built from the same packages, so they look and behave alike.
+Each tool serves its own UI on its own address: open it in a browser, sign in, and see what it
+holds and whether it is keeping up. The UIs read the same REST API any other consumer uses and
+keep no state of their own, and both are built from the same packages, so they look alike.
 
 ---
 
 ## ✨ Features
 
-**unified-gitops** (`apps/unified-gitops`):
-
-- **Overview**: applications by sync status, and what needs fixing: failed, out of sync, missing
-- **Applications**: each one's status, commit and pending changes; Check compares, Push applies
-- **Application page**: its overview (system, project, status, commit) and what past runs did
-- **Connectors**: the scripts that read and change each kind of system, their kinds in apply order
-- **Connector page**: script, project and time limit, kinds in apply order, and the applications using it
-- **Project page**: repository, branch, credential, pull health, Pull now, and what reads from it
-- **Object search**: `/` or Ctrl+K from any page finds an object by key or value, and if git declares it
-- **Projects, credentials, metrics, configuration**: as in unified-api, for this instance
-
-**unified-api** (`apps/unified-api`):
-
-- **Overview**: whether anything needs attention, across everything the instance serves
-- **Sources**: health and freshness per source, groups, hosts and their variables, sync on demand
-- **Endpoints**: the inventories shaped for each consumer, and the sources they are built from
-- **Projects**: the git repositories holding the scripts, their pull health, pull on demand
-- **Credentials**: where each secret is read from and whether it is there, never the secret itself
-- **Topology**: this instance and the instances it federates, and whether each one keeps up
-- **Metrics**: charts sampled from `/metrics` every 10 s while the app is open, last 30 minutes
-- **Configuration**: the settings in effect, defaults included, and who can sign in; read-only
-- **Host search**: `/` or `Ctrl+K` anywhere finds a host and opens it in its source
-- **Sign-in**: unified-api's own login page, with an API key or an LDAP account
-- **Permissions respected**: a restricted key sees only its sources; admin pages leave the menu
+- **One look, every tool**: the shell, menu, search, tables, cards and charts live in shared packages
+- **Thin apps**: each app passes only its own words and data; the shared pieces do the rest
+- **Typed from the API**: each app's client is generated from its tool's OpenAPI spec
+- **No state of its own**: everything shown comes from the tool's REST API, read live
+- **Signs in through the tool**: API keys or LDAP accounts, sessions and CSRF on every write
+- **Permissions respected**: a restricted key sees only what it may; admin pages leave the menu
 - **Light and dark**: follows the system, or a choice remembered in this browser
-- **Shared packages**: `@opusprojects/unified-ui` and `@opusprojects/unified-client` for any
-  unified-\* UI
+- **Search anywhere**: `/` or Ctrl+K finds configured items by name, then the tool's own objects
+- **Live metrics**: charts sampled from `/metrics` while the app is open, the last half hour
+- **Pinned per release**: each tool builds a tagged version into its image, nothing to deploy apart
+- **Tested end to end**: Playwright against each app's mocked API, on every pull request
 
 ---
 
@@ -54,10 +37,10 @@ Both are built from the same packages, so they look and behave alike.
 | ---------------------------------- | --------------------------------------------------------------------- |
 | [Layout](docs/layout.md)           | The workspace, the two packages and the apps, and where new code goes |
 | [Development](docs/development.md) | Dev server, API types, typecheck, build, end-to-end tests and CI      |
-| [Sign-in](docs/sign-in.md)         | How the UI signs in through unified-api, sessions and CSRF on writes  |
+| [Sign-in](docs/sign-in.md)         | How the UI signs in, sessions and CSRF on writes                      |
 | [Demo image](docs/demo.md)         | The UI behind nginx, pointed at any instance, and its safety rules    |
 | [Design tokens](docs/design.md)    | The `--uu-*` variables, light and dark, and the four health states    |
-| [Releasing](docs/releasing.md)     | Versions, the CHANGELOG, tags, and how unified-api picks up a release |
+| [Releasing](docs/releasing.md)     | Versions, the CHANGELOG, tags, and how a tool picks up a release      |
 
 ---
 
