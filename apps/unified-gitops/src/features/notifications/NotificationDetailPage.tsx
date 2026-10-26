@@ -24,7 +24,8 @@ import {
   eventsText,
   notificationState,
   sentEvent,
-  targetText,
+  templateText,
+  triggerText,
 } from "./model";
 import { sendTest } from "./test";
 
@@ -39,8 +40,9 @@ const HINTS: Record<string, string> = {
     "events. What makes it send: drift found, a new commit waiting, a sync that applied or failed, back in sync. One message per run at most.",
   "Sends to":
     "The receiver's address, without its path or query, which can carry a secret. The full URL is in the configuration.",
-  Starts:
-    "job_template or workflow_job_template, and trigger: webhook posts to the template's own receiver with its key; launch starts it as a user, with the message in extra_vars.",
+  Starts: "job_template or workflow_job_template. The template it starts.",
+  Trigger:
+    "trigger. webhook posts the message to the template's own receiver, with its key; launch starts it as a user, with the message in extra_vars.",
   Credentials:
     "credentials. Where the token, key or password it sends comes from; never their values.",
 };
@@ -125,9 +127,14 @@ function Overview({ notification: n }: { notification: Notification }) {
         <Fact label="Sends to" hint={HINTS["Sends to"]}>
           <code className={common.mono}>{n.destination}</code>
         </Fact>
-        {targetText(n) && (
+        {templateText(n) && (
           <Fact label="Starts" hint={HINTS["Starts"]}>
-            {targetText(n)}
+            {templateText(n)}
+          </Fact>
+        )}
+        {triggerText(n) && (
+          <Fact label="Trigger" hint={HINTS["Trigger"]}>
+            {triggerText(n)}
           </Fact>
         )}
         <Fact label="Credentials" hint={HINTS["Credentials"]}>

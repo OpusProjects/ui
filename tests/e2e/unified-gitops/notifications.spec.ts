@@ -39,6 +39,10 @@ test("a notification's page shows its overview, last send and applications", asy
   const overview = page.locator("section", { hasText: "Overview" });
   await expect(overview.getByText("Ascender job template")).toBeVisible();
   await expect(
+    overview.getByText("Job template 12", { exact: true }),
+  ).toBeVisible();
+  await expect(overview.getByText("The template's webhook")).toBeVisible();
+  await expect(
     overview.getByText("https://ascender.example.com"),
   ).toBeVisible();
   // The events are on the notification's page, not on its card.

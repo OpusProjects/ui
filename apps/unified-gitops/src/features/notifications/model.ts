@@ -48,7 +48,7 @@ export const TYPE_WORDS: Record<Schemas["NotificationType"], string> = {
 };
 
 // What an ascender or awx notification starts: "Job template 12". Null for
-// a webhook. The card shows this much; the page adds how (targetText).
+// a webhook. The card shows this; the page adds how (triggerText).
 export const templateText = (n: Notification): string | null =>
   n.job_template != null
     ? `Job template ${n.job_template}`
@@ -56,14 +56,14 @@ export const templateText = (n: Notification): string | null =>
       ? `Workflow job template ${n.workflow_job_template}`
       : null;
 
-// The same, and how: "Job template 12, through its webhook".
-export function targetText(n: Notification): string | null {
-  const template = templateText(n);
-  if (!template) return null;
-  return n.trigger === "launch"
-    ? `${template}, launched as a user`
-    : `${template}, through its webhook`;
-}
+// How a job template is started: through its own webhook receiver, or by
+// its launch API as a user. Null for a webhook notification.
+export const triggerText = (n: Notification): string | null =>
+  n.trigger === "launch"
+    ? "Launch, as a user"
+    : n.trigger === "webhook"
+      ? "The template's webhook"
+      : null;
 
 export const applicationsText = (n: Notification) =>
   n.applications.length === 0 ? "Every application" : n.applications.join(", ");
