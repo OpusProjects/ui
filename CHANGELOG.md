@@ -35,6 +35,7 @@ unified-ui version it builds into its image.
 - Tables size their columns to their contents with an even gap between them, page inside their panel once past 10 rows (`usePagination`), and keep the page in the address (`?history-page=2`). The pager shows the range only ("1–10 of 23").
 - Status words line up: projects Synced, credentials and connectors Working, overview cards capitalized.
 - Configuration shows `server.url` as the Address when set.
+- unified-api Overview: the requests card is called Incoming requests per minute.
 - Times are exact everywhere: "43d 23h 4m 3s", "2m 13s ago", "every 10m" (zero parts left out). "Running for" counts on live, a second at a time.
 - Overview: per-minute figures and charts count the real last minute; the requests chart's tooltip parts add up to its total. unified-api's cards follow the menu (Sources, Connectors, Endpoints, Projects, Credentials).
 - An instance reached by IP address or `localhost` is named by its address and port (`127.0.0.1:8191`) instead of "127".

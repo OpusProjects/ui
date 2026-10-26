@@ -282,7 +282,7 @@ export function RatePanel({
 export function RequestsPanel({ prefix }: { prefix: string }) {
   return (
     <RatePanel
-      title="Requests per minute"
+      title="Incoming requests per minute"
       hint="Calls this instance received, from its own /metrics sampled every ten seconds while the app is open; reads of /metrics itself are left out. The app keeps the last half hour."
       metric={`${prefix}_http_requests_total`}
       filter={notSelf}
