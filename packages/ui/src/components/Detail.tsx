@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { linkify } from "./AutoLink";
 import styles from "./Detail.module.css";
 
 // The classes detail pages share (facts grid, links, the error box), so every
@@ -84,7 +85,7 @@ export function ValueList({
     <span className={styles.stack}>
       {shown.map((value, i) => (
         <span key={i} className={styles.line}>
-          <span className={valueClass}>{value}</span>
+          <span className={valueClass}>{linkify(value)}</span>
           {more > 0 && !open && i === shown.length - 1 && toggle}
         </span>
       ))}

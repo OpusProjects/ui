@@ -101,6 +101,12 @@ test("a webhook's page says how it sends, never with a value", async ({
   await expect(overview.getByText("X-Hub-Signature-256")).toBeVisible();
   await expect(overview.getByText("X-Source")).toBeVisible();
   await expect(overview.getByText("10s per attempt")).toBeVisible();
+  // A web address is a link out, opened in a new tab.
+  const sendsTo = overview.getByRole("link", {
+    name: "https://alerts.example.com",
+  });
+  await expect(sendsTo).toHaveAttribute("href", "https://alerts.example.com");
+  await expect(sendsTo).toHaveAttribute("target", "_blank");
   // A job template has none of a webhook's lines.
   await page.goto("/notifications/ntf-ascender-drift");
   await expect(overview.getByText("Authentication")).toHaveCount(0);

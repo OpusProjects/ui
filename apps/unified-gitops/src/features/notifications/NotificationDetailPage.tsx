@@ -153,7 +153,7 @@ function Overview({ notification: n }: { notification: Notification }) {
           <ValueList values={eventWords(n.events)} />
         </Fact>
         <Fact label="Sends to" hint={HINTS["Sends to"]}>
-          <code className={common.mono}>{n.destination}</code>
+          {n.destination}
         </Fact>
         {templateText(n) && (
           <Fact label="Starts" hint={HINTS["Starts"]}>

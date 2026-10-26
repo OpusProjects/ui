@@ -18,6 +18,7 @@ unified-ui version it builds into its image.
 
 - Detail panels' facts sit in at most three columns, as Ascender and AWX lay out theirs: two when the panel is under 1024px wide, one under 672px (they filled as many 320px columns as fitted, four or five on a wide screen).
 - A fact with several values (`ValueList`: a source's credentials, a notification's events, CORS origins, config keys) has "+N more" beside its first value instead of on a line of its own; "Show fewer" stays on its own line after the open list.
+- A fact whose value is a web address (an http or https URL, whole) is a link out, opened in a new tab with the external-link icon, in both apps (`linkify`, in `Fact` and `ValueList`); a notification's Sends to is one.
 
 ## [0.2.0] - 2026-10-26
 

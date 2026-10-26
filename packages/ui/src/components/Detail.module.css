@@ -103,6 +103,21 @@
   text-underline-offset: 2px;
 }
 
+/* A value that is a web address (linkify): a link out, with the external-link
+   icon after it, as on the other ways out of the app. */
+.out {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.out svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
 .link:hover {
   text-decoration-thickness: 2px;
 }
