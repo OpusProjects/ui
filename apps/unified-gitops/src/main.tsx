@@ -41,17 +41,17 @@ startApp({
       admin: true,
     },
     {
-      path: "/projects",
-      label: "Projects",
-      icon: ICONS.projects,
-      page: <ProjectsPage />,
-      admin: true,
-    },
-    {
       path: "/webhooks",
       label: "Webhooks",
       icon: ICONS.webhooks,
       page: <WebhooksPage />,
+      admin: true,
+    },
+    {
+      path: "/projects",
+      label: "Projects",
+      icon: ICONS.projects,
+      page: <ProjectsPage />,
       admin: true,
     },
     {

@@ -196,7 +196,10 @@ export function ApplicationDetailPage() {
                 )}
               </Fact>
               <Fact label="Last check" hint={HINTS["Last check"]}>
-                <LiveAge seconds={app.last_checked_age_seconds} />
+                <LiveAge
+                  seconds={app.last_checked_age_seconds}
+                  at={application.dataUpdatedAt}
+                />
               </Fact>
               <Fact label="Runs" hint={HINTS["Runs"]}>
                 Every {formatSpan(app.sync_interval_seconds)}

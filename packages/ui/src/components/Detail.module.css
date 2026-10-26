@@ -105,17 +105,11 @@
 
 /* A value that is a web address (linkify): a link out, with the external-link
    icon after it, as on the other ways out of the app. */
-.out {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-}
-
 .out svg {
-  flex: none;
   width: 13px;
   height: 13px;
+  margin-left: 4px;
+  vertical-align: -1px;
 }
 
 .link:hover {
@@ -135,7 +129,7 @@
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    minmax(max(320px, calc((100% - 2 * 32px) / 3)), 1fr)
+    minmax(max(320px, calc((100% - 2 * 32px) / 3 - 1px)), 1fr)
   );
   gap: 8px 32px;
   margin: 0;

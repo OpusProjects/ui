@@ -7,7 +7,7 @@ test("the list shows each webhook, what it sends and how its last send went", as
   await mockApi(page);
   await page.goto("/webhooks");
   const drift = page.locator("article", { hasText: "wh-ascender-drift" });
-  await expect(drift.getByText("Sent", { exact: true })).toBeVisible();
+  await expect(drift.getByText("Working", { exact: true })).toBeVisible();
   await expect(drift.getByText("Ascender job template")).toBeVisible();
   await expect(
     drift.getByText("Job template 12", { exact: true }),
@@ -15,7 +15,7 @@ test("the list shows each webhook, what it sends and how its last send went", as
   await expect(drift.getByText("Sends to")).toHaveCount(0);
 
   const failures = page.locator("article", { hasText: "wh-failures" });
-  await expect(failures.getByText("Last send failed")).toBeVisible();
+  await expect(failures.getByText("Failing", { exact: true })).toBeVisible();
   await expect(
     failures.getByText("HTTP 503: Service Unavailable"),
   ).toBeVisible();
@@ -32,7 +32,7 @@ test("the list shows each webhook, what it sends and how its last send went", as
   // applications left out or []: none, and so never sent.
   const paused = page.locator("article", { hasText: "wh-paused" });
   await expect(paused.getByText("None", { exact: true })).toBeVisible();
-  await expect(paused.getByText("Not sent yet")).toBeVisible();
+  await expect(paused.getByText("Unused", { exact: true })).toBeVisible();
   await expect(failures.getByText("Events")).toHaveCount(0);
 });
 

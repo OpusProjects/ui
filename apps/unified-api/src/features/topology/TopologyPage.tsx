@@ -217,8 +217,8 @@ function TopologyContent({
       {view.upstream && view.upstream.age_seconds > PUSH_STALE_SECONDS && (
         <Notice tone="stale" title="This map may be out of date">
           {upstreamName(view.upstream)} last sent it{" "}
-          <LiveAge seconds={view.upstream.age_seconds} />; it sends one every
-          minute.
+          <LiveAge seconds={view.upstream.age_seconds} at={view.measuredAt} />;
+          it sends one every minute.
         </Notice>
       )}
       {peersOf(topology).length === 0 ? (

@@ -197,6 +197,17 @@ export function OverviewPage() {
             goodWord="Working"
           />
         )}
+        {webhooks.isSuccess && webhooks.data.length > 0 && (
+          <AreaCard
+            to="/webhooks"
+            link={link}
+            icon={ICONS.webhooks}
+            title="Webhooks"
+            counts={countStates(webhooks.data, webhookState)}
+            labels={WEBHOOK_LABELS}
+            goodWord="Working"
+          />
+        )}
         {projects.isSuccess && (
           <AreaCard
             to="/projects"
@@ -208,17 +219,6 @@ export function OverviewPage() {
             )}
             labels={PROJECT_LABELS}
             goodWord="Synced"
-          />
-        )}
-        {webhooks.isSuccess && webhooks.data.length > 0 && (
-          <AreaCard
-            to="/webhooks"
-            link={link}
-            icon={ICONS.webhooks}
-            title="Webhooks"
-            counts={countStates(webhooks.data, webhookState)}
-            labels={WEBHOOK_LABELS}
-            goodWord="Sending"
           />
         )}
         {credentials.isSuccess && (

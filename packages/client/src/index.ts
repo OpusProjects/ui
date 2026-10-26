@@ -1,4 +1,4 @@
-export { createApi, session, unwrap } from "./http";
+export { ApiError, createApi, session, unwrap } from "./http";
 export {
   HEALTH_LABEL,
   HEALTH_ORDER,

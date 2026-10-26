@@ -22,10 +22,11 @@ import {
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
 import { useApplications, useWebhook } from "../../api/queries";
+import { ApiError } from "@opusprojects/unified-client";
 import { ICONS } from "../../sections";
 import { applicationColumns } from "../applications/columns";
 import {
-  LABELS,
+  webhookLabels,
   TYPE_WORDS,
   eventWords,
   webhookState,
@@ -80,9 +81,11 @@ export function WebhookDetailPage() {
   const { name = "" } = useParams();
   // 404 for a name that is not configured: shown as "No such webhook".
   const webhooks = useWebhook(name);
-  const webhook = webhooks.data;
+  // Gone (a reload removed it, or it never was): say so, and show none of
+  // what an earlier answer had, nor a button that can only fail.
   const missing =
-    webhooks.isError && /not configured/.test(webhooks.error.message);
+    webhooks.error instanceof ApiError && webhooks.error.status === 404;
+  const webhook = missing ? undefined : webhooks.data;
 
   return (
     <>
@@ -144,7 +147,7 @@ function Overview({ webhook: n }: { webhook: Webhook }) {
     <Panel
       title="Overview"
       hint="What it reports and where: the events, the receiver, and the credentials it sends with."
-      aside={<HealthPill state={webhookState(n)} labels={LABELS} />}
+      aside={<HealthPill state={webhookState(n)} labels={webhookLabels(n)} />}
     >
       <dl className={common.facts}>
         <Fact label="Type" hint={HINTS["Type"]}>
@@ -299,7 +302,7 @@ function History({ history }: { history: Delivery[] }) {
         <ListTable
           columns={historyColumns}
           rows={history}
-          rowKey={(d) => `${d.at}-${d.event}-${d.application ?? ""}`}
+          rowKey={(d) => `${history.indexOf(d)}-${d.at}-${d.event}`}
           empty="Nothing sent yet."
           noun="sends"
         />

@@ -61,6 +61,18 @@ export const session: Middleware = {
   },
 };
 
+// A failed call: the API's own sentence, and its HTTP status, for a page
+// that must tell "not there" (404) from "could not ask" without matching on
+// the wording, which is meant to be read, not parsed.
+export class ApiError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 // Every unified-* failure carries {"error": "..."}; surface that sentence
 // rather than a bare status code.
 export function unwrap<T>(result: {
@@ -79,7 +91,7 @@ export function unwrap<T>(result: {
     typeof result.error === "object" && result.error && "error" in result.error
       ? String((result.error as { error: unknown }).error)
       : `${result.response.status} ${result.response.statusText}`;
-  throw new Error(message);
+  throw new ApiError(message, result.response.status);
 }
 
 // An app's API client: same origin as the page (in production the binary

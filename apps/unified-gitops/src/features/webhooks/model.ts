@@ -4,13 +4,21 @@ import type { Schemas } from "../../api/client";
 type Webhook = Schemas["WebhookSummary"];
 type Event = Schemas["Event"];
 
-// A webhook is working when its last send went through. The same words
-// on the overview's card, the list and a webhook's page.
+// The same words as the other sections: working when its last send went
+// through, failing when it did not, idle until it has sent anything, and
+// unused when it names no application (it can only be tested), as a
+// connector no application uses. On the overview's card, the list and a
+// webhook's page.
 export const LABELS = {
-  fresh: "Sent",
-  failing: "Last send failed",
-  pending: "Not sent yet",
+  fresh: "Working",
+  failing: "Failing",
+  pending: "Idle",
 };
+
+export const webhookLabels = (n: Webhook) =>
+  !n.all_applications && n.applications.length === 0
+    ? { ...LABELS, pending: "Unused" }
+    : LABELS;
 
 export const webhookState = (n: Webhook): HealthState =>
   !n.last ? "pending" : n.last.ok ? "fresh" : "failing";

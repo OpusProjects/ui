@@ -19,6 +19,7 @@ import { useWebhooks } from "../../api/queries";
 import { ICONS } from "../../sections";
 import {
   LABELS,
+  webhookLabels,
   TYPE_WORDS,
   applicationsText,
   hostOf,
@@ -61,7 +62,7 @@ export function WebhooksPage() {
             counts={filter.counts}
             noun={["webhook", "webhooks"]}
             labels={LABELS}
-            good="sending"
+            good="working"
             selected={filter.selected}
             onSelect={filter.setSelected}
             showAll={false}
@@ -91,7 +92,7 @@ export function WebhooksPage() {
                   title={n.name}
                   description={n.description}
                   state={webhookState(n)}
-                  labels={LABELS}
+                  labels={webhookLabels(n)}
                   error={n.last && !n.last.ok ? n.last.error : null}
                   titleLink={(title, className) => (
                     <Link
