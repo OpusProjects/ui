@@ -287,6 +287,34 @@
   text-align: right;
 }
 
+/* A cell's content in one box, measured for the column widths. */
+.fit {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Measured widths are exact, and the gaps between columns are in them: no
+   padding between cells, only outside the first and last. */
+.table[data-fitted] {
+  table-layout: fixed;
+}
+
+.table[data-fitted] th,
+.table[data-fitted] td {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.table[data-fitted] :is(th, td):first-child {
+  padding-left: 10px;
+}
+
+.table[data-fitted] :is(th, td):last-child {
+  padding-right: 10px;
+}
+
 .table tbody tr:hover {
   background: var(--uu-surface-sunken);
 }
