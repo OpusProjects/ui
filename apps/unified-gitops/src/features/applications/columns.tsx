@@ -3,8 +3,8 @@ import {
   HealthPill,
   ListName,
   ListSoft,
+  LiveAge,
   detailStyles as common,
-  formatAge,
   type ListColumn,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
@@ -84,7 +84,8 @@ export function applicationColumns(
     {
       key: "checked",
       label: "Last check",
-      render: (r) => (r.app ? formatAge(r.app.last_checked_age_seconds) : none),
+      render: (r) =>
+        r.app ? <LiveAge seconds={r.app.last_checked_age_seconds} /> : none,
     },
     {
       key: "status",

@@ -40,6 +40,8 @@ export {
 export { lift } from "./components/Lift";
 export { ThemeSwitch } from "./components/ThemeSwitch";
 export { formatAge, formatBytes, formatEvery, formatSpan } from "./lib/format";
+export { LiveAge, useNow } from "./components/LiveAge";
+export { linkify } from "./components/AutoLink";
 export {
   BarList,
   DataTable,

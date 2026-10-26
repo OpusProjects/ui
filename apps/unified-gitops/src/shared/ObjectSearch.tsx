@@ -1,13 +1,12 @@
 import { useNavigate } from "react-router";
 import {
   Badge,
+  LiveAge,
   SiteSearch,
-  formatAge,
   quickSearchStyles as styles,
   type SearchSection,
 } from "@opusprojects/unified-ui";
 import { api, unwrap, type Schemas } from "../api/client";
-import { ageOf } from "../features/applications/model";
 
 type Found = Schemas["FoundObject"];
 
@@ -78,7 +77,7 @@ export function ObjectSearch() {
             </span>
             <span className={styles.detail}>
               {found.kind} in {found.application}, read{" "}
-              {formatAge(ageOf(found.written_at))}
+              <LiveAge since={found.written_at} />
               {found.field && `, matched in ${found.field}`}
             </span>
           </>

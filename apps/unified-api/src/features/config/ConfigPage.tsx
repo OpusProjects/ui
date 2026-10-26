@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import {
   EmptyState,
+  LiveAge,
   SecretsPanel,
   SignInPanels,
   Fact,
@@ -8,7 +9,6 @@ import {
   PageHeader,
   Panel,
   SkeletonSummary,
-  formatAge,
   formatBytes,
   formatSpan,
 } from "@opusprojects/unified-ui";
@@ -219,13 +219,15 @@ function ServerPanels({ settings }: { settings: Settings }) {
               : "Never"}
           </Fact>
           <Fact label="Last saved" hint={HINTS["Last saved"]}>
-            {cache.persistence_path == null
-              ? "Never"
-              : cache.consecutive_failures > 0
-                ? `Failing, ${cache.consecutive_failures} in a row`
-                : cache.last_saved_age_seconds != null
-                  ? formatAge(cache.last_saved_age_seconds)
-                  : "Not yet"}
+            {cache.persistence_path == null ? (
+              "Never"
+            ) : cache.consecutive_failures > 0 ? (
+              `Failing, ${cache.consecutive_failures} in a row`
+            ) : cache.last_saved_age_seconds != null ? (
+              <LiveAge seconds={cache.last_saved_age_seconds} />
+            ) : (
+              "Not yet"
+            )}
           </Fact>
 
           <Fact label="Projects folder" hint={HINTS["Projects folder"]}>

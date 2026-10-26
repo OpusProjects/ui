@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import {
+  LiveAge,
   SiteSearch,
-  formatAge,
   quickSearchStyles as styles,
   type SearchSection,
 } from "@opusprojects/unified-ui";
@@ -86,9 +86,12 @@ export function HostSearch() {
             <span className={styles.name}>{found.host}</span>
             <span className={styles.detail}>
               In{" "}
-              {found.sources
-                .map((s) => `${s.source_id} (${formatAge(s.age_seconds)})`)
-                .join(", ")}
+              {found.sources.map((s, i) => (
+                <span key={s.source_id}>
+                  {i > 0 && ", "}
+                  {s.source_id} (<LiveAge seconds={s.age_seconds} />)
+                </span>
+              ))}
               {found.endpoints.length > 0 &&
                 `; reaches ${found.endpoints.join(", ")}`}
             </span>

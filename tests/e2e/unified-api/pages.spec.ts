@@ -79,8 +79,8 @@ test("this instance's running time ticks", async ({ page }) => {
   await expect(panel).toContainText(/1h 30m [3-4]s/);
 });
 
-// A fact with several values shows the first, then "+N more" under it,
-// which opens the rest; "Show fewer" closes them again.
+// A fact with several values shows the first, with "+N more" beside it,
+// which opens the rest; "Show fewer", on a line after them, closes them.
 test("a long list of values opens with +N more", async ({ page }) => {
   const { credentials } = await import("./fixtures/api");
   await mockApi(page);
@@ -96,8 +96,20 @@ test("a long list of values opens with +N more", async ({ page }) => {
   const row = page.locator("dd", { hasText: "A_URL" });
   await expect(row.getByText("A_URL")).toBeVisible();
   await expect(row.getByText("A_USER")).toHaveCount(0);
+  // On the value's own line, to its right: no line of its own.
+  const value = await row.getByText("A_URL").boundingBox();
+  const more = await row.getByRole("button", { name: "+4 more" }).boundingBox();
+  expect(
+    Math.abs(more!.y + more!.height / 2 - (value!.y + value!.height / 2)),
+  ).toBeLessThan(4);
+  expect(more!.x).toBeGreaterThan(value!.x + value!.width);
   await row.getByRole("button", { name: "+4 more" }).click();
   await expect(row.getByText("A_SECRET")).toBeVisible();
+  const last = await row.getByText("A_SECRET").boundingBox();
+  const fewer = await row
+    .getByRole("button", { name: "Show fewer" })
+    .boundingBox();
+  expect(fewer!.y).toBeGreaterThanOrEqual(last!.y + last!.height - 1);
   await row.getByRole("button", { name: "Show fewer" }).click();
   await expect(row.getByText("A_SECRET")).toHaveCount(0);
 });

@@ -5,6 +5,7 @@ import {
   HEALTH_ORDER,
   type HealthState,
 } from "@opusprojects/unified-client";
+import { linkify } from "./AutoLink";
 import { InfoHint } from "./InfoHint";
 import { lift } from "./Lift";
 import styles from "./Health.module.css";
@@ -269,6 +270,7 @@ export function FactList({ children }: { children: ReactNode }) {
 }
 
 // With a hint, the label opens a short explanation of what the fact means.
+// A value that is a web address is a link out (linkify).
 export function Fact({
   label,
   hint,
@@ -281,7 +283,7 @@ export function Fact({
   return (
     <div className={styles.fact}>
       <dt>{hint ? <InfoHint text={hint}>{label}</InfoHint> : label}</dt>
-      <dd>{children}</dd>
+      <dd>{linkify(children)}</dd>
     </div>
   );
 }

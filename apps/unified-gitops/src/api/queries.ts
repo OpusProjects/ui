@@ -66,6 +66,31 @@ export function useCredentials() {
   });
 }
 
+// Each webhook with its last send, which a run can change at any time.
+export function useWebhooks() {
+  return useQuery({
+    queryKey: ["webhooks"],
+    queryFn: async () => unwrap(await api.GET("/api/v1/webhooks")),
+    refetchInterval: POLL_MS,
+    retry: false,
+  });
+}
+
+// One webhook with its recent sends, for its page.
+export function useWebhook(name: string) {
+  return useQuery({
+    queryKey: ["webhooks", name],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/v1/webhooks/{id}", {
+          params: { path: { id: name } },
+        }),
+      ),
+    refetchInterval: POLL_MS,
+    retry: false,
+  });
+}
+
 export function useSettings() {
   return useQuery({
     queryKey: ["settings"],

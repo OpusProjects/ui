@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import {
   HEALTH_ORDER,
@@ -6,8 +6,9 @@ import {
   useMetrics,
   type HealthState,
 } from "@opusprojects/unified-client";
-import { compact, LineChart } from "./Charts";
+import { compact, LineChart, type Series } from "./Charts";
 import { lift } from "./Lift";
+import { useNow } from "./LiveAge";
 import { Panel } from "./Page";
 import { formatSpan } from "../lib/format";
 import styles from "./Overview.module.css";
@@ -226,12 +227,16 @@ export function RatePanel({
   metric,
   filter,
   parts = [],
+  series = 3,
 }: {
   title: string;
   hint: string;
   metric: string;
   filter?: LabelFilter;
   parts?: RatePart[];
+  // Which of the theme's series colours it draws in, so two rate charts on
+  // one page read as two things.
+  series?: Series;
 }) {
   const { scrapes } = useMetrics();
   // Each point counts the minute up to it, as "This instance" does: the
@@ -269,7 +274,7 @@ export function RatePanel({
     <Panel title={title} hint={hint} className={styles.requestsCard}>
       <LineChart
         points={points}
-        series={3}
+        series={series}
         label={title}
         format={(v) => `${compact(v)} in the minute`}
         empty="Collecting: the first point appears a minute after the page opens."
@@ -282,7 +287,7 @@ export function RatePanel({
 export function RequestsPanel({ prefix }: { prefix: string }) {
   return (
     <RatePanel
-      title="Incoming requests per minute"
+      title="Incoming requests (per minute)"
       hint="Calls this instance received, from its own /metrics sampled every ten seconds while the app is open; reads of /metrics itself are left out. The app keeps the last half hour."
       metric={`${prefix}_http_requests_total`}
       filter={notSelf}
@@ -303,11 +308,7 @@ export function LiveSpan({
   // An age rather than a duration: "2m 13s ago".
   ago?: boolean;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useNow();
   const span = formatSpan(seconds + Math.max(0, now - at) / 1000);
   return <>{ago ? `${span} ago` : span}</>;
 }

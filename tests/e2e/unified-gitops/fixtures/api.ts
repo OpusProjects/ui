@@ -229,6 +229,89 @@ const credentials: Schemas["CredentialInfo"][] = [
   },
 ];
 
+// One that last sent fine, one whose receiver is failing, and one that
+// names no application, so it has never sent.
+const webhooks = (): Schemas["WebhookSummary"][] => [
+  {
+    name: "wh-ascender-drift",
+    description: "Drift report in Ascender",
+    type: "ascender",
+    events: ["drift_detected"],
+    all_applications: false,
+    applications: ["drifted"],
+    destination: "https://ascender.example.com",
+    job_template: 12,
+    workflow_job_template: null,
+    credentials: ["cred-store"],
+    timeout_seconds: 30,
+    retries: 3,
+    request: null,
+    last: {
+      event: "drift_detected",
+      application: "drifted",
+      at: now() - 300,
+      ok: true,
+      attempts: 1,
+      status: 202,
+      error: null,
+    },
+  },
+  {
+    name: "wh-failures",
+    description: "Every failure, to the alerts receiver",
+    type: "webhook",
+    events: ["sync_failed", "back_in_sync"],
+    all_applications: true,
+    applications: [],
+    destination: "https://alerts.example.com",
+    job_template: null,
+    workflow_job_template: null,
+    credentials: [],
+    timeout_seconds: 10,
+    retries: 3,
+    request: {
+      method: "POST",
+      auth: "header",
+      auth_header: "X-Alerts-Token",
+      headers: ["X-Source", "X-Team"],
+      templated: true,
+      signature_header: "X-Hub-Signature-256",
+    },
+    last: {
+      event: "sync_failed",
+      application: "broken",
+      at: now() - 60,
+      ok: false,
+      attempts: 4,
+      status: 503,
+      error: "HTTP 503: Service Unavailable",
+    },
+  },
+  {
+    name: "wh-paused",
+    description: null,
+    type: "webhook",
+    events: ["drift_detected"],
+    all_applications: false,
+    applications: [],
+    destination: "https://hooks.example.com",
+    job_template: null,
+    workflow_job_template: null,
+    credentials: [],
+    timeout_seconds: 30,
+    retries: 3,
+    request: {
+      method: "POST",
+      auth: "none",
+      auth_header: null,
+      headers: [],
+      templated: false,
+      signature_header: null,
+    },
+    last: null,
+  },
+];
+
 const settings: Schemas["Settings"] = {
   version: "9.9.9",
   uptime_seconds: 3600,
@@ -271,6 +354,8 @@ const METRICS = (
 ) => `# TYPE unified_gitops_connector_calls_total counter
 unified_gitops_connector_calls_total{application="drifted",connector="kv",command="list",outcome="success"} ${6 * scrape}
 unified_gitops_connector_calls_total{application="drifted",connector="kv",command="apply",outcome="success"} ${2 * scrape}
+# TYPE unified_gitops_git_requests_total counter
+unified_gitops_git_requests_total{project="prj-state",operation="pull",outcome="success"} ${3 * scrape}
 # TYPE unified_gitops_connector_call_duration_seconds histogram
 unified_gitops_connector_call_duration_seconds_bucket{application="drifted",connector="kv",command="list",le="0.5"} ${6 * scrape}
 unified_gitops_connector_call_duration_seconds_bucket{application="drifted",connector="kv",command="list",le="1"} ${6 * scrape}
@@ -326,6 +411,27 @@ export async function mockApi(
 ): Promise<Calls> {
   const calls: Calls = { writes: [] };
   const s = state();
+  const sent = webhooks();
+  // Each one's sends, newest first: its last, and an older one that failed.
+  const history: Record<string, Schemas["Delivery"][]> = Object.fromEntries(
+    sent.map((n) => [
+      n.name,
+      n.last
+        ? [
+            n.last,
+            {
+              event: "sync_failed",
+              application: "broken",
+              at: now() - 7200,
+              ok: false,
+              attempts: 4,
+              status: null,
+              error: "could not connect: connection refused",
+            },
+          ]
+        : [],
+    ]),
+  );
   for (let i = 0; i < olderRuns; i++)
     s.history.synced.push(
       run({ id: -1 - i, started_at: now() - 3600 - 120 * i }),
@@ -466,8 +572,41 @@ export async function mockApi(
         duration_ms: 120,
       } satisfies Schemas["ProjectSyncResult"]);
     }
+    // A test send: always accepted here, and kept as the last send.
+    const test = /^\/api\/v1\/webhooks\/([^/]+)\/test$/.exec(path);
+    if (request.method() === "POST" && test) {
+      calls.writes.push({ method: "POST", path, headers: request.headers() });
+      const n = sent.find((x) => x.name === decodeURIComponent(test[1]));
+      if (!n) return json(route, { error: "not configured" }, 404);
+      n.last = {
+        event: "test",
+        application: null,
+        at: now(),
+        ok: true,
+        attempts: 1,
+        status: 202,
+        error: null,
+      };
+      history[n.name]!.unshift(n.last);
+      return adminOnly(route, n.last);
+    }
     if (request.method() !== "GET")
       return json(route, { error: "not mocked" }, 405);
+
+    const one = /^\/api\/v1\/webhooks\/([^/]+)$/.exec(path);
+    if (one) {
+      const n = sent.find((x) => x.name === decodeURIComponent(one[1]));
+      if (!n)
+        return json(
+          route,
+          { error: `webhook '${one[1]}' is not configured` },
+          404,
+        );
+      return adminOnly(route, {
+        ...n,
+        history: history[n.name],
+      } satisfies Schemas["WebhookDetail"]);
+    }
 
     if (path === "/api/v1/applications")
       return json(
@@ -567,6 +706,7 @@ export async function mockApi(
       "/api/v1/connectors": connectors,
       "/api/v1/projects": projects,
       "/api/v1/credentials": credentials,
+      "/api/v1/webhooks": sent,
       "/api/v1/settings": settings,
     };
     if (path in fixed) return json(route, fixed[path]);

@@ -9,6 +9,18 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Added
+
+- unified-gitops Webhooks: a page per webhook and a list of them, each with its type, applications (every one, some, or none), what it starts (Ascender and AWX, with a link to the template's own page and the variable its playbook reads the message from) and its last send; a webhook's page shows its events, destination and credentials, the applications it listens to and a history of its sends (Event, When, Application, Answer, Message, Result), with Send test. The Overview counts them and names one whose last send failed.
+- Every age in both apps (last check, last attempt, data from, last pull, sends, run history) counts on live, every second, between polls (`LiveAge`, on one shared clock that `LiveSpan` uses too).
+
+### Changed
+
+- unified-gitops Overview: "Requests sent to applications (per minute)", and under it "Requests sent to repositories (per minute)" in its own colour (every clone, pull and rollback fetch, from `unified_gitops_git_requests_total`); This instance counts the two on separate rows. Rate charts in both apps put the unit in parentheses, and This instance's labels share one column as wide as the longest.
+- Detail panels' facts sit in at most three columns, as Ascender and AWX lay out theirs: two when the panel is under 1024px wide, one under 672px (they filled as many 320px columns as fitted, four or five on a wide screen).
+- A fact with several values (`ValueList`: a source's credentials, a webhook's events, CORS origins, config keys) has "+N more" beside its first value instead of on a line of its own; "Show fewer" stays on its own line after the open list.
+- A fact whose value is a web address (an http or https URL, whole) is a link out, opened in a new tab with the external-link icon, in both apps (`linkify`, in `Fact` and `ValueList`); a webhook's Sends to is one.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added

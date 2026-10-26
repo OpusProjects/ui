@@ -62,11 +62,22 @@
   min-width: 0;
 }
 
-/* "+3 more" under a ValueList: a quiet link-like control, aligned with
-   the values above it. */
+/* One value of a ValueList, with "+3 more" beside the first while the list
+   is closed, so a closed list takes one line. The value gives way (ellipsis)
+   before the control does. "Show fewer" sits on a line after an open list. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* "+3 more" beside a ValueList's value: a quiet link-like control. */
 .more {
+  flex: none;
   align-self: flex-start;
   padding: 0;
+  white-space: nowrap;
   border: 0;
   background: none;
   color: var(--uu-accent-strong);
@@ -92,6 +103,15 @@
   text-underline-offset: 2px;
 }
 
+/* A value that is a web address (linkify): a link out, with the external-link
+   icon after it, as on the other ways out of the app. */
+.out svg {
+  width: 13px;
+  height: 13px;
+  margin-left: 4px;
+  vertical-align: -1px;
+}
+
 .link:hover {
   text-decoration-thickness: 2px;
 }
@@ -100,9 +120,17 @@
    same columns whatever the count: a panel of two facts keeps them in the
    first two columns, lined up with the panels around it, rather than
    stretched across the row. */
+/* At most three columns, as Ascender and AWX lay out their details: each
+   column at least a third of the panel (less the gaps), so a fourth never
+   fits, and at least 320px, so a narrower panel steps down to two (under
+   1024px) and one (under 672px). Measured on the panel, not the window: the
+   rail and a narrow column are already taken off. */
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(320px, calc((100% - 2 * 32px) / 3 - 1px)), 1fr)
+  );
   gap: 8px 32px;
   margin: 0;
 }

@@ -7,6 +7,7 @@ import {
   EmptyState,
   Fact,
   HealthPill,
+  LiveAge,
   Notice,
   PageHeader,
   Panel,
@@ -195,7 +196,10 @@ export function ApplicationDetailPage() {
                 )}
               </Fact>
               <Fact label="Last check" hint={HINTS["Last check"]}>
-                {formatAge(app.last_checked_age_seconds)}
+                <LiveAge
+                  seconds={app.last_checked_age_seconds}
+                  at={application.dataUpdatedAt}
+                />
               </Fact>
               <Fact label="Runs" hint={HINTS["Runs"]}>
                 Every {formatSpan(app.sync_interval_seconds)}
@@ -288,7 +292,7 @@ function History({
     {
       key: "when",
       label: "When",
-      render: (r) => when(r.started_at),
+      render: (r) => <LiveAge since={r.started_at} />,
     },
     {
       key: "result",

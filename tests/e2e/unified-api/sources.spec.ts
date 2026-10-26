@@ -4,6 +4,9 @@ import { mockApi } from "./fixtures/api";
 test("a source's hosts open with their variables", async ({ page }) => {
   await mockApi(page);
   await page.goto("/sources/src-alpha");
+  // Every fetch answered before the first click: under load, a click that
+  // lands while the page is still filling in can be lost to a re-render.
+  await page.waitForLoadState("networkidle");
   // The list entry, not the heading of the host it may already show.
   await page.getByRole("option", { name: "web-01.example.net" }).click();
   await expect(page.getByText("192.0.2.10")).toBeVisible();
@@ -15,6 +18,7 @@ test("a source's hosts open with their variables", async ({ page }) => {
 test("Sync sends the CSRF token", async ({ page }) => {
   const calls = await mockApi(page);
   await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: /sync/i }).first().click();
   await expect.poll(() => calls.writes.length).toBe(1);
   expect(calls.writes[0].path).toBe("/api/v1/sources/src-alpha/sync");
@@ -39,13 +43,14 @@ test("a source's credentials each link to their page, one per line", async ({
 }) => {
   await mockApi(page);
   await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
   const first = page.getByRole("link", { name: "cred-d42", exact: true });
   const second = page.getByRole("link", {
     name: "cred-inventory",
     exact: true,
   });
   await expect(first).toHaveAttribute("href", "/credentials/cred-d42");
-  // The first only, then "+1 more", which opens the rest under it.
+  // The first only, with "+1 more" beside it, which opens the rest under it.
   await expect(second).toHaveCount(0);
   await page.getByRole("button", { name: "+1 more" }).click();
   await expect(second).toHaveAttribute("href", "/credentials/cred-inventory");
@@ -72,6 +77,7 @@ test("the hosts list opens on the page its link names", async ({ page }) => {
     }),
   );
   await page.goto("/sources/src-alpha?hosts-page=2&hosts-rows=10");
+  await page.waitForLoadState("networkidle");
   await expect(
     page.getByRole("navigation", { name: "hosts pages" }),
   ).toContainText(/^11–20 of 25/);
@@ -84,6 +90,7 @@ test("the hosts list opens on the page its link names", async ({ page }) => {
 test("a source's groups show their own variables", async ({ page }) => {
   await mockApi(page);
   await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Groups", exact: true }).click();
   await expect(page).toHaveURL(/list=groups/);
   await expect(page.getByRole("heading", { name: "Groups" })).toBeVisible();
@@ -109,6 +116,7 @@ test("a group's card switches between its hosts and its variables", async ({
 }) => {
   await mockApi(page);
   await page.goto("/sources/src-alpha?list=groups&group=all");
+  await page.waitForLoadState("networkidle");
   const view = page.getByRole("group", { name: "View" });
   const format = page.getByRole("group", { name: "Format" });
   await expect(format.getByRole("button", { name: "YAML" })).toBeEnabled();
@@ -153,6 +161,7 @@ test("hosts and groups each keep their own page size", async ({ page }) => {
     localStorage.setItem("unified-ui:page-size:source-groups", "20");
   });
   await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
   await expect(
     page.getByRole("navigation", { name: "hosts pages" }),
   ).toContainText(/^1–10 of 25/);
@@ -168,4 +177,16 @@ test("hosts and groups each keep their own page size", async ({ page }) => {
   await expect(
     page.getByRole("navigation", { name: "hosts pages" }),
   ).toContainText(/^1–10 of 25/);
+});
+
+test("ages keep counting between polls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources");
+  const card = page.locator("article").first();
+  const attempt = card
+    .locator("dt", { hasText: "Last attempt" })
+    .locator("xpath=following-sibling::dd[1]");
+  const before = await attempt.innerText();
+  await expect(attempt).not.toHaveText(before, { timeout: 4000 });
+  expect(await attempt.innerText()).toMatch(/^3\ds ago$/);
 });

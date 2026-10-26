@@ -308,6 +308,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/webhooks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["list_webhooks"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/webhooks/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["get_webhook"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/webhooks/{id}/test": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["test_webhook"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/healthz": {
     parameters: {
       query?: never;
@@ -390,6 +438,8 @@ export interface components {
       settings: string;
       /** @description The running version, same source as the OpenAPI spec's */
       version: string;
+      /** @description Admin-only; absent for a restricted key */
+      webhooks?: string | null;
     };
     ApiKeyInfo: {
       applications: string[];
@@ -538,6 +588,7 @@ export interface components {
       connectors: number;
       credentials: number;
       projects: number;
+      webhooks: number;
     };
     ConnectorInfo: {
       description?: string | null;
@@ -590,6 +641,18 @@ export interface components {
       ldap: boolean;
       projects: string[];
     };
+    Delivery: {
+      application?: string | null;
+      /** Format: int64 */
+      at: number;
+      /** Format: int32 */
+      attempts: number;
+      error?: string | null;
+      event: string;
+      ok: boolean;
+      /** Format: int32 */
+      status?: number | null;
+    };
     DeltaInfo: {
       added?: string[];
       changed?: string[];
@@ -599,6 +662,13 @@ export interface components {
       /** @description Human-readable explanation. Stable enough to log, not to match on. */
       error: string;
     };
+    /** @enum {string} */
+    Event:
+      | "drift_detected"
+      | "out_of_sync"
+      | "sync_succeeded"
+      | "sync_failed"
+      | "back_in_sync";
     FileKeyInfo: {
       name: string;
       path: string;
@@ -761,6 +831,17 @@ export interface components {
        *     means the write landed and part of it is waiting for one
        */
       restart_required?: string[];
+      webhooks: components["schemas"]["DeltaInfo"];
+    };
+    RequestInfo: {
+      /** @description bearer, basic, none, or header (the credential in `auth_header`) */
+      auth: string;
+      auth_header?: string | null;
+      headers: string[];
+      method: string;
+      signature_header?: string | null;
+      /** @description true: a body template; false: the default message */
+      templated: boolean;
     };
     Rollback: {
       /** Format: int64 */
@@ -905,6 +986,51 @@ export interface components {
       /** @description The environment variable the token is read from, for token auth */
       token_env?: string | null;
     };
+    WebhookDetail: components["schemas"]["WebhookSummary"] & {
+      /**
+       * @description Its sends since this process started, newest first, at most 50.
+       *     Retries of one message count as one send
+       */
+      history: components["schemas"]["Delivery"][];
+    };
+    WebhookSummary: {
+      /** @description Every application, present and future (`applications: all`) */
+      all_applications: boolean;
+      /**
+       * @description The applications it listens to, when it names them; empty with
+       *     all_applications false = none
+       */
+      applications: string[];
+      credentials: string[];
+      description?: string | null;
+      /**
+       * @description Where it sends: scheme and host only, never a path or query, which
+       *     can carry a receiver's secret
+       */
+      destination: string;
+      events: components["schemas"]["Event"][];
+      /**
+       * Format: int64
+       * @description ascender and awx: the job template (or workflow job template) it starts
+       */
+      job_template?: number | null;
+      last?: components["schemas"]["Delivery"] | null;
+      /** @description The item's identity, as in the configuration */
+      name: string;
+      request?: components["schemas"]["RequestInfo"] | null;
+      /** Format: int32 */
+      retries: number;
+      /**
+       * Format: int64
+       * @description How long one attempt may take, and how many times a send is retried
+       */
+      timeout_seconds: number;
+      type: components["schemas"]["WebhookType"];
+      /** Format: int64 */
+      workflow_job_template?: number | null;
+    };
+    /** @enum {string} */
+    WebhookType: "webhook" | "ascender" | "awx";
     WriteResult: {
       deleted?: string[];
       /** @description The directory ETag AFTER the write — feed it to the next If-Match */
@@ -1838,6 +1964,117 @@ export interface operations {
       };
       /** @description API key is not admin */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  list_webhooks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Every webhook: its events, applications and destination, and its last send */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WebhookSummary"][];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  get_webhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Webhook name */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One webhook, with its recent sends */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WebhookDetail"];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description No such webhook */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  test_webhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Webhook name */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Sent once, now, without retrying: the outcome, also kept as the webhook's last send */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Delivery"];
+        };
+      };
+      /** @description API key is not admin */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description No such webhook */
+      404: {
         headers: {
           [name: string]: unknown;
         };

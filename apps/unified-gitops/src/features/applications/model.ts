@@ -130,6 +130,3 @@ export async function rollbackApplication(id: string, revision: string) {
 // The queries a run changes: the list, and this application with the local
 // copy of its system's settings (the state queries sit under its key).
 export const afterRun = (id: string) => [["applications"], ["application", id]];
-
-export const ageOf = (unixSeconds: number) =>
-  Math.max(0, Math.round(Date.now() / 1000 - unixSeconds));

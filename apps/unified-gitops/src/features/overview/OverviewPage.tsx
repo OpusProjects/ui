@@ -27,12 +27,14 @@ import {
   useApplications,
   useConnectors,
   useCredentials,
+  useWebhooks,
   useProjects,
   useSettings,
 } from "../../api/queries";
 import { ICONS } from "../../sections";
 import { APP_LABELS, appState } from "../applications/model";
 import { credentialState } from "../credentials/model";
+import { LABELS as WEBHOOK_LABELS, webhookState } from "../webhooks/model";
 import {
   LABELS as CONNECTOR_LABELS,
   connectorRequests,
@@ -61,6 +63,7 @@ export function OverviewPage() {
   }));
   const projects = useProjects();
   const credentials = useCredentials();
+  const webhooks = useWebhooks();
   const settings = useSettings();
 
   const apps = applications.data ?? [];
@@ -117,6 +120,20 @@ export function OverviewPage() {
           </>
         ),
         to: "/credentials",
+      });
+  }
+  for (const n of webhooks.data ?? []) {
+    if (n.last && !n.last.ok)
+      issues.push({
+        key: `webhook-${n.name}`,
+        severity: 0,
+        text: (
+          <>
+            Webhook <b>{n.name}</b> could not send
+            {n.last.error && `: ${n.last.error}`}
+          </>
+        ),
+        to: `/webhooks/${encodeURIComponent(n.name)}`,
       });
   }
   for (const { name, requests: r } of requests)
@@ -180,6 +197,17 @@ export function OverviewPage() {
             goodWord="Working"
           />
         )}
+        {webhooks.isSuccess && webhooks.data.length > 0 && (
+          <AreaCard
+            to="/webhooks"
+            link={link}
+            icon={ICONS.webhooks}
+            title="Webhooks"
+            counts={countStates(webhooks.data, webhookState)}
+            labels={WEBHOOK_LABELS}
+            goodWord="Working"
+          />
+        )}
         {projects.isSuccess && (
           <AreaCard
             to="/projects"
@@ -212,7 +240,7 @@ export function OverviewPage() {
 
       <OverviewColumns>
         <NeedsAttention
-          hint="What needs a person, worst first. Red: something broken (an application that failed, a connector whose requests fail, a project that cannot be pulled, a missing credential). Amber: git and a system disagree and nobody has synced yet, or a restart is needed. Each line opens the page to act on."
+          hint="What needs a person, worst first. Red: something broken (an application that failed, a connector whose requests fail, a project that cannot be pulled, a missing credential, a webhook that could not send). Amber: git and a system disagree and nobody has synced yet, or a restart is needed. Each line opens the page to act on."
           issues={issues}
           link={link}
           failed={
@@ -230,10 +258,17 @@ export function OverviewPage() {
       </OverviewColumns>
 
       <RatePanel
-        title="Requests to applications per minute"
+        title="Requests sent to applications (per minute)"
         hint="The requests this instance makes to the applications, through their connectors: list reads a kind, apply writes one change, describe starts each run. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
         metric={CALLS}
         parts={CALL_PARTS}
+      />
+      <RatePanel
+        title="Requests sent to repositories (per minute)"
+        hint="The requests this instance makes to git servers: a clone the first time a project is checked out, a pull on each of its intervals and before every check, a fetch when a rollback needs an older commit. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
+        metric={GIT}
+        parts={GIT_PARTS}
+        series={7}
       />
     </>
   );
@@ -255,6 +290,19 @@ const CALL_PARTS: RatePart[] = [
   },
 ];
 
+// The same, to git servers: every clone, pull and rollback fetch.
+const GIT = "unified_gitops_git_requests_total";
+const GIT_PARTS: RatePart[] = [
+  { name: ["pull", "pulls"], filter: (l) => l.operation === "pull" },
+  { name: ["clone", "clones"], filter: (l) => l.operation === "clone" },
+  { name: ["fetch", "fetches"], filter: (l) => l.operation === "fetch" },
+  {
+    name: ["failed", "failed"],
+    filter: (l) => l.outcome === "error",
+    subset: true,
+  },
+];
+
 function ThisInstance({
   pending,
   uptime,
@@ -264,13 +312,19 @@ function ThisInstance({
   uptime?: number;
   at: number;
 }) {
-  const perMinute = useRatePerMinute(CALLS);
+  const toApplications = useRatePerMinute(CALLS);
+  const toRepositories = useRatePerMinute(GIT);
   return (
     <InstancePanel>
       <Fact label="To apply">
         {pending} {pending === 1 ? "change" : "changes"}
       </Fact>
-      <Fact label="Requests sent">{perMinuteText(perMinute)}</Fact>
+      <Fact label="Requests to applications">
+        {perMinuteText(toApplications)}
+      </Fact>
+      <Fact label="Requests to repositories">
+        {perMinuteText(toRepositories)}
+      </Fact>
       {uptime != null && (
         <Fact label="Running for">
           <LiveSpan seconds={uptime} at={at} />
