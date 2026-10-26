@@ -65,6 +65,11 @@ export const triggerText = (n: Notification): string | null =>
       ? "The template's webhook"
       : null;
 
+// Where a webhook sends, as a card shows it: the host, without the scheme.
+// The API never gives the path or query, which can carry a secret.
+export const hostOf = (destination: string) =>
+  destination.replace(/^[a-z]+:\/\//, "");
+
 // applications: all, a list, or none (left out or []), as an API key reads
 // its applications.
 export const applicationsText = (n: Notification) =>

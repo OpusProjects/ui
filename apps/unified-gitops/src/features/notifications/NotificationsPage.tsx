@@ -12,6 +12,7 @@ import {
   SkeletonGrid,
   SkeletonSummary,
   formatAge,
+  pageStyles as styles,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { useListFilter } from "@opusprojects/unified-client";
@@ -21,6 +22,7 @@ import {
   LABELS,
   TYPE_WORDS,
   applicationsText,
+  hostOf,
   notificationState,
   searchText,
   sentEvent,
@@ -112,8 +114,14 @@ export function NotificationsPage() {
                 >
                   <Fact label="Type">{TYPE_WORDS[n.type]}</Fact>
                   <Fact label="Applications">{applicationsText(n)}</Fact>
-                  {templateText(n) && (
+                  {templateText(n) ? (
                     <Fact label="Starts">{templateText(n)}</Fact>
+                  ) : (
+                    <Fact label="Sends to">
+                      <code className={styles.mono} title={n.destination}>
+                        {hostOf(n.destination)}
+                      </code>
+                    </Fact>
                   )}
                   <Fact label="Last send">
                     {n.last

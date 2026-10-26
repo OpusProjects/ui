@@ -20,6 +20,10 @@ test("the list shows each notification, what it sends and how its last send went
     failures.getByText("HTTP 503: Service Unavailable"),
   ).toBeVisible();
   await expect(failures.getByText("Every application")).toBeVisible();
+  // A webhook sends; it starts nothing: its host where a job template's
+  // card says what it starts.
+  await expect(failures.getByText("alerts.example.com")).toBeVisible();
+  await expect(failures.getByText("Starts")).toHaveCount(0);
 
   // applications left out or []: none, and so never sent.
   const paused = page.locator("article", { hasText: "ntf-paused" });
