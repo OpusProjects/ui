@@ -752,6 +752,11 @@ export interface components {
       destination: string;
       events: components["schemas"]["Event"][];
       /**
+       * @description ascender and awx, trigger launch: the names of the extra_vars it adds
+       *     beside the event (never their values)
+       */
+      extra_vars: string[];
+      /**
        * Format: int64
        * @description ascender and awx: the job template (or workflow job template) it starts
        */
@@ -759,8 +764,16 @@ export interface components {
       last?: components["schemas"]["Delivery"] | null;
       /** @description The item's identity, as in the configuration */
       name: string;
+      /** Format: int32 */
+      retries: number;
+      /**
+       * Format: int64
+       * @description How long one attempt may take, and how many times a send is retried
+       */
+      timeout_seconds: number;
       trigger?: components["schemas"]["JobTrigger"] | null;
       type: components["schemas"]["NotificationType"];
+      webhook?: components["schemas"]["WebhookInfo"] | null;
       /** Format: int64 */
       workflow_job_template?: number | null;
     };
@@ -1016,6 +1029,16 @@ export interface components {
       timeout_seconds: number;
       /** @description The environment variable the token is read from, for token auth */
       token_env?: string | null;
+    };
+    WebhookInfo: {
+      /** @description bearer, basic, none, or header (the credential in `auth_header`) */
+      auth: string;
+      auth_header?: string | null;
+      headers: string[];
+      method: string;
+      signature_header?: string | null;
+      /** @description true: a body template; false: the default message */
+      templated: boolean;
     };
     WriteResult: {
       deleted?: string[];

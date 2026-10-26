@@ -91,22 +91,37 @@ test("a notification's page shows its overview, last send and applications", asy
   ).toBeVisible();
 });
 
-test("events and credentials stack, the rest behind +N more", async ({
+test("a webhook's page says how it sends, never with a value", async ({
   page,
 }) => {
   await mockApi(page);
   await page.goto("/notifications/ntf-failures");
   const overview = page.locator("section", { hasText: "Overview" });
-  await expect(
-    overview.getByText("Sync failed", { exact: true }),
-  ).toBeVisible();
-  await expect(overview.getByText("Back in sync", { exact: true })).toHaveCount(
+  await expect(overview.getByText("Header X-Alerts-Token")).toBeVisible();
+  await expect(overview.getByText("A template", { exact: true })).toBeVisible();
+  await expect(overview.getByText("X-Hub-Signature-256")).toBeVisible();
+  await expect(overview.getByText("X-Source")).toBeVisible();
+  await expect(overview.getByText("10s per attempt")).toBeVisible();
+  // A job template has none of a webhook's lines.
+  await page.goto("/notifications/ntf-ascender-drift");
+  await expect(overview.getByText("Authentication")).toHaveCount(0);
+  await expect(overview.getByText("30s per attempt")).toBeVisible();
+});
+
+test("events and credentials stack, the rest behind +N more", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/notifications/ntf-failures");
+  const events = page
+    .locator("section", { hasText: "Overview" })
+    .locator("dl > div", { has: page.locator("dt", { hasText: "Events" }) });
+  await expect(events.getByText("Sync failed", { exact: true })).toBeVisible();
+  await expect(events.getByText("Back in sync", { exact: true })).toHaveCount(
     0,
   );
-  await overview.getByRole("button", { name: "+1 more" }).click();
-  await expect(
-    overview.getByText("Back in sync", { exact: true }),
-  ).toBeVisible();
+  await events.getByRole("button", { name: "+1 more" }).click();
+  await expect(events.getByText("Back in sync", { exact: true })).toBeVisible();
 });
 
 test("send test posts once and adds it to the history", async ({ page }) => {

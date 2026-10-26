@@ -11,6 +11,7 @@ import {
   RunButton,
   SkeletonSummary,
   formatAge,
+  formatSpan,
   type ListColumn,
 } from "@opusprojects/unified-ui";
 import {
@@ -49,7 +50,32 @@ const HINTS: Record<string, string> = {
     "trigger. webhook posts the message to the template's own receiver, with its key; launch starts it as a user, with the message in extra_vars.",
   Credentials:
     "credentials. Where the token, key or password it sends comes from; never their values.",
+  Method: "webhook.method. POST, PUT or PATCH.",
+  Authentication:
+    "webhook.auth. How the credential is sent: a bearer token, basic authentication, or a header of its own.",
+  Headers:
+    "webhook.headers. Fixed headers sent with every message; their values are in the configuration.",
+  Body: "webhook.body. A template with {{field}} placeholders, or the default message: the whole event as JSON.",
+  Signature:
+    "webhook.sign. A header with an HMAC-SHA256 of the body, made with the credential's secret, for receivers that check where a message came from.",
+  Timeout:
+    "timeout_seconds. How long one attempt may take before it counts as unanswered.",
+  Retries:
+    "retries. How many more times a message is sent when the receiver does not answer, is overloaded (429) or fails (5xx). Never on a 4xx.",
+  "Extra vars":
+    "extra_vars. Variables sent beside the event, which arrives as unified_gitops; their values are in the configuration.",
 };
+
+const AUTH_WORDS: Record<string, string> = {
+  bearer: "Bearer token",
+  basic: "Basic",
+  none: "None",
+};
+
+const authText = (w: Schemas["WebhookInfo"]) =>
+  w.auth === "header"
+    ? `Header ${w.auth_header ?? ""}`
+    : (AUTH_WORDS[w.auth] ?? w.auth);
 
 export function NotificationDetailPage() {
   const { name = "" } = useParams();
@@ -153,6 +179,42 @@ function Overview({ notification: n }: { notification: Notification }) {
               </Link>
             ))}
           />
+        </Fact>
+        {n.webhook && (
+          <>
+            <Fact label="Method" hint={HINTS["Method"]}>
+              {n.webhook.method}
+            </Fact>
+            <Fact label="Authentication" hint={HINTS["Authentication"]}>
+              {authText(n.webhook)}
+            </Fact>
+            <Fact label="Headers" hint={HINTS["Headers"]}>
+              <ValueList values={n.webhook.headers} mono />
+            </Fact>
+            <Fact label="Body" hint={HINTS["Body"]}>
+              {n.webhook.templated ? "A template" : "The default message"}
+            </Fact>
+            <Fact label="Signature" hint={HINTS["Signature"]}>
+              {n.webhook.signature_header ? (
+                <code className={common.mono}>
+                  {n.webhook.signature_header}
+                </code>
+              ) : (
+                "None"
+              )}
+            </Fact>
+          </>
+        )}
+        {n.trigger === "launch" && (
+          <Fact label="Extra vars" hint={HINTS["Extra vars"]}>
+            <ValueList values={n.extra_vars} mono />
+          </Fact>
+        )}
+        <Fact label="Timeout" hint={HINTS["Timeout"]}>
+          {formatSpan(n.timeout_seconds)} per attempt
+        </Fact>
+        <Fact label="Retries" hint={HINTS["Retries"]}>
+          {n.retries === 0 ? "None" : n.retries}
         </Fact>
       </dl>
     </Panel>
