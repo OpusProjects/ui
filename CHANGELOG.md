@@ -9,6 +9,8 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-26
+
 ### Added
 
 - unified-api Topology on an edge: the federation the central pushed, with the central at the root and this instance marked; the Overview's Instances card counts the same map.
@@ -83,5 +85,6 @@ unified-ui version it builds into its image.
 - A demo image: the built UI behind nginx, forwarding to a unified-api.
 - Requires unified-api 0.34.0 or later, which also serves this UI itself.
 
-[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/OpusProjects/unified-ui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/OpusProjects/unified-ui/releases/tag/v0.1.0
