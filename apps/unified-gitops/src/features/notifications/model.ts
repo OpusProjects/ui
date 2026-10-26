@@ -32,10 +32,9 @@ const EVENT_ORDER: Event[] = [
   "back_in_sync",
 ];
 
-export const eventsText = (events: Event[]) =>
-  EVENT_ORDER.filter((e) => events.includes(e))
-    .map((e) => EVENT_WORDS[e])
-    .join(", ");
+// Its events in words, in that order.
+export const eventWords = (events: Event[]) =>
+  EVENT_ORDER.filter((e) => events.includes(e)).map((e) => EVENT_WORDS[e]);
 
 // The event a send carried: an event's words, or "Test" for a test send.
 export const sentEvent = (event: string) =>

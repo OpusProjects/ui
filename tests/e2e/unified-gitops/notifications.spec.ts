@@ -88,6 +88,24 @@ test("a notification's page shows its overview, last send and applications", asy
   ).toBeVisible();
 });
 
+test("events and credentials stack, the rest behind +N more", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/notifications/ntf-failures");
+  const overview = page.locator("section", { hasText: "Overview" });
+  await expect(
+    overview.getByText("Sync failed", { exact: true }),
+  ).toBeVisible();
+  await expect(overview.getByText("Back in sync", { exact: true })).toHaveCount(
+    0,
+  );
+  await overview.getByRole("button", { name: "+1 more" }).click();
+  await expect(
+    overview.getByText("Back in sync", { exact: true }),
+  ).toBeVisible();
+});
+
 test("send test posts once and adds it to the history", async ({ page }) => {
   const calls = await mockApi(page);
   await page.goto("/notifications/ntf-failures");

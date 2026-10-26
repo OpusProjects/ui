@@ -13,7 +13,11 @@ import {
   formatAge,
   type ListColumn,
 } from "@opusprojects/unified-ui";
-import { DetailTitle, detailStyles as common } from "@opusprojects/unified-ui";
+import {
+  DetailTitle,
+  ValueList,
+  detailStyles as common,
+} from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
 import { useApplications, useNotification } from "../../api/queries";
 import { ICONS } from "../../sections";
@@ -21,7 +25,7 @@ import { applicationColumns } from "../applications/columns";
 import {
   LABELS,
   TYPE_WORDS,
-  eventsText,
+  eventWords,
   notificationState,
   sentEvent,
   templateText,
@@ -122,7 +126,7 @@ function Overview({ notification: n }: { notification: Notification }) {
           {TYPE_WORDS[n.type]}
         </Fact>
         <Fact label="Events" hint={HINTS["Events"]}>
-          {eventsText(n.events)}
+          <ValueList values={eventWords(n.events)} />
         </Fact>
         <Fact label="Sends to" hint={HINTS["Sends to"]}>
           <code className={common.mono}>{n.destination}</code>
@@ -138,19 +142,17 @@ function Overview({ notification: n }: { notification: Notification }) {
           </Fact>
         )}
         <Fact label="Credentials" hint={HINTS["Credentials"]}>
-          {n.credentials.length === 0
-            ? "None"
-            : n.credentials.map((c, i) => (
-                <span key={c}>
-                  {i > 0 && ", "}
-                  <Link
-                    className={common.link}
-                    to={`/credentials/${encodeURIComponent(c)}`}
-                  >
-                    {c}
-                  </Link>
-                </span>
-              ))}
+          <ValueList
+            values={n.credentials.map((c) => (
+              <Link
+                key={c}
+                className={common.link}
+                to={`/credentials/${encodeURIComponent(c)}`}
+              >
+                {c}
+              </Link>
+            ))}
+          />
         </Fact>
       </dl>
     </Panel>
