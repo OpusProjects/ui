@@ -1,4 +1,4 @@
-import type { Middleware } from "openapi-fetch";
+import createClient, { type Middleware } from "openapi-fetch";
 
 // The session rules every unified-* API shares, as one openapi-fetch
 // middleware and one result helper: a client made with openapi-fetch for any
@@ -80,4 +80,15 @@ export function unwrap<T>(result: {
       ? String((result.error as { error: unknown }).error)
       : `${result.response.status} ${result.response.statusText}`;
   throw new Error(message);
+}
+
+// An app's API client: same origin as the page (in production the binary
+// serves both; in development Vite's proxy, or the demo container's nginx,
+// forwards /api), with the session rules above. `Paths` is the app's
+// generated OpenAPI type, so every call is checked against its own API.
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export function createApi<Paths extends {}>() {
+  const api = createClient<Paths>({ baseUrl: "" });
+  api.use(session);
+  return api;
 }

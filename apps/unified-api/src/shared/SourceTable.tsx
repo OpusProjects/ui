@@ -1,8 +1,15 @@
 import { Link } from "react-router";
-import { HealthPill, formatAge } from "@opusprojects/unified-ui";
+import {
+  HealthPill,
+  ListName,
+  ListSoft,
+  ListTable,
+  ListTag,
+  formatAge,
+  type ListColumn,
+} from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
 import { useSources } from "../api/queries";
-import styles from "./SourceTable.module.css";
 
 // A set of sources by name, each with its health, size and data age, and a
 // link to its own page: an endpoint's inputs, a project's users. Ids the
@@ -16,105 +23,106 @@ export function SourceTable({
   ids,
   empty,
   limitedBy,
+  brief = false,
 }: {
   ids: string[];
   empty: string;
+  // Only the source and its state: where size and data age say nothing about
+  // the page's subject (a credential is used or not, whatever the hosts).
+  brief?: boolean;
   // An endpoint's limit.by_hosts_from_inventory: that source decides which
   // hosts the output holds at all, so it is marked and listed first.
   limitedBy?: string | null;
 }) {
   const sources = useSources();
-  if (ids.length === 0) return <p className={styles.empty}>{empty}</p>;
   const byId = new Map(sources.rows.map((row) => [row.summary.source_id, row]));
   const ordered = [...ids].sort((a, b) =>
     a === limitedBy ? -1 : b === limitedBy ? 1 : a.localeCompare(b),
   );
+  type Row = { id: string; row: ReturnType<typeof byId.get> };
+  const rows: Row[] = ordered.map((id) => ({ id, row: byId.get(id) }));
+
+  const columns: ListColumn<Row>[] = [
+    {
+      key: "source",
+      label: "Source",
+      role: "name",
+      title: ({ id }) => id,
+      render: ({ id, row }) => (
+        <ListName
+          name={row?.detail?.name ?? id}
+          link={
+            row?.summary
+              ? (className, children) => (
+                  <Link
+                    to={`/sources/${encodeURIComponent(id)}`}
+                    className={className}
+                  >
+                    {children}
+                  </Link>
+                )
+              : undefined
+          }
+          tag={
+            id === limitedBy && (
+              <ListTag label="limits hosts" hint={LIMIT_HINT} />
+            )
+          }
+          id={id}
+        />
+      ),
+    },
+    {
+      key: "hosts",
+      label: "Hosts",
+      numeric: true,
+      render: ({ row }) => row?.summary?.total_hosts?.toLocaleString() ?? "–",
+    },
+    // From the source's detail: the list does not count groups.
+    {
+      key: "groups",
+      label: "Groups",
+      numeric: true,
+      render: ({ row }) => row?.detail?.total_groups?.toLocaleString() ?? "–",
+    },
+    {
+      key: "age",
+      label: "Data from",
+      render: ({ row }) =>
+        row?.summary?.age_seconds != null
+          ? formatAge(row.summary.age_seconds)
+          : "–",
+    },
+    {
+      key: "state",
+      label: "State",
+      role: "state",
+      render: ({ row }) =>
+        row?.summary ? (
+          <HealthPill
+            state={cachedHealth(
+              row.summary.cached,
+              row.summary.is_fresh,
+              row.summary.sync_health,
+            )}
+          />
+        ) : (
+          <ListSoft>{sources.isPending ? "…" : "Not visible"}</ListSoft>
+        ),
+    },
+  ];
 
   return (
-    <div className={styles.wrap}>
-      <table className={styles.table}>
-        {/* Widths in the stylesheet: name, three equal facts, then the
-            state as wide as its widest pill. */}
-        <colgroup>
-          <col className={styles.nameCol} />
-          <col className={styles.factCol} />
-          <col className={styles.factCol} />
-          <col className={styles.factCol} />
-          <col className={styles.stateCol} />
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">Source</th>
-            <th scope="col">Hosts</th>
-            <th scope="col">Groups</th>
-            <th scope="col">Data from</th>
-            <th scope="col">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ordered.map((id) => {
-            const row = byId.get(id);
-            const summary = row?.summary;
-            return (
-              <tr key={id}>
-                <th scope="row" title={id}>
-                  <span className={styles.nameLine}>
-                    {summary ? (
-                      <Link
-                        to={`/sources/${encodeURIComponent(id)}`}
-                        className={styles.name}
-                      >
-                        {row?.detail?.name ?? id}
-                      </Link>
-                    ) : (
-                      <span className={styles.name}>{id}</span>
-                    )}
-                    {id === limitedBy && (
-                      <span
-                        className={styles.tag}
-                        title={LIMIT_HINT}
-                        tabIndex={0}
-                        aria-label={`Limits hosts: ${LIMIT_HINT}`}
-                      >
-                        limits hosts
-                      </span>
-                    )}
-                  </span>
-                  <code className={styles.id}>{id}</code>
-                </th>
-                <td className={styles.number}>
-                  {summary?.total_hosts?.toLocaleString() ?? "–"}
-                </td>
-                {/* From the source's detail: the list does not count
-                    groups. */}
-                <td className={styles.number}>
-                  {row?.detail?.total_groups?.toLocaleString() ?? "–"}
-                </td>
-                <td>
-                  {summary?.age_seconds != null
-                    ? formatAge(summary.age_seconds)
-                    : "–"}
-                </td>
-                <td>
-                  {summary ? (
-                    <HealthPill
-                      state={cachedHealth(
-                        summary.cached,
-                        summary.is_fresh,
-                        summary.sync_health,
-                      )}
-                    />
-                  ) : (
-                    <span className={styles.soft}>
-                      {sources.isPending ? "…" : "Not visible"}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <ListTable
+      columns={
+        brief
+          ? columns.filter((c) => c.role === "name" || c.role === "state")
+          : columns
+      }
+      rows={rows}
+      rowKey={(r) => r.id}
+      empty={empty}
+      noun="sources"
+    />
   );
 }

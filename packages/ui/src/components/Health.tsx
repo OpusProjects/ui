@@ -42,6 +42,9 @@ interface HealthSummaryProps {
   // where the page has a "Show all" of its own that also clears the search:
   // two buttons by one name that do different things.
   showAll?: boolean;
+  // What "all good" means here, as an adjective: "in use" for connectors, whose
+  // good state is not health. Default "healthy".
+  good?: string;
 }
 
 // One bar for the whole page: how much of it needs a person, and a way to show
@@ -54,6 +57,7 @@ export function HealthSummary({
   selected,
   onSelect,
   showAll = true,
+  good = "healthy",
 }: HealthSummaryProps) {
   const total = HEALTH_ORDER.reduce((sum, state) => sum + counts[state], 0);
   const attention = counts.failing + counts.stale;
@@ -69,8 +73,8 @@ export function HealthSummary({
   if (attention === 0 && counts.pending === 0)
     headline =
       total === 1
-        ? `The ${one} is healthy`
-        : `All ${total} ${many} are healthy`;
+        ? `The ${one} is ${good}`
+        : `All ${total} ${many} are ${good}`;
   else if (attention === 0)
     // In the page's own word when it has one ("1 of 4 credentials is
     // unused"): "has not run yet" fits a task, not a credential.
@@ -120,7 +124,7 @@ export function HealthSummary({
             >
               <span className={styles.dot} aria-hidden />
               <span className={styles.count}>{counts[state]}</span>
-              {labelFor(state, labels).toLowerCase()}
+              {labelFor(state, labels)}
             </button>
           );
         })}
@@ -141,6 +145,10 @@ export function HealthSummary({
 interface ResourceCardProps {
   title: string;
   id?: string;
+  // A line of plain words under the title, for a card whose title is
+  // already the identity (a name as in the configuration). Nothing is drawn
+  // when it is empty or null.
+  description?: string | null;
   // Makes the id a link, opened in a new tab: for a card whose id is an
   // address (another instance), so the card needs no separate Open button.
   idHref?: string;
@@ -156,12 +164,15 @@ interface ResourceCardProps {
   // is focusable and opens in a new tab like any link) and its hit area is
   // stretched over the card. Buttons and links inside keep working. Takes the
   // title and a class, so the app can wrap them in its router's Link.
-  titleLink?: (title: string, className: string) => ReactNode;
+  titleLink?: (title: ReactNode, className: string) => ReactNode;
   // The same, for an address outside the app (an endpoint's output, a git
   // repository): the card opens it in a new tab. Either one makes the card
   // lift when pointed at.
   href?: string;
   error?: string | null;
+  // An amber box in the same place as the error box: no failure, but a
+  // state someone chose and has to come back to (a rollback).
+  note?: ReactNode;
   footer?: ReactNode;
   children?: ReactNode;
 }
@@ -172,6 +183,7 @@ interface ResourceCardProps {
 export function ResourceCard({
   title,
   id,
+  description,
   idHref,
   state,
   labels,
@@ -182,13 +194,14 @@ export function ResourceCard({
   titleLink,
   href,
   error,
+  note,
   footer,
   children,
 }: ResourceCardProps) {
   const link =
     titleLink ??
     (href
-      ? (text: string, className: string) => (
+      ? (text: ReactNode, className: string) => (
           <a className={className} href={href} target="_blank" rel="noreferrer">
             {text}
           </a>
@@ -202,8 +215,17 @@ export function ResourceCard({
     >
       <header className={styles.cardHeader}>
         <div className={styles.cardTitles}>
-          <h2 className={styles.cardTitle}>
-            {link ? link(title, styles.cardLink) : title}
+          <h2 className={styles.cardTitle} title={title}>
+            {/* Cut inside the link, not on it: the link's ::after covers the
+                whole card, and clipping the link would clip that too. */}
+            {link ? (
+              link(
+                <span className={styles.cardTitleText}>{title}</span>,
+                styles.cardLink,
+              )
+            ) : (
+              <span className={styles.cardTitleText}>{title}</span>
+            )}
             {tag && (
               <span className={styles.tag} data-tone={tagTone} title={tagTitle}>
                 {tag}
@@ -212,6 +234,11 @@ export function ResourceCard({
           </h2>
           {id && id !== title && !idHref && (
             <code className={styles.cardId}>{id}</code>
+          )}
+          {description && (
+            <p className={styles.cardDescription} title={description}>
+              {description}
+            </p>
           )}
           {id && idHref && (
             <a
@@ -230,6 +257,7 @@ export function ResourceCard({
       </header>
       {children && <dl className={styles.facts}>{children}</dl>}
       {error && <p className={styles.error}>{error}</p>}
+      {note && <div className={styles.note}>{note}</div>}
       {footer && <footer className={styles.cardFooter}>{footer}</footer>}
     </article>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import {
   EmptyState,
   Fact,
@@ -15,23 +15,27 @@ import {
   formatBytes,
   formatEvery,
   formatSpan,
-  usePageSize,
+  usePagination,
   CodeView,
+  LinesView,
   CopyButton,
   FormatSwitch,
+  SegmentedSwitch,
   serialize,
   useFormat,
 } from "@opusprojects/unified-ui";
+import { ValueList } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
 import { api, unwrap } from "../../api/client";
 import {
   useHostVars,
   useSourceDetail,
   useSourceGroups,
+  useSourceGroup,
   useSourceHosts,
 } from "../../api/queries";
-import { DetailTitle, common } from "../../shared/Detail";
-import { RunButton } from "../../shared/RunButton";
+import { DetailTitle, detailStyles as common } from "@opusprojects/unified-ui";
+import { RunButton } from "@opusprojects/unified-ui";
 import { instanceName } from "../../shared/instances";
 import { ICONS } from "../../sections";
 import styles from "./SourceDetailPage.module.css";
@@ -92,7 +96,7 @@ export function SourceDetailPage() {
 function SyncNow({ id }: { id: string }) {
   return (
     <RunButton
-      label="Sync now"
+      label="Sync"
       busyLabel="Syncing…"
       invalidate={[["sources"], ["source", id]]}
       run={async () => {
@@ -112,7 +116,7 @@ function SyncNow({ id }: { id: string }) {
 type Detail = NonNullable<ReturnType<typeof useSourceDetail>["data"]>;
 
 // What each overview fact means, behind its label. Settings start with
-// their key in sources.yaml, which is where they are changed.
+// their key in the source's item file, which is where they are changed.
 const HINTS: Record<string, string> = {
   Hosts: "Hosts in the cached data, as of the last sync.",
   Groups: "Ansible groups in the cached data, as of the last sync.",
@@ -126,15 +130,15 @@ const HINTS: Record<string, string> = {
   "Sync mode":
     "sync_mode. replace: each sync replaces the whole dataset. merge: each sync updates the hosts it returns and leaves the rest as they were.",
   Connector:
-    "connector_type. How the data is gathered: script runs a program, ssh runs commands on each host, static_inventory reads an Ansible inventory file, remote copies a source from another unified-api.",
+    "connector. The connector this source syncs through, and its type: script runs a program, ssh runs commands on each host; the built-ins static_inventory reads an Ansible inventory file and remote copies a source from another instance. Opens the connector's page.",
   "Remote source":
-    "script_path. For a remote source, the id of the source it copies on the other instance.",
+    "config.source. For a remote source, the id of the source it copies on the other instance.",
   "Remote instance":
     "config.url. The unified-api instance this source pulls from, named as on the Topology page. Opens it.",
   Script:
-    "script_path. What the connector runs or reads, inside the project's git checkout.",
+    "path. What the connector runs, or the inventory file a static inventory reads, inside the project's git checkout.",
   Project:
-    "project_id. The git project, from projects.yaml, that holds the script.",
+    "project. The git project that holds the script (named by the connector) or, for a static inventory, the inventory file.",
   "Last attempt":
     "When this source last tried to sync, whether it worked or not.",
   "Last success":
@@ -146,7 +150,7 @@ const HINTS: Record<string, string> = {
   "On-demand refresh":
     "allow_on_demand_refresh. Whether a read may ask for current data for named hosts (dataset?host=X&refresh=true), gathering them if their data is older than the TTL. Off by default, because such a read can reach real hosts.",
   Credentials:
-    "credential_ids. The credentials, from credentials.yaml, the connector is given. Names only; their secrets are never shown.",
+    "credentials. The credentials the connector is given; each opens its page. Names only: their secrets are never shown.",
   Members:
     "The sources this view reads from, by declared ownership of groups and hosts.",
 };
@@ -163,6 +167,7 @@ function Overview({ detail }: { detail: Detail }) {
   return (
     <Panel
       title="Overview"
+      hint="What this source is, where its data comes from, how fresh it is, and how its last syncs went."
       aside={
         <HealthPill
           state={state}
@@ -172,7 +177,7 @@ function Overview({ detail }: { detail: Detail }) {
     >
       {/* Five rows of three, by theme: what is cached, how current it is
           (both measured), then the settings, labelled after their keys in
-          sources.yaml so the person who writes that file knows which key to
+          the source's item file so the person who writes it knows which key to
           change. Restricted callers get no settings beyond the TTL. */}
       <dl className={common.facts}>
         <Fact label="Hosts" hint={HINTS["Hosts"]}>
@@ -245,20 +250,30 @@ function Overview({ detail }: { detail: Detail }) {
               {gathering.allow_on_demand_refresh ? "On" : "Off"}
             </Fact>
             <Fact label="Credentials" hint={HINTS["Credentials"]}>
-              {gathering.credential_ids.length > 0 ? (
-                <span
-                  className={common.clipText}
-                  title={gathering.credential_ids.join(", ")}
-                >
-                  {gathering.credential_ids.join(", ")}
-                </span>
-              ) : (
-                "None"
-              )}
+              <ValueList
+                values={gathering.credential_ids.map((id) => (
+                  <Link
+                    key={id}
+                    className={common.link}
+                    to={`/credentials/${encodeURIComponent(id)}`}
+                    title={id}
+                  >
+                    {id}
+                  </Link>
+                ))}
+              />
             </Fact>
 
             <Fact label="Connector" hint={HINTS["Connector"]}>
-              {gathering.connector_type}
+              <span className={common.clipText}>
+                <Link
+                  className={common.link}
+                  to={`/connectors/${encodeURIComponent(gathering.connector)}`}
+                >
+                  {gathering.connector}
+                </Link>{" "}
+                ({gathering.connector_type})
+              </span>
             </Fact>
             {gathering.remote_url ? (
               <>
@@ -289,7 +304,18 @@ function Overview({ detail }: { detail: Detail }) {
                   </span>
                 </Fact>
                 <Fact label="Project" hint={HINTS["Project"]}>
-                  {gathering.project_id}
+                  {gathering.project_id ? (
+                    <Link
+                      className={common.link}
+                      to={`/projects/${encodeURIComponent(gathering.project_id)}`}
+                    >
+                      {gathering.project_id}
+                    </Link>
+                  ) : gathering.connector_type === "ssh" ? (
+                    "None (runs on each host)"
+                  ) : (
+                    "None (local file)"
+                  )}
                 </Fact>
               </>
             )}
@@ -308,37 +334,56 @@ function Overview({ detail }: { detail: Detail }) {
   );
 }
 
+// The source's contents, a list on the left and the selected item's
+// variables on the right: its hosts, or (switched) its groups. Which list,
+// and which item, are in the address (?list=groups&group=linux).
 function HostBrowser({ id }: { id: string }) {
   const [params, setParams] = useSearchParams();
-  const selected = params.get("host");
-  const group = params.get("group");
+  const mode: "hosts" | "groups" =
+    params.get("list") === "groups" ? "groups" : "hosts";
+  const key = mode === "hosts" ? "host" : "group";
+  const noun = mode === "hosts" ? "host" : "group";
+  const selected = params.get(key);
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(0);
-  // Sized for the window, not for where the list first appears: it is
-  // sticky, so while the variables scroll it has the full height less the
-  // search above it and the pager below (~120px). Rows measure 28px.
-  const [pageSize, setPageSize] = usePageSize("source-hosts", 28, 120);
 
   const groups = useSourceGroups(id);
-  const hosts = useSourceHosts(id, group);
+  const hosts = useSourceHosts(id, null);
+  const names = useMemo(
+    () =>
+      mode === "hosts"
+        ? (hosts.data?.hosts ?? [])
+        : (groups.data ?? []).map((g) => g.name).sort(),
+    [mode, hosts.data, groups.data],
+  );
+  const loading = mode === "hosts" ? hosts : groups;
 
   const needle = query.trim().toLowerCase();
   const matching = useMemo(
     () =>
-      (hosts.data?.hosts ?? []).filter(
-        (h) => needle === "" || h.toLowerCase().includes(needle),
-      ),
-    [hosts.data, needle],
+      names.filter((n) => needle === "" || n.toLowerCase().includes(needle)),
+    [names, needle],
   );
-  // Never past the last page: a sync or a refetch can shrink the list
-  // under the page being shown, which would otherwise read "61–40 of 40"
-  // with no rows (or none at all once the pager hides itself).
-  const lastPage = Math.max(0, Math.ceil(matching.length / pageSize) - 1);
-  const current = Math.min(page, lastPage);
-  const shown = matching.slice(current * pageSize, (current + 1) * pageSize);
+  // The page lives in the address (?hosts-page=3), so a link opens it. Sized
+  // for the window, not for where the list first appears: it is sticky, so
+  // while the variables scroll it has the full height less the search above
+  // it and the pager below (~120px). Rows measure 28px. The page is held
+  // within the list as a sync or a refetch shrinks it.
+  const { shown, pager } = usePagination(matching, `source-${mode}`, {
+    url: mode,
+    rowHeight: 28,
+    reserved: 120,
+  });
+  const { pageSize, onPage: setPage } = pager;
 
-  // A new search, group or page size starts at the first page.
-  useEffect(() => setPage(0), [needle, group, pageSize]);
+  // A new search starts at the first page; arriving does not, or a shared
+  // link's page would be lost.
+  const filtered = useRef(needle);
+  useEffect(() => {
+    const before = filtered.current;
+    filtered.current = needle;
+    if (before !== needle) setPage(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needle]);
 
   // A host chosen from elsewhere (the search, a link) opens on the page of
   // the list that holds it. Only when the selection changes: paging away
@@ -362,7 +407,7 @@ function HostBrowser({ id }: { id: string }) {
   useEffect(() => {
     const box = list.current;
     const option = selected
-      ? document.getElementById(optionId(selected))
+      ? document.getElementById(optionId(mode, selected))
       : null;
     if (!box || !option || !box.contains(option)) return;
     if (option.offsetTop < box.scrollTop) box.scrollTop = option.offsetTop;
@@ -390,30 +435,31 @@ function HostBrowser({ id }: { id: string }) {
       window.scrollTo({ top: window.scrollY + top - 36 });
   }, [selected]);
 
-  // Something to look at straight away: the first host, unless the URL
-  // already names one.
+  // Something to look at straight away: the first host on the page shown,
+  // unless the URL already names one. On the page shown, not the list's
+  // first: a link to page 3 must stay on page 3.
   useEffect(() => {
-    if (!selected && matching.length > 0) {
+    if (!selected && shown.length > 0) {
       setParams(
         (p) => {
-          p.set("host", matching[0]);
+          p.set(key, shown[0]);
           return p;
         },
         { replace: true },
       );
     }
-  }, [selected, matching, setParams]);
+  }, [selected, shown, key, setParams]);
 
-  const select = (host: string) =>
+  const select = (name: string) =>
     setParams((p) => {
-      p.set("host", host);
+      p.set(key, name);
       return p;
     });
-  const setGroup = (value: string) =>
+  // Each list keeps its own selection, so switching back returns to it.
+  const setMode = (next: "hosts" | "groups") =>
     setParams((p) => {
-      if (value) p.set("group", value);
-      else p.delete("group");
-      p.delete("host");
+      if (next === "groups") p.set("list", "groups");
+      else p.delete("list");
       return p;
     });
 
@@ -424,13 +470,14 @@ function HostBrowser({ id }: { id: string }) {
           {/* Each column opens with its own heading, on one line: "Hosts" on
               the left, the selected host on the right. */}
           <div className={styles.columnHead}>
-            <h2 className={styles.columnTitle}>Hosts</h2>
-            {hosts.data && (
+            <h2 className={styles.columnTitle}>
+              {mode === "hosts" ? "Hosts" : "Groups"}
+            </h2>
+            {loading.isSuccess && (
               <span className={styles.varCount}>
                 {needle
-                  ? `${matching.length.toLocaleString()} of ${count(hosts.data.hosts.length, "host")}`
-                  : count(hosts.data.hosts.length, "host")}
-                {group && ` in ${group}`}
+                  ? `${matching.length.toLocaleString()} of ${count(names.length, noun)}`
+                  : count(names.length, noun)}
               </span>
             )}
           </div>
@@ -439,43 +486,35 @@ function HostBrowser({ id }: { id: string }) {
           <div className={styles.hostSticky}>
             <div className={styles.toolbar}>
               <SearchField
-                label="Search hosts"
-                placeholder="Search hosts"
+                label={`Search ${mode}`}
+                placeholder={`Search ${mode}`}
                 value={query}
                 onChange={setQuery}
                 size="compact"
               />
-              {(groups.data?.length ?? 0) > 0 && (
-                <select
-                  className={styles.select}
-                  aria-label="Group"
-                  value={group ?? ""}
-                  onChange={(e) => setGroup(e.target.value)}
-                >
-                  <option value="">All groups</option>
-                  {[...(groups.data ?? [])]
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((g) => (
-                      <option key={g.name} value={g.name}>
-                        {g.name} ({g.host_count})
-                      </option>
-                    ))}
-                </select>
-              )}
+              <SegmentedSwitch
+                label="Show"
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: "hosts", label: "Hosts" },
+                  { value: "groups", label: "Groups" },
+                ]}
+              />
             </div>
-            {hosts.isPending && <p className={common.soft}>Loading hosts…</p>}
-            {hosts.isError && (
-              <p className={common.soft}>{hosts.error.message}</p>
+            {loading.isPending && (
+              <p className={common.soft}>Loading {mode}…</p>
+            )}
+            {loading.isError && (
+              <p className={common.soft}>{loading.error.message}</p>
             )}
             {/* Only a search can fail to match; an empty source or group
                 has nothing to match against, and says so. */}
-            {hosts.isSuccess && matching.length === 0 && (
+            {loading.isSuccess && matching.length === 0 && (
               <p className={common.soft}>
                 {needle
-                  ? "No host matches the search."
-                  : group
-                    ? `No hosts in ${group}.`
-                    : "No hosts right now."}
+                  ? `No ${noun} matches the search.`
+                  : `No ${mode} right now.`}
               </p>
             )}
             {/* A listbox, framed like the fields above it: one focus stop,
@@ -485,10 +524,10 @@ function HostBrowser({ id }: { id: string }) {
                 ref={list}
                 className={styles.hostList}
                 role="listbox"
-                aria-label="Hosts"
+                aria-label={mode === "hosts" ? "Hosts" : "Groups"}
                 aria-activedescendant={
                   selected && shown.includes(selected)
-                    ? optionId(selected)
+                    ? optionId(mode, selected)
                     : undefined
                 }
                 tabIndex={shown.length > 0 ? 0 : -1}
@@ -509,45 +548,42 @@ function HostBrowser({ id }: { id: string }) {
                   select(shown[next]);
                 }}
               >
-                {shown.map((host) => (
+                {shown.map((name) => (
                   <li
-                    key={host}
-                    id={optionId(host)}
+                    key={name}
+                    id={optionId(mode, name)}
                     role="option"
-                    aria-selected={host === selected}
+                    aria-selected={name === selected}
                     className={styles.hostOption}
-                    onClick={() => select(host)}
-                    title={host}
+                    onClick={() => select(name)}
+                    title={name}
                   >
-                    {host}
+                    {name}
                   </li>
                 ))}
               </ul>
             )}
-            <Pagination
-              page={current}
-              pageSize={pageSize}
-              total={matching.length}
-              onPage={setPage}
-              onPageSize={setPageSize}
-              noun="hosts"
-            />
+            <Pagination {...pager} noun={mode} />
           </div>
         </div>
       </Panel>
       <Panel className={styles.varsCard}>
         <div ref={varsTop} />
         {selected ? (
-          <HostVars id={id} host={selected} />
-        ) : hosts.isSuccess && hosts.data.hosts.length === 0 ? (
+          mode === "hosts" ? (
+            <HostVars id={id} host={selected} />
+          ) : (
+            <GroupVars id={id} group={selected} />
+          )
+        ) : loading.isSuccess && names.length === 0 ? (
           // Nothing to pick: say why there is nothing, not "pick one".
-          <EmptyState title="No hosts to show">
-            {group
-              ? "This group holds no hosts right now."
-              : "This source holds no hosts right now. They appear here after a sync that brings some."}
+          <EmptyState title={`No ${mode} to show`}>
+            {mode === "hosts"
+              ? "This source holds no hosts right now. They appear here after a sync that brings some."
+              : "This source has no groups right now."}
           </EmptyState>
         ) : (
-          <EmptyState title="No host selected">
+          <EmptyState title={`No ${noun} selected`}>
             Pick one on the left.
           </EmptyState>
         )}
@@ -562,69 +598,174 @@ const count = (n: number, noun: string) =>
 
 // Host names hold dots, which an id may, but nothing else odd: kept as is
 // behind a prefix so a listbox option can be pointed at.
-const optionId = (host: string) => `host-option-${host}`;
+const optionId = (list: string, name: string) => `${list}-option-${name}`;
 
 function HostVars({ id, host }: { id: string; host: string }) {
   const vars = useHostVars(id, host);
-  const [query, setQuery] = useState("");
+  return (
+    <VarsPanel
+      title={host}
+      vars={vars.data}
+      loading={vars.isPending}
+      error={vars.isError ? vars.error.message : null}
+      none="This host has no variables."
+    />
+  );
+}
 
+// A group's own variables (not its hosts'), its size, and its hosts: the
+// same ones the size counts, directly in the group, not its children's.
+function GroupVars({ id, group }: { id: string; group: string }) {
+  const detail = useSourceGroup(id, group);
+  const hosts = useSourceHosts(id, group);
+  return (
+    <VarsPanel
+      title={group}
+      vars={detail.data?.vars as Record<string, unknown> | undefined}
+      loading={detail.isPending}
+      error={detail.isError ? detail.error.message : null}
+      extra={detail.data ? count(detail.data.host_count, "host") : undefined}
+      none="This group has no variables of its own."
+      hosts={{
+        names: hosts.data?.hosts,
+        loading: hosts.isPending,
+        error: hosts.isError ? hosts.error.message : null,
+      }}
+    />
+  );
+}
+
+// The right-hand card: a host's or a group's variables, searchable by
+// name, in YAML or JSON, ready to copy. A group's card can show its hosts
+// instead, one per line.
+function VarsPanel({
+  title,
+  vars,
+  loading,
+  error,
+  extra,
+  none,
+  hosts,
+}: {
+  title: string;
+  vars: Record<string, unknown> | undefined;
+  loading: boolean;
+  error: string | null;
+  // More after the variable count: "4 hosts".
+  extra?: string;
+  // What an item with no variables says.
+  none: string;
+  // A group's hosts, for the Hosts | Variables switch; absent on a host.
+  hosts?: { names?: string[]; loading: boolean; error: string | null };
+}) {
+  const [query, setQuery] = useState("");
   const [format, setFormat] = useFormat();
+  const [view, setView] = useState<"variables" | "hosts">("variables");
+  const showHosts = hosts !== undefined && view === "hosts";
 
   // Filtered by variable name, then sorted, so the document reads the same
-  // way on every host.
+  // way on every item.
   const needle = query.trim().toLowerCase();
   const shown = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(vars.data ?? {})
+        Object.entries(vars ?? {})
           .filter(
             ([key]) => needle === "" || key.toLowerCase().includes(needle),
           )
           .sort(([a], [b]) => a.localeCompare(b)),
       ),
-    [vars.data, needle],
+    [vars, needle],
   );
   const shownCount = Object.keys(shown).length;
+  // The hosts, by the same search, sorted like the lists on the left.
+  const shownHosts = useMemo(
+    () =>
+      (hosts?.names ?? [])
+        .filter((name) => needle === "" || name.toLowerCase().includes(needle))
+        .sort(),
+    [hosts?.names, needle],
+  );
+  const what = showHosts ? "hosts" : "variables";
+  const copyText = showHosts
+    ? hosts.names && shownHosts.length > 0
+      ? `${shownHosts.join("\n")}\n`
+      : undefined
+    : vars && shownCount > 0
+      ? serialize(shown, format)
+      : undefined;
 
   return (
     <>
       <div className={styles.columnHead}>
-        <h3 className={styles.hostName} title={host}>
-          {host}
+        <h3 className={styles.hostName} title={title}>
+          {title}
         </h3>
-        {vars.data && (
+        {vars && (
           <span className={styles.varCount}>
             {needle
-              ? `${shownCount} of ${count(Object.keys(vars.data).length, "variable")}`
-              : count(Object.keys(vars.data).length, "variable")}
+              ? `${shownCount} of ${count(Object.keys(vars).length, "variable")}`
+              : count(Object.keys(vars).length, "variable")}
+            {extra && `, ${extra}`}
           </span>
         )}
       </div>
       <div className={styles.toolbar}>
         <div className={styles.varsSearch}>
           <SearchField
-            label="Search variables"
-            placeholder="Search variables"
+            label={`Search ${what}`}
+            placeholder={`Search ${what}`}
             value={query}
             onChange={setQuery}
             size="compact"
           />
         </div>
-        <FormatSwitch value={format} onChange={setFormat} />
-        <CopyButton
-          text={
-            vars.data && shownCount > 0 ? serialize(shown, format) : undefined
-          }
+        {/* A list of names has no format: the switch stays, set aside. */}
+        <FormatSwitch
+          value={format}
+          onChange={setFormat}
+          disabled={showHosts}
         />
+        {hosts && (
+          <SegmentedSwitch
+            label="View"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "hosts", label: "Hosts" },
+              { value: "variables", label: "Variables" },
+            ]}
+          />
+        )}
+        <CopyButton text={copyText} />
       </div>
-      {vars.isPending && <p className={common.soft}>Loading variables…</p>}
-      {vars.isError && <p className={common.soft}>{vars.error.message}</p>}
-      {vars.isSuccess && shownCount === 0 && (
-        <p className={common.soft}>
-          {needle ? "No variable matches." : "This host has no variables."}
-        </p>
+      {showHosts ? (
+        <>
+          {hosts.loading && <p className={common.soft}>Loading hosts…</p>}
+          {hosts.error && <p className={common.soft}>{hosts.error}</p>}
+          {hosts.names && shownHosts.length === 0 && (
+            <p className={common.soft}>
+              {needle
+                ? "No host matches."
+                : "This group has no hosts of its own."}
+            </p>
+          )}
+          {shownHosts.length > 0 && (
+            <LinesView lines={shownHosts} label="Hosts" />
+          )}
+        </>
+      ) : (
+        <>
+          {loading && <p className={common.soft}>Loading variables…</p>}
+          {error && <p className={common.soft}>{error}</p>}
+          {vars && shownCount === 0 && (
+            <p className={common.soft}>
+              {needle ? "No variable matches." : none}
+            </p>
+          )}
+          {shownCount > 0 && <CodeView value={shown} format={format} />}
+        </>
       )}
-      {shownCount > 0 && <CodeView value={shown} format={format} />}
     </>
   );
 }

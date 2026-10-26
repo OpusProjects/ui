@@ -3,27 +3,27 @@
 const UNITS: [number, string][] = [
   [86400, "d"],
   [3600, "h"],
-  [60, "min"],
+  [60, "m"],
+  [1, "s"],
 ];
 
+// Exact, largest unit first, the parts that are zero left out:
+// "43d 23h 4m 3s", "2h", "10m", "0s".
 export function formatSpan(seconds: number): string {
+  let rest = Math.max(0, Math.round(seconds));
+  const parts: string[] = [];
   for (const [size, unit] of UNITS) {
-    if (seconds >= size) {
-      const value = seconds / size;
-      // One decimal only where it changes the reading (1.5 h, not 1 h).
-      const rounded =
-        value < 10 && value % 1 >= 0.25
-          ? value.toFixed(1)
-          : Math.round(value).toString();
-      return `${rounded} ${unit}`;
+    if (rest >= size) {
+      parts.push(`${Math.floor(rest / size)}${unit}`);
+      rest %= size;
     }
   }
-  return `${Math.round(seconds)} s`;
+  return parts.length > 0 ? parts.join(" ") : "0s";
 }
 
 export function formatAge(seconds: number | null | undefined): string {
   if (seconds == null) return "never";
-  if (seconds < 10) return "just now";
+  if (seconds < 1) return "just now";
   return `${formatSpan(seconds)} ago`;
 }
 

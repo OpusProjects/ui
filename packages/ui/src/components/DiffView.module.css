@@ -1,0 +1,51 @@
+/* GitHub's diff: full-width rows, a sign column, washes of the health
+   colours for what goes and what comes. */
+.diff {
+  margin: 0;
+  overflow-x: auto;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-surface);
+  font-family: var(--uu-font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.line {
+  display: block;
+  padding-right: 12px;
+  white-space: pre;
+}
+
+.line[data-kind="add"] {
+  background: color-mix(in srgb, var(--uu-fresh) 14%, transparent);
+}
+
+.line[data-kind="remove"] {
+  background: color-mix(in srgb, var(--uu-failing) 13%, transparent);
+}
+
+.sign {
+  display: inline-block;
+  width: 24px;
+  color: var(--uu-ink-soft);
+  text-align: center;
+  user-select: none;
+}
+
+.line[data-kind="add"] .sign {
+  color: var(--uu-fresh);
+}
+
+.line[data-kind="remove"] .sign {
+  color: var(--uu-failing);
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

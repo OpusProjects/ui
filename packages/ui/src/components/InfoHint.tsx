@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -29,24 +30,40 @@ export function InfoHint({
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
-  // How far the box moves sideways to stay on screen, measured once each
-  // time it opens: from where it would start (under the trigger) to where it
-  // fits, clamped to the window's edges. Measuring once, from the trigger
-  // rather than from the box's own last position, is what keeps it from
+  // Where the box opens, in the window's own coordinates (it is fixed, so it
+  // never counts towards the page's width or height, and cannot give the
+  // page a scrollbar): under the trigger, moved sideways to fit inside the
+  // visible width (the window less its scrollbar), measured once each time
+  // it opens. Measuring once, from the trigger, is what keeps it from
   // flipping back and forth on a screen too narrow for either side.
-  const [shift, setShift] = useState(0);
+  const [place, setPlace] = useState<{ top: number; left: number } | null>(
+    null,
+  );
   const popover = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
     if (!open || !popover.current) return;
     const trigger = popover.current.parentElement!.getBoundingClientRect();
-    const width = popover.current.getBoundingClientRect().width;
-    const natural = trigger.left - 8;
-    const fitted = Math.max(
-      8,
-      Math.min(natural, window.innerWidth - 8 - width),
-    );
-    setShift(fitted - natural);
+    const { width, height } = popover.current.getBoundingClientRect();
+    const visible = document.documentElement.clientWidth;
+    const below = trigger.bottom + 6;
+    setPlace({
+      // Above the trigger when there is no room under it.
+      top:
+        below + height > window.innerHeight - 8
+          ? Math.max(8, trigger.top - 6 - height)
+          : below,
+      left: Math.max(8, Math.min(trigger.left - 8, visible - 8 - width)),
+    });
+  }, [open]);
+
+  // A scroll moves the trigger from under a fixed box: close it rather than
+  // leave it floating over something else.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", close, { capture: true });
   }, [open]);
 
   return (
@@ -57,9 +74,15 @@ export function InfoHint({
       // The icon has no text of its own; a term already reads as its text.
       aria-label={children ? undefined : "About this"}
       onPointerEnter={() => setOpen(true)}
-      onPointerLeave={() => setOpen(false)}
+      onPointerLeave={() => {
+        setOpen(false);
+        setPlace(null);
+      }}
       onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onBlur={() => {
+        setOpen(false);
+        setPlace(null);
+      }}
       onKeyDown={(event) => event.key === "Escape" && setOpen(false)}
     >
       {children ?? <Info aria-hidden />}
@@ -69,7 +92,13 @@ export function InfoHint({
         role="tooltip"
         className={styles.text}
         data-open={open || undefined}
-        style={{ transform: shift ? `translateX(${shift}px)` : undefined }}
+        // Measured on opening; until then it is laid out off screen to be
+        // measured, never where it could be seen in the wrong place.
+        style={
+          place
+            ? { top: place.top, left: place.left }
+            : { top: 0, left: -10000 }
+        }
       >
         {text}
       </span>

@@ -143,6 +143,8 @@ export interface Point {
   // null = nothing to plot for this moment (no requests to average, say):
   // the line breaks there rather than inventing a zero or bridging the gap.
   value: number | null;
+  // Extra lines for the tooltip: what the value is made of ("3 reads").
+  details?: string[];
 }
 
 interface LineChartProps {
@@ -351,6 +353,8 @@ export function LineChart({
           <strong>
             {active.value === null ? gapLabel : format(active.value)}
           </strong>
+          {active.value !== null &&
+            active.details?.map((line) => <span key={line}>{line}</span>)}
           <span>{timeFormat.format(active.at)}</span>
         </div>
       )}

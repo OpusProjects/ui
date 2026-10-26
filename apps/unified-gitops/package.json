@@ -1,0 +1,30 @@
+{
+  "name": "unified-gitops-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 18192 --strictPort",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "generate:api": "openapi-typescript ${UNIFIED_GITOPS_URL:-http://127.0.0.1:8183}/api-docs/openapi.json -o src/api/schema.ts"
+  },
+  "dependencies": {
+    "@opusprojects/unified-client": "*",
+    "@opusprojects/unified-ui": "*",
+    "@tanstack/react-query": "^5.104.5",
+    "lucide-react": "^1.61.0",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  }
+}

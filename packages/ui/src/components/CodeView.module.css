@@ -60,13 +60,20 @@
   cursor: pointer;
 }
 
-.switch button:hover {
+.switch button:hover:not(:disabled) {
   color: var(--uu-accent-strong);
 }
 
 .switch button[aria-pressed="true"] {
   background: color-mix(in srgb, var(--uu-accent) 13%, transparent);
   color: var(--uu-accent-strong);
+}
+
+/* Not usable here: dimmed whole, the chosen side still showing, so it reads
+   as set aside rather than gone. */
+.switch button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .switch button:focus-visible {

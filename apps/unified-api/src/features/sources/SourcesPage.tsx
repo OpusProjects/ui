@@ -18,12 +18,12 @@ import { Link } from "react-router";
 import { ExternalLink } from "lucide-react";
 import { api, unwrap } from "../../api/client";
 import { useSources, type SourceRow } from "../../api/queries";
-import { ListToolbar } from "../../shared/ListToolbar";
-import { RunAllButton } from "../../shared/RunAllButton";
-import { RunButton } from "../../shared/RunButton";
-import { useListFilter } from "../../shared/useListFilter";
+import { ListToolbar } from "@opusprojects/unified-ui";
+import { RunAllButton } from "@opusprojects/unified-ui";
+import { RunButton } from "@opusprojects/unified-ui";
+import { useListFilter } from "@opusprojects/unified-client";
 import { ICONS } from "../../sections";
-import styles from "../../shared/pages.module.css";
+import { pageStyles as styles } from "@opusprojects/unified-ui";
 
 const stateOf = ({ summary }: SourceRow) =>
   cachedHealth(summary.cached, summary.is_fresh, summary.sync_health);
@@ -100,7 +100,7 @@ export function SourcesPage() {
               }
             >
               {sources.rows.length === 0
-                ? "Declare a source in sources.yaml and it appears here after the next reload."
+                ? "Declare one under sources: in the configuration and it appears here after the next reload."
                 : "Clear the search or the filter to see every source."}
             </EmptyState>
           ) : (
@@ -161,7 +161,7 @@ function SourceCard({ row }: { row: SourceRow }) {
           )}
           {!isView && (
             <RunButton
-              label="Sync now"
+              label="Sync"
               busyLabel="Syncing…"
               invalidate={[["sources"], ["source", summary.source_id]]}
               run={async () => {
@@ -180,10 +180,18 @@ function SourceCard({ row }: { row: SourceRow }) {
       }
     >
       <Fact label="Hosts">
-        <strong>{summary.total_hosts ?? "None yet"}</strong>
-        {detail?.total_groups != null && (
-          <span className={styles.soft}>in {detail.total_groups} groups</span>
-        )}
+        {/* One phrase, one element: a word gap, not the fact's item gap. */}
+        <span>
+          <strong>{summary.total_hosts ?? "None yet"}</strong>
+          {detail?.total_groups != null && (
+            <>
+              {" "}
+              <span className={styles.soft}>
+                in {detail.total_groups} groups
+              </span>
+            </>
+          )}
+        </span>
       </Fact>
       <Fact label="Data from">
         {summary.age_seconds != null && detail ? (
@@ -210,12 +218,21 @@ function SourceCard({ row }: { row: SourceRow }) {
           </Fact>
           {schedule && <Fact label="Syncs">{schedule}</Fact>}
           {gathering && (
-            <Fact label="Gathered by">
-              <code className={styles.mono} title={gathering.script_path}>
-                {gathering.connector_type === "script"
-                  ? gathering.script_path.split("/").pop()
-                  : `${gathering.connector_type}: ${gathering.script_path}`}
-              </code>
+            <Fact label="Connector">
+              {/* One phrase, one element: "inventory (script)" with a word
+                  gap, as the source's page writes it. */}
+              <span>
+                <Link
+                  className={styles.link}
+                  to={`/connectors/${encodeURIComponent(gathering.connector)}`}
+                  title={gathering.script_path}
+                >
+                  {gathering.connector}
+                </Link>{" "}
+                <span className={styles.soft}>
+                  ({gathering.connector_type})
+                </span>
+              </span>
             </Fact>
           )}
         </>

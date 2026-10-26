@@ -18,6 +18,7 @@ export default defineConfig({
         "react-dom",
         "react/jsx-runtime",
         "lucide-react",
+        "@tanstack/react-query",
         "@opusprojects/unified-client",
         /^@fontsource\//,
       ],

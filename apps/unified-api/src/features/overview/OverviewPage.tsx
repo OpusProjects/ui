@@ -1,25 +1,24 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { ExternalLink } from "lucide-react";
 import {
+  AreaCard,
+  AreaGrid,
   Fact,
+  InstancePanel,
+  NeedsAttention,
   Notice,
+  OverviewColumns,
   PageHeader,
-  Panel,
-  formatSpan,
-  lift,
-  compact,
-  LineChart,
+  RequestsPanel,
+  countStates as count,
+  perMinuteText,
+  LiveSpan,
+  useRequestsPerMinute,
+  type Issue,
 } from "@opusprojects/unified-ui";
+import { cachedHealth, select, useMetrics } from "@opusprojects/unified-client";
 import {
-  HEALTH_ORDER,
-  cachedHealth,
-  rate,
-  select,
-  type HealthState,
-  useMetrics,
-} from "@opusprojects/unified-client";
-import {
+  useConnectors,
   useCredentials,
   useEndpoints,
   useProjects,
@@ -27,34 +26,24 @@ import {
   useSourceList,
   useTopology,
 } from "../../api/queries";
-import { common } from "../../shared/Detail";
 import { instanceName } from "../../shared/instances";
 import { CREDENTIAL_LABELS, credentialState } from "../credentials/model";
 import { ENDPOINT_LABELS, endpointState } from "../endpoints/model";
-import { PEER_LABELS, allPeers, peerState } from "../topology/model";
 import { PROJECT_LABELS, projectState } from "../projects/model";
+import { allPeers, peerState } from "../topology/model";
 import { ICONS } from "../../sections";
-import styles from "./OverviewPage.module.css";
+import {
+  LABELS as CONNECTOR_LABELS,
+  connectorState,
+} from "../connectors/model";
 
-type Counts = Record<HealthState, number>;
-type Labels = Partial<Record<HealthState, string>>;
+const SOURCE_LABELS = { fresh: "Fresh" };
 
-const SOURCE_LABELS = { fresh: "fresh" };
-
-function count<T>(items: T[], state: (item: T) => HealthState): Counts {
-  const counts: Counts = { fresh: 0, stale: 0, failing: 0, pending: 0 };
-  for (const item of items) counts[state(item)] += 1;
-  return counts;
-}
-
-// One thing that needs a person: what, why, and where to go about it.
-// Severity orders the list: what is broken before what is late.
-interface Issue {
-  key: string;
-  severity: number;
-  text: ReactNode;
-  to: string;
-}
+const link = (to: string, content: ReactNode, className: string) => (
+  <Link to={to} className={className}>
+    {content}
+  </Link>
+);
 
 // The front page: whether anything is wrong, and where. Every number comes
 // from the same health rules as the page it links to, so the two always
@@ -63,6 +52,9 @@ interface Issue {
 export function OverviewPage() {
   const sources = useSourceList();
   const endpoints = useEndpoints();
+  // Admin-only, like projects and credentials: a restricted key gets no
+  // card rather than a refusal.
+  const connectors = useConnectors();
   const projects = useProjects();
   const credentials = useCredentials();
   const topology = useTopology();
@@ -72,7 +64,11 @@ export function OverviewPage() {
   const sourceRows = sources.data ?? [];
   const sourceState = (s: (typeof sourceRows)[number]) =>
     cachedHealth(s.cached, s.is_fresh, s.sync_health);
-  const peers = topology.data ? allPeers(topology.data) : [];
+  // Problems are this instance's own: the peers it reads from (an
+  // unreachable one is listed under Needs attention).
+  const peers = topology.data
+    ? allPeers({ topology: topology.data, self: null, measuredAt: 0 })
+    : [];
 
   const issues: Issue[] = [];
   for (const s of sourceRows) {
@@ -132,15 +128,14 @@ export function OverviewPage() {
       });
   }
   for (const peer of peers) {
-    const state = peerState(peer);
-    if (state === "failing" || state === "stale")
+    if (peerState(peer) === "failing")
       issues.push({
         key: `peer-${peer.url}`,
-        severity: state === "failing" ? 0 : 1,
+        severity: 0,
         text: (
           <>
-            Instance <b>{instanceName(peer.url)}</b> is{" "}
-            {state === "failing" ? "unreachable" : "failing to provide data"}
+            Instance <b>{peer.instance?.name ?? instanceName(peer.url)}</b> is
+            unreachable
           </>
         ),
         to: "/topology",
@@ -172,7 +167,6 @@ export function OverviewPage() {
       text: <>A restart is needed to apply {restart.join(", ")}</>,
       to: "/config",
     });
-  issues.sort((a, b) => a.severity - b.severity);
 
   const loading = sources.isPending || endpoints.isPending;
   // The two lists every caller may read. If either could not be loaded, an
@@ -193,9 +187,10 @@ export function OverviewPage() {
         <Notice title="Could not check this instance">{failed.message}</Notice>
       )}
 
-      <div className={styles.areas}>
+      <AreaGrid>
         {sources.isSuccess && (
-          <Area
+          <AreaCard
+            link={link}
             to="/sources"
             icon={ICONS.sources}
             title="Sources"
@@ -203,8 +198,20 @@ export function OverviewPage() {
             labels={SOURCE_LABELS}
           />
         )}
+        {connectors.isSuccess && (
+          <AreaCard
+            link={link}
+            to="/connectors"
+            icon={ICONS.connectors}
+            title="Connectors"
+            counts={count(connectors.data, connectorState)}
+            labels={CONNECTOR_LABELS}
+            goodWord="Working"
+          />
+        )}
         {endpoints.isSuccess && (
-          <Area
+          <AreaCard
+            link={link}
             to="/endpoints"
             icon={ICONS.endpoints}
             title="Endpoints"
@@ -213,188 +220,76 @@ export function OverviewPage() {
           />
         )}
         {projects.isSuccess && (
-          <Area
+          <AreaCard
+            link={link}
             to="/projects"
             icon={ICONS.projects}
             title="Projects"
             counts={count(projects.data, projectState)}
             labels={PROJECT_LABELS}
+            goodWord="Synced"
           />
         )}
         {credentials.isSuccess && (
-          <Area
+          <AreaCard
+            link={link}
             to="/credentials"
             icon={ICONS.credentials}
             title="Credentials"
             // Resolving is what this card counts: an unused credential
             // resolves too (it is only a candidate for removal), as the
-            // Configuration page's "7, all resolve" counts it.
+            // Configuration page's "7, all working" counts it.
             counts={count(credentials.data, (c) =>
               credentialState(c) === "pending" ? "fresh" : credentialState(c),
             )}
             labels={CREDENTIAL_LABELS}
-            goodWord="resolve"
+            goodWord="Working"
           />
         )}
-        {topology.isSuccess && (
-          <Area
-            to="/topology"
-            icon={ICONS.topology}
-            title="Instances"
-            counts={count(peers, peerState)}
-            labels={PEER_LABELS}
-            empty="No peers"
-          />
-        )}
-      </div>
+      </AreaGrid>
 
-      <div className={styles.columns}>
-        <Panel
-          title="Needs attention"
+      <OverviewColumns>
+        <NeedsAttention
           hint="Problems across this instance, worst first. Red: something broken (a failing source, an unavailable endpoint, a missing credential, a project that cannot be pulled, an unreachable instance). Amber: something late or waiting (stale sources, a restart needed). Each line opens the page to fix it on."
-        >
-          {failed ? (
-            <p className={common.soft}>
-              Not checked: the list of sources or endpoints could not be loaded.
-            </p>
-          ) : loading ? (
-            <p className={common.soft}>Checking…</p>
-          ) : issues.length === 0 ? (
-            <p className={styles.allClear}>
-              Nothing needs attention: everything is healthy.
-            </p>
-          ) : (
-            <ul className={styles.issues}>
-              {issues.map((issue) => (
-                <li key={issue.key} data-severity={issue.severity}>
-                  <Link to={issue.to}>
-                    {issue.text}
-                    <ExternalLink aria-hidden />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-        <ThisInstance uptime={settings.data?.uptime_seconds} />
-      </div>
+          issues={issues}
+          link={link}
+          failed={
+            failed && "the list of sources or endpoints could not be loaded."
+          }
+          loading={loading}
+        />
+        <ThisInstance
+          uptime={settings.data?.uptime_seconds}
+          at={settings.dataUpdatedAt}
+        />
+      </OverviewColumns>
 
-      <RequestsCard />
+      <RequestsPanel prefix="unified_api" />
     </>
   );
 }
 
-// One area: how many of its items are healthy, a bar of all of their
-// states, and the whole card a way into its page.
-function Area({
-  to,
-  icon,
-  title,
-  counts,
-  labels,
-  empty = "None",
-  goodWord,
-}: {
-  to: string;
-  icon: ReactNode;
-  title: string;
-  counts: Counts;
-  labels: Labels;
-  empty?: string;
-  // What the healthy ones are, said of several: "resolve", not the pill's
-  // "Resolves". Defaults to the area's own healthy label.
-  goodWord?: string;
-}) {
-  const total = HEALTH_ORDER.reduce((sum, state) => sum + counts[state], 0);
-  const good = goodWord ?? (labels.fresh ?? "healthy").toLowerCase();
-  return (
-    <Link to={to} className={lift(styles.area)}>
-      <span className={styles.areaTitle}>
-        <span className={styles.areaIcon} aria-hidden>
-          {icon}
-        </span>
-        {title}
-      </span>
-      {total === 0 ? (
-        <span className={styles.areaEmpty}>{empty}</span>
-      ) : (
-        <>
-          <span className={styles.areaCount}>
-            {counts.fresh}
-            <span className={styles.areaOf}> of {total}</span>
-          </span>
-          <span className={styles.areaLabel}>{good}</span>
-          <span className={styles.bar} aria-hidden>
-            {HEALTH_ORDER.filter((s) => counts[s] > 0).map((state) => (
-              <span
-                key={state}
-                data-state={state}
-                style={{ flexGrow: counts[state] }}
-              />
-            ))}
-          </span>
-        </>
-      )}
-    </Link>
-  );
-}
-
-// The last half hour of calls this instance received, as the Metrics page
-// draws it: enough to tell normal traffic from traffic that stopped (a
-// consumer such as an inventory sync no longer calling).
-function RequestsCard() {
-  const { scrapes } = useMetrics();
-  const points = scrapes.slice(1).map((scrape, i) => ({
-    at: scrape.at,
-    value:
-      rate(scrapes[i], scrape, "unified_api_http_requests_total", notSelf) * 60,
-  }));
-  return (
-    <Panel
-      title="Requests per minute"
-      hint="Calls this instance received, from its own /metrics sampled every ten seconds while the app is open; reads of /metrics itself are left out. The app keeps the last half hour."
-      className={styles.requestsCard}
-    >
-      <LineChart
-        points={points}
-        series={3}
-        label="Requests per minute"
-        format={(v) => `${compact(v)} per minute`}
-        empty="Collecting: the first point appears after two samples, ten seconds apart."
-      />
-    </Panel>
-  );
-}
-
-const notSelf = (labels: Record<string, string>) => labels.path !== "/metrics";
-
 // A few numbers about this instance itself, from what the app already
 // samples: no request of its own.
-function ThisInstance({ uptime }: { uptime?: number }) {
+function ThisInstance({ uptime, at }: { uptime?: number; at: number }) {
   const { scrapes } = useMetrics();
   const latest = scrapes.at(-1);
-  const previous = scrapes.at(-2);
   const unique = latest
     ? select(latest.samples, "unified_api_hosts_unique")[0]?.value
     : undefined;
-  const perMinute =
-    latest && previous
-      ? rate(previous, latest, "unified_api_http_requests_total", notSelf) * 60
-      : undefined;
+  const perMinute = useRequestsPerMinute("unified_api");
 
   return (
-    <Panel title="This instance">
-      <dl className={styles.instanceFacts}>
-        <Fact label="Hosts">
-          {unique != null ? unique.toLocaleString() : "…"}
+    <InstancePanel>
+      <Fact label="Hosts">
+        {unique != null ? unique.toLocaleString() : "…"}
+      </Fact>
+      <Fact label="Requests">{perMinuteText(perMinute)}</Fact>
+      {uptime != null && (
+        <Fact label="Running for">
+          <LiveSpan seconds={uptime} at={at} />
         </Fact>
-        <Fact label="Requests">
-          {perMinute != null ? `${compact(perMinute)} a minute` : "…"}
-        </Fact>
-        {uptime != null && (
-          <Fact label="Running for">{formatSpan(uptime)}</Fact>
-        )}
-      </dl>
-    </Panel>
+      )}
+    </InstancePanel>
   );
 }

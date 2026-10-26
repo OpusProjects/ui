@@ -35,6 +35,12 @@
   text-align: center;
 }
 
+.logo {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+}
+
 .product {
   color: var(--uu-rail-ink-strong);
   font-size: 20px;
@@ -80,21 +86,21 @@
   gap: 2px;
 }
 
-/* A little air between the sections, so each reads as its own target;
-   the links at the foot stay close, a group of small utilities. */
+/* A little air between the sections, so each reads as its own target.
+   The menu's end is pulled up as the search box's is, so the theme switch
+   below keeps the same 22px from the last item as the search box keeps
+   from the first when the menu is taller than the window; with room to
+   spare, the foot's auto margin takes it to the bottom. */
 .nav {
   gap: 6px;
+  margin-bottom: -6px;
 }
 
-/* The foot's spacing is one value throughout: the rule to the first link,
-   between the links, the last link to the next rule (Theme.module.css),
-   and that rule to the switch all show the same 18px of air as the
-   rail's bottom padding below the switch. */
+/* The foot holds the theme switch alone, pushed to the bottom of the menu;
+   API docs and Sign out end the sections above it, no rule between. */
 .footer {
   margin-top: auto;
   gap: 2.5px;
-  padding-top: 10px;
-  border-top: 1px solid color-mix(in srgb, var(--uu-rail-ink) 18%, transparent);
 }
 
 .item {
@@ -117,11 +123,6 @@
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
-}
-
-.footer .item {
-  padding-top: 7px;
-  padding-bottom: 7px;
 }
 
 .item:hover {
@@ -202,9 +203,18 @@
     padding: 0;
   }
 
+  /* Beside the name in the phone's bar, the size of its letters. */
+  .logo {
+    align-self: center;
+    width: 24px;
+    height: 24px;
+    margin-bottom: 0;
+  }
+
   .nav {
     flex-direction: row;
     width: 100%;
+    margin-bottom: 0;
     overflow-x: auto;
   }
 
@@ -215,9 +225,9 @@
     width: auto;
   }
 
-  /* The foot becomes the bar's last row: API docs and Sign out at the
-     start, the theme switch at the end. Hidden, it took Sign out with it,
-     and a phone could not sign out at all. */
+  /* The foot becomes the bar's last row: the theme switch at its end.
+     API docs and Sign out scroll with the sections, so a phone can always
+     sign out. */
   .footer {
     flex-direction: row;
     flex-wrap: wrap;
@@ -225,13 +235,6 @@
     gap: 4px;
     width: 100%;
     margin-top: 0;
-    padding-top: 8px;
-  }
-
-  .footer .item {
-    flex: none;
-    width: auto;
-    padding: 6px 10px;
   }
 
   .main {

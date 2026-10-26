@@ -5,17 +5,31 @@
 [![React](https://img.shields.io/badge/react-19-61dafb.svg?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.9-3178c6.svg?logo=typescript)](https://www.typescriptlang.org/)
 
-The web UI for [unified-api](https://github.com/OpusProjects/unified-api), and the shared packages
-it is built from.
+The web UIs for [unified-api](https://github.com/OpusProjects/unified-api) and
+[unified-gitops](https://github.com/OpusProjects/unified-gitops), and the shared packages they are
+built from.
 
-Every unified-api image from 0.34.0 on serves this UI on its own address: open the instance in a
-browser, sign in, and see what it holds and whether it is keeping up. The UI reads the same REST
-API every other consumer uses, and keeps no state of its own beyond a theme choice and half an
-hour of metrics in memory.
+Each tool serves its own UI on its own address: open the instance in a browser, sign in, and see
+what it holds and whether it is keeping up. The UIs read the same REST API every other consumer
+uses, and keep no state of their own beyond a theme choice and half an hour of metrics in memory.
+Both are built from the same packages, so they look and behave alike.
 
 ---
 
 ## ✨ Features
+
+**unified-gitops** (`apps/unified-gitops`):
+
+- **Overview**: applications by sync status, and what needs fixing: failed, out of sync, missing
+- **Applications**: each one's status, commit and pending changes; Check compares, Push applies
+- **Application page**: its overview (system, project, status, commit) and what past runs did
+- **Connectors**: the scripts that read and change each kind of system, their kinds in apply order
+- **Connector page**: script, project and time limit, kinds in apply order, and the applications using it
+- **Project page**: repository, branch, credential, pull health, Pull now, and what reads from it
+- **Object search**: `/` or Ctrl+K from any page finds an object by key or value, and if git declares it
+- **Projects, credentials, metrics, configuration**: as in unified-api, for this instance
+
+**unified-api** (`apps/unified-api`):
 
 - **Overview**: whether anything needs attention, across everything the instance serves
 - **Sources**: health and freshness per source, groups, hosts and their variables, sync on demand
@@ -38,7 +52,7 @@ hour of metrics in memory.
 
 | Document                           | What it covers                                                        |
 | ---------------------------------- | --------------------------------------------------------------------- |
-| [Layout](docs/layout.md)           | The workspace, the two packages and the app, and where new code goes  |
+| [Layout](docs/layout.md)           | The workspace, the two packages and the apps, and where new code goes |
 | [Development](docs/development.md) | Dev server, API types, typecheck, build, end-to-end tests and CI      |
 | [Sign-in](docs/sign-in.md)         | How the UI signs in through unified-api, sessions and CSRF on writes  |
 | [Demo image](docs/demo.md)         | The UI behind nginx, pointed at any instance, and its safety rules    |

@@ -239,27 +239,78 @@ export function CodeView({
   );
 }
 
-// Two options side by side, one always chosen.
-export function FormatSwitch({
-  value,
-  onChange,
+// Plain lines in the same box as the document view: a list of names, one
+// per line, ready to select or copy as it is.
+export function LinesView({
+  lines,
+  label,
 }: {
-  value: Format;
-  onChange: (format: Format) => void;
+  lines: string[];
+  // What the lines are, for screen readers: "Hosts".
+  label: string;
 }) {
   return (
-    <div className={styles.switch} role="group" aria-label="Format">
-      {(["yaml", "json"] as const).map((format) => (
+    <pre className={styles.code} aria-label={label}>
+      {lines.join("\n")}
+    </pre>
+  );
+}
+
+// A choice between a few views of the same thing, side by side, the chosen
+// one lit: YAML | JSON, Hosts | Groups.
+export function SegmentedSwitch<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  // What is being chosen, for assistive technology: "Format".
+  label: string;
+  // Shown but not usable where the choice does not apply, so the controls
+  // beside it keep their places.
+  disabled?: boolean;
+}) {
+  return (
+    <div className={styles.switch} role="group" aria-label={label}>
+      {options.map((option) => (
         <button
-          key={format}
+          key={option.value}
           type="button"
-          aria-pressed={value === format}
-          onClick={() => onChange(format)}
+          aria-pressed={value === option.value}
+          disabled={disabled}
+          onClick={() => onChange(option.value)}
         >
-          {format.toUpperCase()}
+          {option.label}
         </button>
       ))}
     </div>
+  );
+}
+
+export function FormatSwitch({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Format;
+  onChange: (format: Format) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <SegmentedSwitch
+      label="Format"
+      disabled={disabled}
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: "yaml", label: "YAML" },
+        { value: "json", label: "JSON" },
+      ]}
+    />
   );
 }
 

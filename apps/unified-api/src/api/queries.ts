@@ -87,6 +87,32 @@ export function useProjects() {
   });
 }
 
+// Every connector (the configured ones and the two built-ins), what it runs
+// and how the sources using it are doing. Admin-only, like projects.
+export function useConnectors() {
+  return useQuery({
+    queryKey: ["connectors"],
+    queryFn: async () => unwrap(await api.GET("/api/v1/connectors")),
+    refetchInterval: POLL_MS,
+  });
+}
+
+// One connector, or null when none has that id (a 404), so the page can say
+// so instead of showing an error.
+export function useConnector(id: string) {
+  return useQuery({
+    queryKey: ["connector", id],
+    queryFn: async () => {
+      const result = await api.GET("/api/v1/connectors/{id}", {
+        params: { path: { id } },
+      });
+      if (result.response.status === 404) return null;
+      return unwrap(result);
+    },
+    refetchInterval: POLL_MS,
+  });
+}
+
 // The credentials configured here, whether each resolves, and what uses
 // it. Admin-only, like projects. Polled: a secret set or removed shows up.
 export function useCredentials() {
@@ -138,6 +164,22 @@ export function useTopology() {
   return useQuery({ ...topologyQuery, refetchInterval: 60_000 });
 }
 
+// The federation maps instances reading from this one pushed here: on an
+// edge, the picture of the federation it belongs to. Admin-only; any other
+// caller (and an instance nothing reads from) simply has none.
+export function useFederation() {
+  return useQuery({
+    queryKey: ["topology", "federation"],
+    queryFn: async () => {
+      const { data } = await api.GET("/api/v1/topology/federation");
+      return data ?? [];
+    },
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    retry: false,
+  });
+}
+
 // ------------------------------------------------------------ one source
 
 export function useSourceDetail(id: string) {
@@ -176,6 +218,22 @@ export function useSourceHosts(id: string, group: string | null) {
         }),
       ),
     staleTime: 60_000,
+  });
+}
+
+// One group: its variables, children and size, asked for alone rather than
+// read out of the whole dataset.
+export function useSourceGroup(id: string, group: string | null) {
+  return useQuery({
+    queryKey: ["source", id, "group", group],
+    enabled: group !== null,
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/v1/sources/{id}/groups/{group}", {
+          params: { path: { id, group: group! } },
+        }),
+      ),
+    staleTime: 30_000,
   });
 }
 

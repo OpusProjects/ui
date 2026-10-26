@@ -115,6 +115,9 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  /* One line always: a label that wraps makes the button taller than its
+     neighbours in a row of them. */
+  white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
@@ -138,6 +141,13 @@
   cursor: progress;
 }
 
+/* Not busy but not applicable here: lighter than a running button, and the
+   pointer says it will not respond. */
+.button[data-unavailable]:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .buttonIcon {
   display: inline-flex;
 }
@@ -147,9 +157,12 @@
   height: 15px;
 }
 
+/* Every card as tall as its own content, in every app: a card with an
+   error or a note grows alone instead of stretching its whole row. */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  align-items: start;
   gap: 16px;
 }
 
@@ -178,10 +191,24 @@
 }
 
 .notice {
+  /* Spaced from what follows like a panel, so a warning above a panel does
+     not read as part of it. */
+  margin-bottom: 20px;
   padding: 14px 18px;
   border: 1px solid var(--uu-failing);
   border-radius: var(--uu-radius);
   background: var(--uu-failing-wash);
+}
+
+/* Amber: no failure, but a state to come back to. A wash mixed from the
+   token, so it follows the theme as the failing wash does. */
+.notice[data-tone="stale"] {
+  border-color: var(--uu-stale);
+  background: color-mix(in srgb, var(--uu-stale) 12%, var(--uu-surface));
+}
+
+.notice[data-tone="stale"] .noticeTitle {
+  color: color-mix(in srgb, var(--uu-stale) 75%, var(--uu-ink));
 }
 
 .noticeTitle {
@@ -295,6 +322,23 @@
 .badge[data-tone="accent"] {
   background: color-mix(in srgb, var(--uu-accent) 14%, transparent);
   color: var(--uu-accent-strong);
+}
+
+/* The health colours, text darkened towards the ink so it stays readable on
+   its own tint in either theme. */
+.badge[data-tone="good"] {
+  background: color-mix(in srgb, var(--uu-fresh) 14%, transparent);
+  color: color-mix(in srgb, var(--uu-fresh) 70%, var(--uu-ink));
+}
+
+.badge[data-tone="warning"] {
+  background: color-mix(in srgb, var(--uu-stale) 16%, transparent);
+  color: color-mix(in srgb, var(--uu-stale) 60%, var(--uu-ink));
+}
+
+.badge[data-tone="danger"] {
+  background: color-mix(in srgb, var(--uu-failing) 14%, transparent);
+  color: color-mix(in srgb, var(--uu-failing) 75%, var(--uu-ink));
 }
 
 .badge[data-tone="off"] {

@@ -1,0 +1,181 @@
+/* In the menu: shaped like a field, in the rail's own colours, so it reads
+   as "type here" without being one until it opens. */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Narrower than the menu and centred in it, under the centred name. */
+  width: 170px;
+  margin: 0 auto;
+  padding: 7px 8px 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--uu-rail-ink) 22%, transparent);
+  border-radius: var(--uu-radius-small);
+  background: color-mix(in srgb, var(--uu-rail-ink) 7%, transparent);
+  color: var(--uu-rail-ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  border-color: color-mix(in srgb, var(--uu-rail-ink) 40%, transparent);
+  color: var(--uu-rail-ink-strong);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--uu-focus);
+}
+
+.trigger svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+.triggerText {
+  flex: 1;
+}
+
+.key {
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--uu-rail-ink) 30%, transparent);
+  border-radius: 4px;
+  font-family: var(--uu-font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* Along the top on a phone: the magnifier alone. */
+@media (max-width: 760px) {
+  .trigger {
+    width: auto;
+    padding: 8px;
+  }
+
+  .triggerText,
+  .key {
+    display: none;
+  }
+}
+
+/* With results, one height whatever their number: centred, a dialog that
+   grew with each keystroke would move its own input up and down. */
+.searchDialog:has([role="listbox"]) {
+  height: min(560px, 76vh);
+}
+
+.field {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--uu-line);
+  color: var(--uu-ink-soft);
+}
+
+.field svg {
+  width: 18px;
+  height: 18px;
+}
+
+.field input,
+.field input:focus,
+.field input:focus-visible {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--uu-ink);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+/* The hint, "Searching…", "Nothing matches": one line, as the footer is,
+   so the dialog keeps its shape. */
+.note {
+  margin: 0;
+  padding: 18px 16px;
+  overflow: hidden;
+  color: var(--uu-ink-soft);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Part of the search failed: said above the rest, wrapped, in the colour
+   of a failure. */
+.warning {
+  padding-bottom: 0;
+  color: var(--uu-failing);
+  white-space: normal;
+}
+
+.results {
+  /* Takes the dialog's spare height, so the footer stays at its foot. */
+  flex: 1;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.results li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--uu-radius-small);
+  cursor: pointer;
+}
+
+.results li[aria-selected="true"] {
+  background: color-mix(in srgb, var(--uu-accent) 12%, transparent);
+}
+
+/* What a result is called, then lines about where it is: the app chooses
+   which, these keep every app's results alike. */
+.name {
+  color: var(--uu-ink);
+  font-family: var(--uu-font-mono);
+  font-size: 13.5px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.results li[aria-selected="true"] .name {
+  color: var(--uu-accent-strong);
+}
+
+/* The name with a badge at the end of its line. */
+.nameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail {
+  color: var(--uu-ink-soft);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+/* One line whatever the counts: a hint that wraps pushes the results up. */
+.footer {
+  flex: none;
+  margin-top: auto;
+  margin: 0;
+  padding: 9px 16px;
+  border-top: 1px solid var(--uu-line);
+  color: var(--uu-ink-soft);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
