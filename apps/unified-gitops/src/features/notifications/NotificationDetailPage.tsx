@@ -54,7 +54,6 @@ const HINTS: Record<string, string> = {
     "webhook.auth. How the credential is sent: a bearer token, basic authentication, or a header of its own.",
   Headers:
     "webhook.headers. Fixed headers sent with every message; their values are in the configuration.",
-  Body: "webhook.body. A template with {{field}} placeholders, or the default message: the whole event as JSON.",
   Signature:
     "webhook.sign. A header with an HMAC-SHA256 of the body, made with the credential's secret, for receivers that check where a message came from.",
   Timeout:
@@ -186,9 +185,6 @@ function Overview({ notification: n }: { notification: Notification }) {
             </Fact>
             <Fact label="Headers" hint={HINTS["Headers"]}>
               <ValueList values={n.webhook.headers} mono />
-            </Fact>
-            <Fact label="Body" hint={HINTS["Body"]}>
-              {n.webhook.templated ? "A template" : "The default message"}
             </Fact>
             <Fact label="Signature" hint={HINTS["Signature"]}>
               {n.webhook.signature_header ? (

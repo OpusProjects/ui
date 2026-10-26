@@ -98,7 +98,6 @@ test("a webhook's page says how it sends, never with a value", async ({
   await page.goto("/notifications/ntf-failures");
   const overview = page.locator("section", { hasText: "Overview" });
   await expect(overview.getByText("Header X-Alerts-Token")).toBeVisible();
-  await expect(overview.getByText("A template", { exact: true })).toBeVisible();
   await expect(overview.getByText("X-Hub-Signature-256")).toBeVisible();
   await expect(overview.getByText("X-Source")).toBeVisible();
   await expect(overview.getByText("10s per attempt")).toBeVisible();
