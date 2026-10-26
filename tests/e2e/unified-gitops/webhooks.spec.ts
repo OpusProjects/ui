@@ -20,6 +20,10 @@ test("the list shows each webhook, what it sends and how its last send went", as
     failures.getByText("HTTP 503: Service Unavailable"),
   ).toBeVisible();
   await expect(failures.getByText("Every application")).toBeVisible();
+  // Send test is on a webhook's own page, not on its card.
+  await expect(failures.getByRole("button", { name: "Send test" })).toHaveCount(
+    0,
+  );
   // A webhook sends; it starts nothing: its host where a job template's
   // card says what it starts.
   await expect(failures.getByText("alerts.example.com")).toBeVisible();

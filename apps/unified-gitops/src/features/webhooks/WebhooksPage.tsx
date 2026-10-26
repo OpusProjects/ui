@@ -9,7 +9,6 @@ import {
   Notice,
   PageHeader,
   ResourceCard,
-  RunButton,
   SkeletonGrid,
   SkeletonSummary,
   pageStyles as styles,
@@ -28,7 +27,6 @@ import {
   sentEvent,
   templateText,
 } from "./model";
-import { sendTest } from "./test";
 
 export function WebhooksPage() {
   const webhooks = useWebhooks();
@@ -103,14 +101,6 @@ export function WebhooksPage() {
                       {title}
                     </Link>
                   )}
-                  footer={
-                    <RunButton
-                      label="Send test"
-                      busyLabel="Sending…"
-                      invalidate={[["webhooks"]]}
-                      run={() => sendTest(n.name)}
-                    />
-                  }
                 >
                   <Fact label="Type">{TYPE_WORDS[n.type]}</Fact>
                   <Fact label="Applications">{applicationsText(n)}</Fact>
