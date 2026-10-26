@@ -50,7 +50,6 @@ const HINTS: Record<string, string> = {
     "trigger. webhook posts the message to the template's own receiver, with its key; launch starts it as a user, with the message in extra_vars.",
   Credentials:
     "credentials. Where the token, key or password it sends comes from; never their values.",
-  Method: "webhook.method. POST, PUT or PATCH.",
   Authentication:
     "webhook.auth. How the credential is sent: a bearer token, basic authentication, or a header of its own.",
   Headers:
@@ -182,9 +181,6 @@ function Overview({ notification: n }: { notification: Notification }) {
         </Fact>
         {n.webhook && (
           <>
-            <Fact label="Method" hint={HINTS["Method"]}>
-              {n.webhook.method}
-            </Fact>
             <Fact label="Authentication" hint={HINTS["Authentication"]}>
               {authText(n.webhook)}
             </Fact>
