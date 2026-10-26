@@ -100,9 +100,17 @@
    same columns whatever the count: a panel of two facts keeps them in the
    first two columns, lined up with the panels around it, rather than
    stretched across the row. */
+/* At most three columns, as Ascender and AWX lay out their details: each
+   column at least a third of the panel (less the gaps), so a fourth never
+   fits, and at least 320px, so a narrower panel steps down to two (under
+   1024px) and one (under 672px). Measured on the panel, not the window: the
+   rail and a narrow column are already taken off. */
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(320px, calc((100% - 2 * 32px) / 3)), 1fr)
+  );
   gap: 8px 32px;
   margin: 0;
 }

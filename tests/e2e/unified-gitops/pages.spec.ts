@@ -229,3 +229,25 @@ test("a credential card opens the credential's page", async ({ page }) => {
   });
   await expect(projects.locator("tbody tr")).toHaveCount(1);
 });
+
+// A detail panel's facts: three columns at most, as Ascender and AWX lay out
+// theirs; fewer when the panel is narrower.
+for (const [width, columns] of [
+  [1920, 3],
+  [1440, 3],
+  [1100, 2],
+] as const) {
+  test(`facts sit in ${columns} columns at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockApi(page);
+    await page.goto("/applications/drifted");
+    const overview = page.locator("section", { hasText: "Overview" }).first();
+    await expect(overview.locator("dt").first()).toBeVisible();
+    const lefts = await overview
+      .locator("dl > div")
+      .evaluateAll((items) =>
+        items.map((el) => Math.round(el.getBoundingClientRect().left)),
+      );
+    expect(new Set(lefts).size).toBe(columns);
+  });
+}
