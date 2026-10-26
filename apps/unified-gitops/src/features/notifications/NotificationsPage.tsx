@@ -5,13 +5,13 @@ import {
   Fact,
   HealthSummary,
   ListToolbar,
+  LiveAge,
   Notice,
   PageHeader,
   ResourceCard,
   RunButton,
   SkeletonGrid,
   SkeletonSummary,
-  formatAge,
   pageStyles as styles,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
@@ -124,9 +124,13 @@ export function NotificationsPage() {
                     </Fact>
                   )}
                   <Fact label="Last send">
-                    {n.last
-                      ? `${sentEvent(n.last.event)}, ${formatAge(Math.max(0, Date.now() / 1000 - n.last.at))}`
-                      : "Never"}
+                    {n.last ? (
+                      <>
+                        {sentEvent(n.last.event)}, <LiveAge since={n.last.at} />
+                      </>
+                    ) : (
+                      "Never"
+                    )}
                   </Fact>
                 </ResourceCard>
               ))}

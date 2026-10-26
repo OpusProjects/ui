@@ -5,11 +5,11 @@ import {
   ListName,
   ListSoft,
   ListTable,
+  LiveAge,
   Notice,
   PageHeader,
   Panel,
   SkeletonSummary,
-  formatAge,
   type ListColumn,
 } from "@opusprojects/unified-ui";
 import { PROJECT_LABELS, taskHealth } from "@opusprojects/unified-client";
@@ -122,9 +122,11 @@ function Users({ credential }: { credential: Credential }) {
       key: "pulled",
       label: "Last pull",
       render: (r) =>
-        r.project
-          ? formatAge(r.project.sync_health?.last_success_age_seconds)
-          : none,
+        r.project ? (
+          <LiveAge seconds={r.project.sync_health?.last_success_age_seconds} />
+        ) : (
+          none
+        ),
     },
     {
       key: "status",

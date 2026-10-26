@@ -4,12 +4,12 @@ import {
   Fact,
   FreshnessMeter,
   HealthSummary,
+  LiveAge,
   Notice,
   PageHeader,
   ResourceCard,
   SkeletonGrid,
   SkeletonSummary,
-  formatAge,
   formatEvery,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
@@ -196,7 +196,9 @@ function SourceCard({ row }: { row: SourceRow }) {
       <Fact label="Data from">
         {summary.age_seconds != null && detail ? (
           <>
-            <span>{formatAge(summary.age_seconds)}</span>
+            <span>
+              <LiveAge seconds={summary.age_seconds} />
+            </span>
             <FreshnessMeter
               ageSeconds={summary.age_seconds}
               ttlSeconds={detail.ttl_seconds}
@@ -205,7 +207,11 @@ function SourceCard({ row }: { row: SourceRow }) {
           </>
         ) : (
           <span className={styles.soft}>
-            {summary.cached ? formatAge(summary.age_seconds) : "No data yet"}
+            {summary.cached ? (
+              <LiveAge seconds={summary.age_seconds} />
+            ) : (
+              "No data yet"
+            )}
           </span>
         )}
       </Fact>
@@ -214,7 +220,7 @@ function SourceCard({ row }: { row: SourceRow }) {
       ) : (
         <>
           <Fact label="Last attempt">
-            {formatAge(health?.last_attempt_age_seconds)}
+            <LiveAge seconds={health?.last_attempt_age_seconds} />
           </Fact>
           {schedule && <Fact label="Syncs">{schedule}</Fact>}
           {gathering && (

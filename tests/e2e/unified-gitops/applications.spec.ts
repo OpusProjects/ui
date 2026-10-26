@@ -339,3 +339,16 @@ test("Tab reaches the changes in the rollback's View changes", async ({
   await page.keyboard.press("Escape");
   await expect(changes).toHaveCount(0);
 });
+
+test("ages keep counting between polls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/applications/synced");
+  // Its last check was 20 seconds ago when the page loaded; two seconds
+  // later, before any poll, it says so.
+  const lastCheck = page
+    .locator("dt", { hasText: "Last check" })
+    .locator("xpath=following-sibling::dd[1]");
+  const before = await lastCheck.innerText();
+  await expect(lastCheck).not.toHaveText(before, { timeout: 4000 });
+  expect(await lastCheck.innerText()).toMatch(/^2\ds ago$/);
+});

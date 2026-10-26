@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import {
   HEALTH_ORDER,
@@ -8,6 +8,7 @@ import {
 } from "@opusprojects/unified-client";
 import { compact, LineChart } from "./Charts";
 import { lift } from "./Lift";
+import { useNow } from "./LiveAge";
 import { Panel } from "./Page";
 import { formatSpan } from "../lib/format";
 import styles from "./Overview.module.css";
@@ -303,11 +304,7 @@ export function LiveSpan({
   // An age rather than a duration: "2m 13s ago".
   ago?: boolean;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useNow();
   const span = formatSpan(seconds + Math.max(0, now - at) / 1000);
   return <>{ago ? `${span} ago` : span}</>;
 }

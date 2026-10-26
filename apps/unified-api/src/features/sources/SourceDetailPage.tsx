@@ -5,13 +5,13 @@ import {
   Fact,
   FreshnessMeter,
   HealthPill,
+  LiveAge,
   Notice,
   PageHeader,
   Pagination,
   Panel,
   SearchField,
   SkeletonSummary,
-  formatAge,
   formatBytes,
   formatEvery,
   formatSpan,
@@ -197,7 +197,9 @@ function Overview({ detail }: { detail: Detail }) {
         <Fact label="Data from" hint={HINTS["Data from"]}>
           {detail.age_seconds != null ? (
             <>
-              <span>{formatAge(detail.age_seconds)}</span>
+              <span>
+                <LiveAge seconds={detail.age_seconds} />
+              </span>
               <FreshnessMeter
                 ageSeconds={detail.age_seconds}
                 ttlSeconds={detail.ttl_seconds}
@@ -212,15 +214,19 @@ function Overview({ detail }: { detail: Detail }) {
         {detail.kind === "source" && (
           <>
             <Fact label="Last attempt" hint={HINTS["Last attempt"]}>
-              {formatAge(detail.sync_health?.last_attempt_age_seconds)}
+              <LiveAge seconds={detail.sync_health?.last_attempt_age_seconds} />
             </Fact>
             {/* Not the same as "Data from": a remote source passes on its
                 origin's age, so old data with a recent success means the
                 staleness is upstream, not here. */}
             <Fact label="Last success" hint={HINTS["Last success"]}>
-              {detail.sync_health?.last_success_age_seconds != null
-                ? formatAge(detail.sync_health.last_success_age_seconds)
-                : "Never"}
+              {detail.sync_health?.last_success_age_seconds != null ? (
+                <LiveAge
+                  seconds={detail.sync_health.last_success_age_seconds}
+                />
+              ) : (
+                "Never"
+              )}
             </Fact>
           </>
         )}

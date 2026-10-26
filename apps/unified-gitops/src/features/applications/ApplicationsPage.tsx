@@ -6,6 +6,7 @@ import {
   Fact,
   HealthSummary,
   ListToolbar,
+  LiveAge,
   Notice,
   PageHeader,
   ResourceCard,
@@ -13,7 +14,6 @@ import {
   RunButton,
   SkeletonGrid,
   SkeletonSummary,
-  formatAge,
   formatEvery,
   pageStyles as styles,
   useRememberedCount,
@@ -226,7 +226,7 @@ export function ApplicationsPage() {
                     </span>
                   </Fact>
                   <Fact label="Last check">
-                    {formatAge(app.last_checked_age_seconds)}
+                    <LiveAge seconds={app.last_checked_age_seconds} />
                   </Fact>
                   <Fact label="Runs">
                     {formatEvery(app.sync_interval_seconds)}, {mode(app)}

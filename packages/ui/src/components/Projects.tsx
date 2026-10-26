@@ -17,7 +17,8 @@ import detail from "./Detail.module.css";
 import { ListPage } from "./ListPage";
 import { RunAllButton } from "./RunAllButton";
 import { RunButton } from "./RunButton";
-import { formatAge, formatEvery, formatSpan } from "../lib/format";
+import { LiveAge } from "./LiveAge";
+import { formatEvery, formatSpan } from "../lib/format";
 import styles from "./Common.module.css";
 
 // What every unified-* app's git projects have in common. How one is named,
@@ -189,7 +190,9 @@ export function ProjectsPage<T extends ProjectLike>({
               </Fact>
             )}
             <Fact label="Last pull">
-              {formatAge(project.sync_health?.last_success_age_seconds)}
+              <LiveAge
+                seconds={project.sync_health?.last_success_age_seconds}
+              />
             </Fact>
             {project.sync_interval_seconds != null && (
               <Fact label="Pulls">
@@ -299,12 +302,14 @@ export function ProjectOverview({
         </Fact>
 
         <Fact label="Last attempt" hint={HINTS["Last attempt"]}>
-          {formatAge(health?.last_attempt_age_seconds)}
+          <LiveAge seconds={health?.last_attempt_age_seconds} />
         </Fact>
         <Fact label="Last success" hint={hints.lastSuccess}>
-          {health?.last_success_age_seconds != null
-            ? formatAge(health.last_success_age_seconds)
-            : "Never"}
+          {health?.last_success_age_seconds != null ? (
+            <LiveAge seconds={health.last_success_age_seconds} />
+          ) : (
+            "Never"
+          )}
         </Fact>
 
         {project.schedule ? (

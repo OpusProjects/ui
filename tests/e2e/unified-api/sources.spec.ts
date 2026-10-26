@@ -169,3 +169,15 @@ test("hosts and groups each keep their own page size", async ({ page }) => {
     page.getByRole("navigation", { name: "hosts pages" }),
   ).toContainText(/^1–10 of 25/);
 });
+
+test("ages keep counting between polls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources");
+  const card = page.locator("article").first();
+  const attempt = card
+    .locator("dt", { hasText: "Last attempt" })
+    .locator("xpath=following-sibling::dd[1]");
+  const before = await attempt.innerText();
+  await expect(attempt).not.toHaveText(before, { timeout: 4000 });
+  expect(await attempt.innerText()).toMatch(/^3\ds ago$/);
+});

@@ -5,12 +5,12 @@ import {
   HealthPill,
   ListSoft,
   ListTable,
+  LiveAge,
   Notice,
   PageHeader,
   Panel,
   RunButton,
   SkeletonSummary,
-  formatAge,
   formatSpan,
   type ListColumn,
 } from "@opusprojects/unified-ui";
@@ -215,8 +215,6 @@ function Overview({ notification: n }: { notification: Notification }) {
 
 const SEND_LABELS = { fresh: "Sent", failing: "Failed" };
 
-const ago = (at: number) => formatAge(Math.max(0, Date.now() / 1000 - at));
-
 const answer = (d: Delivery) =>
   `${d.status != null ? `HTTP ${d.status}` : "No answer"}${
     d.attempts > 1 ? `, ${d.attempts} attempts` : ""
@@ -233,7 +231,7 @@ const historyColumns: ListColumn<Delivery>[] = [
   {
     key: "when",
     label: "When",
-    render: (d) => ago(d.at),
+    render: (d) => <LiveAge since={d.at} />,
   },
   {
     key: "application",

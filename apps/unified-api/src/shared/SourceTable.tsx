@@ -5,7 +5,7 @@ import {
   ListSoft,
   ListTable,
   ListTag,
-  formatAge,
+  LiveAge,
   type ListColumn,
 } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
@@ -89,9 +89,11 @@ export function SourceTable({
       key: "age",
       label: "Data from",
       render: ({ row }) =>
-        row?.summary?.age_seconds != null
-          ? formatAge(row.summary.age_seconds)
-          : "–",
+        row?.summary?.age_seconds != null ? (
+          <LiveAge seconds={row.summary.age_seconds} />
+        ) : (
+          "–"
+        ),
     },
     {
       key: "state",
