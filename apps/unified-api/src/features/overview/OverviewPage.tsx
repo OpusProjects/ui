@@ -9,12 +9,15 @@ import {
   Notice,
   OverviewColumns,
   PageHeader,
+  RatePanel,
   RequestsPanel,
   countStates as count,
   perMinuteText,
   LiveSpan,
+  useRatePerMinute,
   useRequestsPerMinute,
   type Issue,
+  type RatePart,
 } from "@opusprojects/unified-ui";
 import { cachedHealth, select, useMetrics } from "@opusprojects/unified-client";
 import {
@@ -265,9 +268,37 @@ export function OverviewPage() {
       </OverviewColumns>
 
       <RequestsPanel prefix="unified_api" />
+      <RatePanel
+        title="Outgoing requests (per minute)"
+        hint="The calls this instance makes to the external systems' APIs: a connector script syncing a whole source or part of it (a refresh, a host, a group), and an enricher run. One per run, whatever the script asks of its API in it. Federation, ssh and static inventories are left out. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
+        metric={OUTGOING}
+        parts={OUTGOING_PARTS}
+        series={7}
+      />
     </>
   );
 }
+
+// The traffic this instance sends to the systems it inventories.
+const OUTGOING = "unified_api_source_requests_total";
+// Every request is one of the first three, so they add up to the point's
+// total; failed is counted within them.
+const OUTGOING_PARTS: RatePart[] = [
+  { name: ["full sync", "full syncs"], filter: (l) => l.operation === "full" },
+  {
+    name: ["partial sync", "partial syncs"],
+    filter: (l) => l.operation === "partial",
+  },
+  {
+    name: ["enricher run", "enricher runs"],
+    filter: (l) => l.operation === "enrich",
+  },
+  {
+    name: ["failed", "failed"],
+    filter: (l) => l.outcome === "error",
+    subset: true,
+  },
+];
 
 // A few numbers about this instance itself, from what the app already
 // samples: no request of its own.
@@ -277,14 +308,16 @@ function ThisInstance({ uptime, at }: { uptime?: number; at: number }) {
   const unique = latest
     ? select(latest.samples, "unified_api_hosts_unique")[0]?.value
     : undefined;
-  const perMinute = useRequestsPerMinute("unified_api");
+  const incoming = useRequestsPerMinute("unified_api");
+  const outgoing = useRatePerMinute(OUTGOING);
 
   return (
     <InstancePanel>
       <Fact label="Hosts">
         {unique != null ? unique.toLocaleString() : "…"}
       </Fact>
-      <Fact label="Requests">{perMinuteText(perMinute)}</Fact>
+      <Fact label="Incoming requests">{perMinuteText(incoming)}</Fact>
+      <Fact label="Outgoing requests">{perMinuteText(outgoing)}</Fact>
       {uptime != null && (
         <Fact label="Running for">
           <LiveSpan seconds={uptime} at={at} />
