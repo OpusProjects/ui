@@ -22,3 +22,87 @@
 .toolbar input::-webkit-search-cancel-button {
   display: none;
 }
+
+/* Order: one of the toolbar's buttons, with a caret, opening a menu under
+   it of the ways the list can be ordered, the one in use ticked. */
+.order {
+  position: relative;
+  display: flex;
+}
+
+.caret {
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  transition: transform 120ms ease;
+}
+
+.order button[aria-expanded="true"] .caret {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  padding: 6px;
+  border: 1px solid var(--uu-line);
+  border-radius: var(--uu-radius);
+  background: var(--uu-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.1);
+}
+
+.menu[data-align="right"] {
+  left: auto;
+  right: 0;
+}
+
+.toolbar .menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 8px;
+  border: 0;
+  border-radius: var(--uu-radius-small);
+  background: none;
+  color: var(--uu-ink);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: color-mix(in srgb, var(--uu-accent) 12%, transparent);
+  outline: none;
+}
+
+/* Every item keeps the tick's room, so the labels line up; only the one in
+   use shows it. */
+.tick {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--uu-accent-strong);
+  visibility: hidden;
+}
+
+.menuItem[aria-checked="true"] {
+  color: var(--uu-accent-strong);
+  font-weight: 500;
+}
+
+.menuItem[aria-checked="true"] .tick {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    transition: none;
+  }
+}

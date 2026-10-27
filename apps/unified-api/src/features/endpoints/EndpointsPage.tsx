@@ -5,6 +5,7 @@ import {
   formatCount,
   HealthSummary,
   Notice,
+  orderOptions,
   PageHeader,
   ResourceCard,
   SkeletonGrid,
@@ -29,7 +30,11 @@ const searchText = (endpoint: Endpoint) =>
 export function EndpointsPage() {
   const endpoints = useEndpoints();
   const items = endpoints.data ?? [];
-  const filter = useListFilter(items, endpointState, searchText);
+  const filter = useListFilter(items, endpointState, searchText, {
+    name: (e) => e.endpoint_id,
+    key: "endpoints",
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     "endpoints",
     endpoints.isSuccess ? endpoints.data?.length : undefined,
@@ -65,6 +70,7 @@ export function EndpointsPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions()}
             label="Search endpoints"
             placeholder="Search by name or id"
           />

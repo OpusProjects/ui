@@ -1,15 +1,16 @@
 import {
-  PageHeader,
   CardGrid,
   countOf,
+  EmptyState,
   Fact,
   formatCount,
   formatEvery,
   FreshnessMeter,
   HealthSummary,
   LiveAge,
-  EmptyState,
   Notice,
+  orderOptions,
+  PageHeader,
   ResourceCard,
   Schedule,
   SkeletonGrid,
@@ -36,7 +37,10 @@ const searchText = ({ summary, detail }: SourceRow) =>
 
 export function SourcesPage() {
   const sources = useSources();
-  const filter = useListFilter(sources.rows, stateOf, searchText);
+  const filter = useListFilter(sources.rows, stateOf, searchText, {
+    name: (row) => row.summary.source_id,
+    key: "sources",
+  });
   const remembered = useRememberedCount(
     "sources",
     sources.isSuccess ? sources.rows.length : undefined,
@@ -69,6 +73,7 @@ export function SourcesPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions(["Fresh", "Stale"])}
             label="Search sources"
             placeholder="Search by name or id"
           >

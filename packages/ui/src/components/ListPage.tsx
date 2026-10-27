@@ -4,6 +4,7 @@ import { useListFilter, type HealthState } from "@opusprojects/unified-client";
 import { CardGrid, EmptyState, PageHeader } from "./Page";
 import { HealthSummary } from "./Health";
 import { ListToolbar } from "./ListToolbar";
+import { orderOptions } from "./OrderMenu";
 import { Notice } from "./Page";
 import { SkeletonGrid, SkeletonSummary, useRememberedCount } from "./Skeleton";
 
@@ -23,6 +24,9 @@ export interface ListPageProps<T> {
   good?: string;
   // What the search box matches against, and what it says it matches.
   search: (item: T) => string;
+  // What a card is called (its title): what the Order menu's A to Z and
+  // Z to A order by, A to Z the default.
+  name: (item: T) => string;
   placeholder: string;
   // Actions on the whole visible list (Sync all, Pull all), after the search.
   actions?: (filter: Filter<T>, items: T[]) => ReactNode;
@@ -32,7 +36,7 @@ export interface ListPageProps<T> {
 }
 
 // Every list page: a header, a health bar that filters, a search, then the
-// cards, worst first. Loading shows skeletons sized by the last visit's count;
+// cards, A to Z (the Order menu turns them Z to A). Loading shows skeletons sized by the last visit's count;
 // a failed load says so; an empty list says how to add one, and a filter that
 // hides everything says how to undo it.
 export function ListPage<T>({
@@ -43,13 +47,18 @@ export function ListPage<T>({
   labels,
   good,
   search,
+  name,
   placeholder,
   actions,
   empty,
   card,
 }: ListPageProps<T>) {
   const items = query.data ?? [];
-  const filter = useListFilter(items, state, search);
+  const filter = useListFilter(items, state, search, {
+    name,
+    key: noun[1],
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     noun[1],
     query.isSuccess ? query.data?.length : undefined,
@@ -83,6 +92,7 @@ export function ListPage<T>({
             filter={filter}
             label={`Search ${many}`}
             placeholder={placeholder}
+            orders={orderOptions()}
           >
             {actions?.(filter, items)}
           </ListToolbar>

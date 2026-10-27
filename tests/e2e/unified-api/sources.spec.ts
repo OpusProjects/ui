@@ -471,3 +471,62 @@ test("cron schedules read in words", async ({ page }) => {
     "cron (UTC): 0 */4 * * *",
   );
 });
+
+// Order: a menu after the toolbar's buttons. Worst first by default (the
+// health order, in the page's own words), A to Z and the rest on a click,
+// remembered for the list.
+test("the order menu reorders the cards and remembers it", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources");
+  const titles = () => page.locator("article h2, article h3").allInnerTexts();
+  const order = page.getByRole("button", { name: "Order" });
+  await expect(order).toHaveAttribute("aria-expanded", "false");
+
+  // src-beta is stale: worst first, it leads.
+  await expect.poll(titles).toEqual(["src-beta", "src-alpha"]);
+  await order.click();
+  const menu = page.getByRole("menu", { name: "Order" });
+  await expect(menu.getByRole("menuitemradio")).toHaveText([
+    "A to Z",
+    "Z to A",
+    "Fresh to Stale",
+    "Stale to Fresh",
+  ]);
+  await expect(
+    menu.getByRole("menuitemradio", { name: "Stale to Fresh" }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  await menu.getByRole("menuitemradio", { name: "A to Z" }).click();
+  await expect(menu).toHaveCount(0);
+  await expect.poll(titles).toEqual(["src-alpha", "src-beta"]);
+
+  // Remembered for this list.
+  await page.reload();
+  await expect.poll(titles).toEqual(["src-alpha", "src-beta"]);
+
+  // The keyboard: arrows move, Enter picks, Escape closes back on the button.
+  await order.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(
+    menu.getByRole("menuitemradio", { name: "A to Z" }),
+  ).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect.poll(titles).toEqual(["src-alpha", "src-beta"]);
+  await order.click();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(order).toBeFocused();
+});
+
+test("other lists order by name only, A to Z first", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/credentials");
+  await page.getByRole("button", { name: "Order" }).click();
+  const items = page
+    .getByRole("menu", { name: "Order" })
+    .getByRole("menuitemradio");
+  await expect(items).toHaveText(["A to Z", "Z to A"]);
+  await expect(items.first()).toHaveAttribute("aria-checked", "true");
+});

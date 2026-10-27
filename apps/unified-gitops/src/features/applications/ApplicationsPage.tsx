@@ -11,6 +11,7 @@ import {
   ListToolbar,
   LiveAge,
   Notice,
+  orderOptions,
   PageHeader,
   pageStyles as styles,
   ResourceCard,
@@ -52,7 +53,11 @@ function mode(app: App) {
 export function ApplicationsPage() {
   const applications = useApplications();
   const items = applications.data ?? [];
-  const filter = useListFilter(items, appState, searchText);
+  const filter = useListFilter(items, appState, searchText, {
+    name: (app) => app.name,
+    key: "applications",
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     "applications",
     applications.isSuccess ? applications.data?.length : undefined,
@@ -88,6 +93,7 @@ export function ApplicationsPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions()}
             label="Search applications"
             placeholder="Search by name, description, path or connector"
           >

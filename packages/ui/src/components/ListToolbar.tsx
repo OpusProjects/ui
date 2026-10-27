@@ -1,7 +1,8 @@
 import { useRef, type ReactNode } from "react";
 import { List } from "lucide-react";
 import { Button, SearchField } from "./Page";
-import type { HealthState } from "@opusprojects/unified-client";
+import type { HealthState, ListOrder } from "@opusprojects/unified-client";
+import { OrderMenu, type OrderOption } from "./OrderMenu";
 import styles from "./ListToolbar.module.css";
 
 interface ListFilter {
@@ -9,6 +10,8 @@ interface ListFilter {
   setQuery: (query: string) => void;
   selected: HealthState | null;
   setSelected: (state: HealthState | null) => void;
+  order?: ListOrder;
+  setOrder?: (order: ListOrder) => void;
 }
 
 // A list page's search, its "Show all", and any action on the whole list
@@ -18,16 +21,19 @@ interface ListFilter {
 // picked in the summary above, so "all" is true; pages using it turn the
 // summary's own "Show all" chip off (two buttons by one name that did
 // different things). Greyed out rather than hidden while nothing is hidden,
-// so the row does not shift as you start typing.
+// so the row does not shift as you start typing. With `orders`, an Order
+// menu ends the row: the ways this list can be ordered, in its own words.
 export function ListToolbar({
   filter,
   label,
   placeholder,
+  orders,
   children,
 }: {
   filter: ListFilter;
   label: string;
   placeholder: string;
+  orders?: OrderOption[];
   children?: ReactNode;
 }) {
   const row = useRef<HTMLDivElement>(null);
@@ -51,6 +57,13 @@ export function ListToolbar({
         Show all
       </Button>
       {children}
+      {orders && filter.order && filter.setOrder && (
+        <OrderMenu
+          value={filter.order}
+          options={orders}
+          onChange={filter.setOrder}
+        />
+      )}
     </div>
   );
 }

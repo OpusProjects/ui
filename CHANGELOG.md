@@ -9,6 +9,10 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Added
+
+- An Order menu ends every list page's toolbar (both apps): A to Z and Z to A, A to Z the default; on Sources also Fresh to Stale and Stale to Fresh, with worst first (Stale to Fresh) staying its default. The choice is remembered per list in the browser; arrow keys, Enter and Escape work, and on a narrow screen it opens leftwards when it would not fit. `useListFilter` takes the card's name, the orders offered and a key, `ListPage` a `name`, and `ListToolbar` its `orders` (`orderOptions()`, or `orderOptions([good, bad])` for the health ones).
+
 ### Changed
 
 - Cron schedules read in words, as intervals do: "daily at 04:15 UTC", "every 4h", "every 2h, at :15", "Mon–Fri at 06:00 UTC", "yearly on 1 Jan at 00:00 UTC", the expression on hover (`formatSchedule` and `Schedule` in `@opusprojects/unified-ui`); on a source's card and page and a project's, where a project on a schedule showed nothing on its card. One too irregular to say plainly is shown as written.

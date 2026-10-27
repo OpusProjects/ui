@@ -117,6 +117,7 @@ export function ProjectsPage<T extends ProjectLike>({
         const v = view(p);
         return `${v.id} ${v.title} ${v.description ?? ""} ${withoutCredentials(p.git_url)}`;
       }}
+      name={(p) => view(p).title}
       placeholder={placeholder}
       actions={(filter, items) => (
         <RunAllButton

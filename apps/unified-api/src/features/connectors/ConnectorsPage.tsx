@@ -6,11 +6,12 @@ import {
   HealthSummary,
   ListToolbar,
   Notice,
+  orderOptions,
   PageHeader,
+  pageStyles as styles,
   ResourceCard,
   SkeletonGrid,
   SkeletonSummary,
-  pageStyles as styles,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { useListFilter } from "@opusprojects/unified-client";
@@ -48,7 +49,11 @@ const searchText = (connector: Connector) =>
 export function ConnectorsPage() {
   const connectors = useConnectors();
   const items = connectors.data ?? [];
-  const filter = useListFilter(items, connectorState, searchText);
+  const filter = useListFilter(items, connectorState, searchText, {
+    name: (c) => c.connector_id,
+    key: "connectors",
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     "connectors",
     connectors.isSuccess ? connectors.data?.length : undefined,
@@ -84,6 +89,7 @@ export function ConnectorsPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions()}
             label="Search connectors"
             placeholder="Search by name, type, path, project or source"
           />
