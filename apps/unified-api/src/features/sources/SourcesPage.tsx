@@ -82,7 +82,15 @@ export function SourcesPage() {
                 noun: ["source", "sources"],
               }}
               invalidate={[["sources"], ["source"]]}
-              run={async (id) => (await syncSource(id)).success}
+              run={async (id) =>
+                (
+                  await syncSource(
+                    id,
+                    sources.rows.find((r) => r.summary.source_id === id)?.detail
+                      ?.gathering?.connector_type === "remote",
+                  )
+                ).success
+              }
             />
           </ListToolbar>
           {filter.visible.length === 0 ? (
@@ -168,7 +176,12 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
               label="Sync"
               busyLabel="Syncing…"
               invalidate={[["sources"], ["source", summary.source_id]]}
-              run={() => syncNow(summary.source_id)}
+              run={() =>
+                syncNow(
+                  summary.source_id,
+                  detail?.gathering?.connector_type === "remote",
+                )
+              }
             />
           )}
         </>

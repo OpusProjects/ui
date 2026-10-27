@@ -135,8 +135,31 @@ export function commandSummary(command: string | null | undefined): string {
   if (!command) return "None";
   const lines = commandLines(command);
   return lines.length > 1
-    ? `Shell script, ${lines.length} lines`
+    ? `${scriptKind(command)} script, ${lines.length} lines`
     : (lines[0] ?? "None");
+}
+
+// What runs it, from its #! line as the ssh connector reads it (env and its
+// options skipped): Python, Perl, Ruby, Node; a shell otherwise.
+function scriptKind(script: string): string {
+  const first = script.split("\n", 1)[0] ?? "";
+  if (!first.startsWith("#!")) return "Shell";
+  const words = first.slice(2).trim().split(/\s+/);
+  if (words[0]?.endsWith("/env"))
+    while (
+      words.length > 1 &&
+      (words[0].endsWith("/env") || words[0].startsWith("-"))
+    )
+      words.shift();
+  const name = (words[0] ?? "").split("/").pop() ?? "";
+  for (const [prefix, kind] of [
+    ["python", "Python"],
+    ["perl", "Perl"],
+    ["ruby", "Ruby"],
+    ["node", "Node"],
+  ])
+    if (name.startsWith(prefix)) return kind;
+  return "Shell";
 }
 
 export const connectorPath = (id: string) =>

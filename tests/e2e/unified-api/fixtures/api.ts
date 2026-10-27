@@ -59,7 +59,9 @@ const HOSTS: Record<string, string[]> = {
   "src-beta": ["db-01.example.net", "cache-01.example.net"],
 };
 
-const detail = (s: Schemas["CachedSourceInfo"]): Schemas["SourceDetail"] => ({
+export const detail = (
+  s: Schemas["CachedSourceInfo"],
+): Schemas["SourceDetail"] => ({
   ...s,
   name: s.source_id.replace("src-", "").toUpperCase(),
   ttl_seconds: 3600,

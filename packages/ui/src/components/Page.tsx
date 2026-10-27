@@ -214,9 +214,15 @@ export function ChipList({
   const line = limit === "line";
   const box = useRef<HTMLSpanElement>(null);
   const ruler = useRef<HTMLSpanElement>(null);
-  // How many fit on the line, in "line" mode; all until measured.
-  const [fit, setFit] = useState(items.length);
   const key = items.join("\n");
+  // How many fit on the line, in "line" mode, and the list that was counted:
+  // a count belongs to its list, so a new list starts from its own count,
+  // never from the old one's or from all of it. Until counted (the first
+  // render), every chip.
+  const [counted, setCounted] = useState<{ key: string; fit: number } | null>(
+    null,
+  );
+  const fit = counted && counted.key === key ? counted.fit : items.length;
   useLayoutEffect(() => {
     if (!line) return;
     const container = box.current;
@@ -244,7 +250,7 @@ export function ChipList({
       }
       // At least one, even if it must be cut short: a button alone says
       // nothing about what the list holds.
-      setFit(Math.max(1, n));
+      setCounted({ key, fit: Math.max(1, n) });
     };
     count();
     // Counted again whenever the line's width changes, and whenever a
@@ -275,8 +281,13 @@ export function ChipList({
   // ending in "…") or the button runs past the edge, one chip fewer, before
   // the browser paints: whatever made the copies narrower (a font, a link's
   // own style), the line ends on whole chips and a whole button.
+  // Only once the list has been counted, and only when the count changes:
+  // a step down from a measured count is one or two renders, where
+  // stepping down from the whole list was one render per chip (and past
+  // fifty, React's update limit).
   useLayoutEffect(() => {
-    if (!line || open || fit <= 1) return;
+    if (!line || open || !counted || counted.key !== key || counted.fit <= 1)
+      return;
     const container = box.current;
     if (!container) return;
     const edge = container.getBoundingClientRect().right;
@@ -288,8 +299,11 @@ export function ChipList({
         el.scrollWidth > el.clientWidth + 0.5 ||
         el.getBoundingClientRect().right > edge + 0.5,
     );
-    if (short) setFit(fit - 1);
-  });
+    if (short)
+      setCounted((c) =>
+        c && c.key === key && c.fit > 1 ? { key, fit: c.fit - 1 } : c,
+      );
+  }, [line, open, counted, key]);
 
   if (items.length === 0)
     return <span className={styles.chipEmpty}>{empty}</span>;
@@ -297,12 +311,13 @@ export function ChipList({
   const keep = line ? fit : (limit ?? items.length);
   const folded = items.length > keep;
   const shown = folded && !open ? items.slice(0, keep) : items;
-  const chip = (item: string) => {
+  // Keyed by position too: a list may name the same thing twice.
+  const chip = (item: string, index: number) => {
     const link = linkTo?.(item, `${styles.chip} ${styles.chipLink}`);
     return link ? (
-      <Fragment key={item}>{link}</Fragment>
+      <Fragment key={`${index}-${item}`}>{link}</Fragment>
     ) : (
-      <code key={item} className={styles.chip} title={item}>
+      <code key={`${index}-${item}`} className={styles.chip} title={item}>
         {item}
       </code>
     );
@@ -315,8 +330,8 @@ export function ChipList({
     >
       {line && (
         <span className={styles.chipRuler} ref={ruler} aria-hidden>
-          {items.map((item) => (
-            <code key={item} className={styles.chip}>
+          {items.map((item, index) => (
+            <code key={`${index}-${item}`} className={styles.chip}>
               {item}
             </code>
           ))}

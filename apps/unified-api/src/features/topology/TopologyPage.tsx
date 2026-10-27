@@ -186,14 +186,21 @@ function TopologyContent({
   return (
     <>
       {/* One card, as every other section opens: how many instances are
-          connected, this one included. Counts only: the tree has nothing
-          to filter. */}
-      <HealthSummary
-        counts={countStates([selfState, ...peers.map(peerState)], (s) => s)}
-        noun={["instance", "instances"]}
-        labels={PEER_LABELS}
-        good="connected"
-      />
+          connected, this one included, and always counted as connected (it
+          is the one answering; its own card says if it is cut off). None
+          without peers: "No peers" below says it. Counts only: the tree has
+          nothing to filter. */}
+      {peers.length > 0 && (
+        <HealthSummary
+          counts={countStates(
+            ["fresh" as HealthState, ...peers.map(peerState)],
+            (s) => s,
+          )}
+          noun={["instance", "instances"]}
+          labels={PEER_LABELS}
+          good="connected"
+        />
+      )}
 
       {view.upstream && view.upstream.age_seconds > PUSH_STALE_SECONDS && (
         <Notice tone="stale" title="This map may be out of date">

@@ -65,7 +65,15 @@ export function SourceDetailPage() {
         // whole source, not on anything in a card. Views gather nothing.
         // Keyed by the source: a sync still running when you move to another
         // source must not show its progress and result on that one.
-        actions={detail.data?.kind === "source" && <SyncNow key={id} id={id} />}
+        actions={
+          detail.data?.kind === "source" && (
+            <SyncNow
+              key={id}
+              id={id}
+              federated={detail.data.gathering?.connector_type === "remote"}
+            />
+          )
+        }
       />
       {detail.isPending && <SkeletonSummary />}
       {detail.isError && (
@@ -93,13 +101,13 @@ export function SourceDetailPage() {
   );
 }
 
-function SyncNow({ id }: { id: string }) {
+function SyncNow({ id, federated }: { id: string; federated: boolean }) {
   return (
     <RunButton
       label="Sync"
       busyLabel="Syncing…"
       invalidate={[["sources"], ["source", id]]}
-      run={() => syncNow(id)}
+      run={() => syncNow(id, federated)}
     />
   );
 }

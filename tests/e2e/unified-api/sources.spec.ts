@@ -25,22 +25,51 @@ test("Sync sends the CSRF token", async ({ page }) => {
   expect(calls.writes[0].headers["x-csrf-token"]).toBe("e2e-csrf");
 });
 
-// Sync means fresh data, now: a federated source's origin gathers again
-// (refresh_origin), or the sync only copies its cache, however old.
-test("every Sync asks for fresh data", async ({ page }) => {
+// Sync means fresh data, now. A federated source asks its origin to gather
+// again (refresh_origin), or it would only copy the origin's cache; a local
+// source gathers anyway, and is asked nothing more (the flag would stop it
+// reusing a sync already running).
+test("Sync asks a federated source's origin to gather, and only it", async ({
+  page,
+}) => {
   const calls = await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  // src-beta reads another instance.
+  const beta = sources.find((s) => s.source_id === "src-beta")!;
+  await page.route(/\/api\/v1\/sources\/src-beta$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({
+          json: {
+            ...detail(beta),
+            gathering: { ...detail(beta).gathering!, connector_type: "remote" },
+          },
+        })
+      : route.fallback(),
+  );
+
   await page.goto("/sources/src-alpha");
   await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Sync", exact: true }).click();
   await expect.poll(() => calls.writes.length).toBe(1);
-  expect(calls.writes[0].query).toBe("?refresh_origin=true");
+  expect(calls.writes[0].query).toBe("");
+
+  await page.goto("/sources/src-beta");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect.poll(() => calls.writes.length).toBe(2);
+  expect(calls.writes[1].query).toBe("?refresh_origin=true");
 
   await page.goto("/sources");
   await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Sync all", exact: true }).click();
-  await expect.poll(() => calls.writes.length).toBeGreaterThan(1);
-  for (const write of calls.writes)
-    expect(write.query).toBe("?refresh_origin=true");
+  await expect.poll(() => calls.writes.length).toBe(4);
+  const all = Object.fromEntries(
+    calls.writes.slice(2).map((w) => [w.path, w.query]),
+  );
+  expect(all).toEqual({
+    "/api/v1/sources/src-alpha/sync": "",
+    "/api/v1/sources/src-beta/sync": "?refresh_origin=true",
+  });
 });
 
 // The button says Syncing… for as long as the sync runs and the new data

@@ -195,6 +195,7 @@ test("an ssh connector shows where its path is", async ({ page }) => {
   });
   const all = [
     ...connectors,
+    ssh("ssh-py", null, null, null, "#!/usr/bin/env -S python3 -u\nprint(1)"),
     ssh("ssh-facts", "host", "/etc/ansible/facts.d/*.fact"),
     ssh("ssh-osinfo", "instance", "ssh/osinfo.sh", "prj-inventory"),
     ssh(
@@ -236,6 +237,20 @@ test("an ssh connector shows where its path is", async ({ page }) => {
   await expect(
     inline.getByText("Inline script", { exact: true }),
   ).toBeVisible();
+
+  // Named after the interpreter its #! line names.
+  await expect(
+    card("ssh-py").getByText("Python script, 2 lines", { exact: true }),
+  ).toBeVisible();
+
+  // Found by what it runs.
+  await page
+    .getByRole("searchbox")
+    .or(page.getByPlaceholder(/search/i))
+    .first()
+    .fill("hostname");
+  await expect(card("ssh-inline")).toBeVisible();
+  await expect(card("ssh-facts")).toHaveCount(0);
 
   // Its page: the whole script, and no warning: inline is a choice.
   await page.goto("/connectors/ssh-inline");

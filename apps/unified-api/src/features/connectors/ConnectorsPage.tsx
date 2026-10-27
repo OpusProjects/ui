@@ -39,6 +39,8 @@ const searchText = (connector: Connector) =>
     describe(connector) ?? "",
     connector.connector_type,
     connector.path ?? "",
+    // An inline script is found by what it runs.
+    connector.script ?? "",
     connector.project_id ?? "",
     ...connector.used_by.map((u) => `${u.source_id} ${u.name}`),
   ].join(" ");

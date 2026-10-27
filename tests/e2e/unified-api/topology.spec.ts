@@ -266,13 +266,14 @@ test("chips that grow after drawing still leave +N more whole", async ({
   await page.route(/\/api\/v1\/topology(\?.*)?$/, (route) =>
     route.fulfill({ json: { ...topology, peers: [{ ...peer, sources }] } }),
   );
-  await page.setViewportSize({ width: 1280, height: 800 });
+  // Wide enough that the line starts with several chips to drop.
+  await page.setViewportSize({ width: 1920, height: 900 });
   await page.goto("/topology");
   const row = page.locator("[data-line]", { has: page.getByRole("button") });
   await expect(row).toHaveCount(1);
   const before = await row.locator("a, code:not([aria-hidden] *)").count();
   // Every chip a good deal wider, the line's width unchanged.
-  await page.addStyleTag({ content: "code, a { letter-spacing: 2px; }" });
+  await page.addStyleTag({ content: "code, a { letter-spacing: 8px; }" });
   await expect
     .poll(() => row.locator("a, code:not([aria-hidden] *)").count())
     .toBeLessThan(before);
@@ -340,4 +341,70 @@ test("topology opens with one summary of its instances", async ({ page }) => {
   await expect(summary).toContainText(/instances? (is|are) connected|need/);
   await expect(summary.getByRole("button")).toHaveCount(0);
   await expect(page.getByText("Federated host entries")).toHaveCount(0);
+});
+
+// A peer with a long list of sources: one count, a step down at most, and
+// never React's update limit (one render per chip used to reach it past 50).
+test("a peer with 150 sources renders one line of them", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await mockApi(page);
+  const { topology } = await import("./fixtures/api");
+  const peer = topology.peers![0];
+  const sources = Array.from({ length: 150 }, (_, i) => ({
+    ...peer.sources[0],
+    remote_source: `src-edge-dc${i}-fleet`,
+  }));
+  await page.route(/\/api\/v1\/topology(\?.*)?$/, (route) =>
+    route.fulfill({ json: { ...topology, peers: [{ ...peer, sources }] } }),
+  );
+  await page.goto("/topology");
+  const row = page.locator("[data-line]", { has: page.getByRole("button") });
+  await expect(row.getByRole("button")).toHaveText(/^\+\d+ more$/);
+  expect(errors.filter((e) => /Maximum update depth/.test(e))).toEqual([]);
+});
+
+// This instance is the one answering: never counted unreachable, and with
+// no peers there is nothing to sum up ("No peers" says it).
+test("the summary never counts this instance as unreachable", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { topology } = await import("./fixtures/api");
+  await page.route(/\/api\/v1\/topology(\?.*)?$/, (route) =>
+    route.fulfill({ json: { ...topology, peers: [] } }),
+  );
+  await page.goto("/topology");
+  await expect(page.getByText("No peers")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: /instances health/i }),
+  ).toHaveCount(0);
+
+  const peer = topology.peers![0];
+  await page.route(/\/api\/v1\/topology(\?.*)?$/, (route) =>
+    route.fulfill({
+      json: { ...topology, peers: [{ ...peer, error: "connection refused" }] },
+    }),
+  );
+  await page.reload();
+  const summary = page.getByRole("region", { name: /instances health/i });
+  await expect(summary).toContainText("1 of 2 instances");
+  await expect(summary).toContainText(/1\s*Unreachable/);
+  await expect(summary).toContainText(/1\s*Connected/);
+});
+
+// Side by side is checked at the cards' own widths: matching them to the
+// widest first stacked trees that fit (a 1280px laptop did).
+test("a tree that fits at its cards' own widths stays side by side", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/topology");
+  const tree = page.getByRole("list", { name: /federation/i });
+  await expect(tree).toContainText("edge");
+  await expect(tree).not.toHaveAttribute("data-stacked", "");
+  const overflow = await tree.evaluate((t) => t.scrollWidth - t.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
 });
