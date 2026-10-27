@@ -80,6 +80,8 @@ export const detail = (
     allow_on_demand_refresh: true,
     remote_url: null,
     config_keys: [],
+    location: null,
+    inline_script: false,
   },
 });
 

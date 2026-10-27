@@ -82,15 +82,20 @@ export function SourcesPage() {
                 noun: ["source", "sources"],
               }}
               invalidate={[["sources"], ["source"]]}
-              run={async (id) =>
-                (
+              run={async (id) => {
+                // Unknown until its details are in: syncSource asks.
+                const gathering = sources.rows.find(
+                  (r) => r.summary.source_id === id,
+                )?.detail?.gathering;
+                return (
                   await syncSource(
                     id,
-                    sources.rows.find((r) => r.summary.source_id === id)?.detail
-                      ?.gathering?.connector_type === "remote",
+                    gathering
+                      ? gathering.connector_type === "remote"
+                      : undefined,
                   )
-                ).success
-              }
+                ).success;
+              }}
             />
           </ListToolbar>
           {filter.visible.length === 0 ? (
@@ -179,7 +184,9 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
               run={() =>
                 syncNow(
                   summary.source_id,
-                  detail?.gathering?.connector_type === "remote",
+                  detail?.gathering
+                    ? detail.gathering.connector_type === "remote"
+                    : undefined,
                 )
               }
             />

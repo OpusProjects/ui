@@ -126,6 +126,14 @@ function TopologyContent({
   );
   // The page measures links, not health: this instance is connected while
   // at least one of its peers answers.
+  // The root of the map, as the summary counts it: this instance, which is
+  // the one answering; or, on a map pushed from above, that instance, as
+  // its own card judges it (unreachable once its pushes stop).
+  const rootState: HealthState = view.upstream
+    ? view.upstream.age_seconds > PUSH_STALE_SECONDS
+      ? "failing"
+      : "fresh"
+    : "fresh";
   const selfState: HealthState = peersOf(topology).some(
     (p) => peerState(p) !== "failing",
   )
@@ -154,8 +162,10 @@ function TopologyContent({
         </Fact>
         <Fact label="Version">{topology.version}</Fact>
         <Fact label="Provides">
-          {/* One line: the root card widens to fit it (see Tree's .node). */}
-          <span className={styles.nowrap}>
+          {/* One line while the cards sit side by side (they are as wide as
+              their widest line); wrapped when the tree stacks on a narrow
+              screen, rather than pushing the page sideways. */}
+          <span>
             {provides(ownSources.length, ownHosts, ownGroups, endpoints.length)}
           </span>
         </Fact>
@@ -192,10 +202,7 @@ function TopologyContent({
           nothing to filter. */}
       {peers.length > 0 && (
         <HealthSummary
-          counts={countStates(
-            ["fresh" as HealthState, ...peers.map(peerState)],
-            (s) => s,
-          )}
+          counts={countStates([rootState, ...peers.map(peerState)], (s) => s)}
           noun={["instance", "instances"]}
           labels={PEER_LABELS}
           good="connected"
@@ -409,7 +416,7 @@ function UpstreamCard({
         <VersionText version={federation.topology.version} self={version} />
       </Fact>
       <Fact label="Provides">
-        <span className={styles.nowrap}>
+        <span>
           {provides(
             sender.sources.length,
             sender.hosts,

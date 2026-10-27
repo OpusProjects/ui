@@ -72,6 +72,38 @@ test("Sync asks a federated source's origin to gather, and only it", async ({
   });
 });
 
+// A card's Sync pressed before the source's details have loaded asks the
+// source what it is, so a federated one still asks its origin.
+test("a Sync pressed before the details load still asks the origin", async ({
+  page,
+}) => {
+  const calls = await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  const beta = sources.find((s) => s.source_id === "src-beta")!;
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let served = 0;
+  await page.route(/\/api\/v1\/sources\/src-beta$/, async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    // The page's own load is held back; the one Sync asks for is answered.
+    if (served++ === 0) await held;
+    await route.fulfill({
+      json: {
+        ...detail(beta),
+        gathering: { ...detail(beta).gathering!, connector_type: "remote" },
+      },
+    });
+  });
+  await page.goto("/sources");
+  const card = page.locator("article", {
+    has: page.getByRole("heading", { name: "src-beta" }),
+  });
+  await card.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect.poll(() => calls.writes.length).toBe(1);
+  expect(calls.writes[0].query).toBe("?refresh_origin=true");
+  release();
+});
+
 // The button says Syncing… for as long as the sync runs and the new data
 // loads, and only then is it pressable again.
 test("Sync shows Syncing… until the new data is in", async ({ page }) => {

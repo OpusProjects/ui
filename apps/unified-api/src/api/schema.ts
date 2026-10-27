@@ -983,10 +983,18 @@ export interface components {
       connector_type: components["schemas"]["ConnectorType"];
       /** @description Credential ids this connector is given — names, never secrets */
       credential_ids: string[];
+      /** @description ssh only: the connector runs a script written in its own item */
+      inline_script: boolean;
+      /**
+       * @description ssh only: where `script_path` is, "host" or "instance"; null for an
+       *     inline script and for every other connector
+       */
+      location?: string | null;
       /**
        * @description The project whose checkout holds the script (from the connector) or
-       *     the inventory (a static_inventory source's own). Null for remote and
-       *     ssh sources, which run nothing from a checkout
+       *     the inventory (a static_inventory source's own). Null for remote
+       *     sources, and for ssh sources whose path is on the hosts or whose
+       *     script is inline
        */
       project_id?: string | null;
       /**
@@ -997,6 +1005,11 @@ export interface components {
       remote_url?: string | null;
       /** @description Cron expression (UTC), the alternative to an interval */
       schedule?: string | null;
+      /**
+       * @description The file the connector runs or reads. Empty for an ssh connector
+       *     whose script is inline (its text is on the admin-only connectors API,
+       *     not here: this page is open to restricted keys)
+       */
       script_path: string;
       /**
        * Format: int64

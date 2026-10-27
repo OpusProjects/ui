@@ -408,3 +408,41 @@ test("a tree that fits at its cards' own widths stays side by side", async ({
   const overflow = await tree.evaluate((t) => t.scrollWidth - t.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+// On a map pushed from above, the root is that instance: counted as its own
+// card judges it, unreachable once its pushes stop.
+test("a stale pushed map counts its root as unreachable", async ({ page }) => {
+  await mockApi(page);
+  const { topology } = await import("./fixtures/api");
+  await page.route(/\/api\/v1\/topology\/federation$/, (route) =>
+    route.fulfill({
+      json: [
+        {
+          age_seconds: 900,
+          pushed_by: "key-central",
+          sender: { endpoints: 0, groups: 1, hosts: 2, sources: ["src-a"] },
+          sender_url: "https://central.example.com",
+          topology,
+          url: topology.peers![0].url,
+        },
+      ],
+    }),
+  );
+  await page.goto("/topology");
+  await expect(page.getByText("This map may be out of date")).toBeVisible();
+  const summary = page.getByRole("region", { name: /instances health/i });
+  await expect(summary).toContainText(/1\s*Unreachable/);
+});
+
+// Stacked on a phone, the root card's longest line wraps instead of
+// pushing the page sideways.
+test("a phone does not scroll the tree sideways", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 420, height: 800 });
+  await page.goto("/topology");
+  const tree = page.getByRole("list", { name: /federation/i });
+  await expect(tree).toContainText("edge");
+  await expect(tree).toHaveAttribute("data-stacked", "");
+  const overflow = await tree.evaluate((t) => t.scrollWidth - t.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
