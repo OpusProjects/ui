@@ -94,6 +94,8 @@
    two columns start level. */
 .toolbar {
   display: flex;
+  /* Onto a second line when the column is too narrow for every control. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   min-height: 36px;
@@ -198,5 +200,12 @@
 /* The variables search fills the line up to the format switch and Copy. */
 .varsSearch {
   flex: 1;
+  min-width: 140px;
+}
+
+/* The field shrinks with its box: its built-in width pushed the switches
+   and Copy past the panel's edge on a narrow column. */
+.varsSearch input {
+  width: 100%;
   min-width: 0;
 }

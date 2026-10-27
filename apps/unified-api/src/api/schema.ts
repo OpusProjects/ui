@@ -616,6 +616,13 @@ export interface components {
        *     exists to explain.
        */
       cached: boolean;
+      /**
+       * @description Whether its data is copied from another unified-api (the remote
+       *     connector): what a Sync must ask that instance to gather again
+       *     (`refresh_origin`). Shown to every caller: the federation map already
+       *     names each remote source's origin.
+       */
+      federated: boolean;
       is_fresh: boolean;
       /**
        * @description "source" for a cached source, "view" for a read-only composite over
@@ -1316,6 +1323,11 @@ export interface components {
        *     just to measure it would make opening a page cost a full serialization.
        */
       dataset_bytes?: number | null;
+      /**
+       * @description Whether its data is copied from another unified-api (the remote
+       *     connector), for every caller: see the same field on the list
+       */
+      federated: boolean;
       gathering?: components["schemas"]["Gathering"] | null;
       is_fresh: boolean;
       /** @description "source" or "view" */

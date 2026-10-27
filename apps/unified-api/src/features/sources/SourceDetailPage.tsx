@@ -67,11 +67,7 @@ export function SourceDetailPage() {
         // source must not show its progress and result on that one.
         actions={
           detail.data?.kind === "source" && (
-            <SyncNow
-              key={id}
-              id={id}
-              federated={detail.data.gathering?.connector_type === "remote"}
-            />
+            <SyncNow key={id} id={id} federated={detail.data.federated} />
           )
         }
       />
@@ -305,13 +301,23 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
               </>
             ) : (
               <>
-                <Fact label="Script" hint={HINTS["Script"]}>
-                  <span
-                    className={common.clipText}
-                    title={gathering.script_path}
-                  >
-                    {gathering.script_path}
-                  </span>
+                {/* As the connector's page says it: a script here, files
+                    on each host, or the connector's own inline script
+                    (whose text is on the connector's page, admin-only). */}
+                <Fact
+                  label={gathering.location === "host" ? "Runs" : "Script"}
+                  hint={HINTS["Script"]}
+                >
+                  {gathering.inline_script ? (
+                    <em className={common.soft}>Inline script</em>
+                  ) : (
+                    <span
+                      className={common.clipText}
+                      title={gathering.script_path}
+                    >
+                      {gathering.script_path}
+                    </span>
+                  )}
                 </Fact>
                 <Fact label="Project" hint={HINTS["Project"]}>
                   {gathering.project_id ? (
@@ -321,10 +327,14 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
                     >
                       {gathering.project_id}
                     </Link>
-                  ) : gathering.connector_type === "ssh" ? (
-                    "None (runs on each host)"
                   ) : (
-                    "None (local file)"
+                    <em className={common.soft}>
+                      {gathering.inline_script
+                        ? "Inline script"
+                        : gathering.location === "host"
+                          ? "On the host"
+                          : "Local file"}
+                    </em>
                   )}
                 </Fact>
               </>

@@ -28,39 +28,46 @@ test("Sync sends the CSRF token", async ({ page }) => {
 // Sync means fresh data, now. A federated source asks its origin to gather
 // again (refresh_origin), or it would only copy the origin's cache; a local
 // source gathers anyway, and is asked nothing more (the flag would stop it
-// reusing a sync already running).
+// reusing a sync already running). Which is which comes with the list, to
+// every key: no detail needed, so a Sync pressed early asks the same.
 test("Sync asks a federated source's origin to gather, and only it", async ({
   page,
 }) => {
   const calls = await mockApi(page);
   const { detail, sources } = await import("./fixtures/api");
   // src-beta reads another instance.
-  const beta = sources.find((s) => s.source_id === "src-beta")!;
-  await page.route(/\/api\/v1\/sources\/src-beta$/, (route) =>
+  const listed = sources.map((s) =>
+    s.source_id === "src-beta" ? { ...s, federated: true } : s,
+  );
+  await page.route(/\/api\/v1\/sources(\?.*)?$/, (route) =>
     route.request().method() === "GET"
-      ? route.fulfill({
-          json: {
-            ...detail(beta),
-            gathering: { ...detail(beta).gathering!, connector_type: "remote" },
-          },
-        })
+      ? route.fulfill({ json: listed })
       : route.fallback(),
   );
-
-  await page.goto("/sources/src-alpha");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
-  await expect.poll(() => calls.writes.length).toBe(1);
-  expect(calls.writes[0].query).toBe("");
-
-  await page.goto("/sources/src-beta");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
-  await expect.poll(() => calls.writes.length).toBe(2);
-  expect(calls.writes[1].query).toBe("?refresh_origin=true");
+  const beta = listed.find((s) => s.source_id === "src-beta")!;
+  // Its own detail held back: the card's Sync must not need it.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/v1\/sources\/src-beta$/, async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    await held;
+    await route.fulfill({ json: { ...detail(beta), federated: true } });
+  });
 
   await page.goto("/sources");
-  await page.waitForLoadState("networkidle");
+  const card = (id: string) =>
+    page.locator("article", { has: page.getByRole("heading", { name: id }) });
+  await card("src-beta")
+    .getByRole("button", { name: "Sync", exact: true })
+    .click();
+  await expect.poll(() => calls.writes.length).toBe(1);
+  expect(calls.writes[0].query).toBe("?refresh_origin=true");
+  await card("src-alpha")
+    .getByRole("button", { name: "Sync", exact: true })
+    .click();
+  await expect.poll(() => calls.writes.length).toBe(2);
+  expect(calls.writes[1].query).toBe("");
+
   await page.getByRole("button", { name: "Sync all", exact: true }).click();
   await expect.poll(() => calls.writes.length).toBe(4);
   const all = Object.fromEntries(
@@ -70,38 +77,14 @@ test("Sync asks a federated source's origin to gather, and only it", async ({
     "/api/v1/sources/src-alpha/sync": "",
     "/api/v1/sources/src-beta/sync": "?refresh_origin=true",
   });
-});
-
-// A card's Sync pressed before the source's details have loaded asks the
-// source what it is, so a federated one still asks its origin.
-test("a Sync pressed before the details load still asks the origin", async ({
-  page,
-}) => {
-  const calls = await mockApi(page);
-  const { detail, sources } = await import("./fixtures/api");
-  const beta = sources.find((s) => s.source_id === "src-beta")!;
-  let release: () => void = () => {};
-  const held = new Promise<void>((resolve) => (release = resolve));
-  let served = 0;
-  await page.route(/\/api\/v1\/sources\/src-beta$/, async (route) => {
-    if (route.request().method() !== "GET") return route.fallback();
-    // The page's own load is held back; the one Sync asks for is answered.
-    if (served++ === 0) await held;
-    await route.fulfill({
-      json: {
-        ...detail(beta),
-        gathering: { ...detail(beta).gathering!, connector_type: "remote" },
-      },
-    });
-  });
-  await page.goto("/sources");
-  const card = page.locator("article", {
-    has: page.getByRole("heading", { name: "src-beta" }),
-  });
-  await card.getByRole("button", { name: "Sync", exact: true }).click();
-  await expect.poll(() => calls.writes.length).toBe(1);
-  expect(calls.writes[0].query).toBe("?refresh_origin=true");
   release();
+
+  // The source's own page reads the same flag from its detail.
+  await page.goto("/sources/src-beta");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect.poll(() => calls.writes.length).toBe(5);
+  expect(calls.writes[4].query).toBe("?refresh_origin=true");
 });
 
 // The button says Syncing… for as long as the sync runs and the new data
@@ -342,4 +325,56 @@ test("ages keep counting between polls", async ({ page }) => {
   const before = await attempt.innerText();
   await expect(attempt).not.toHaveText(before, { timeout: 4000 });
   expect(await attempt.innerText()).toMatch(/^3\ds ago$/);
+});
+
+// A source whose ssh connector writes its script inline says so, as its
+// connector's page does, and shows no blank Script.
+test("a source with an inline ssh script says so", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({
+          json: {
+            ...detail(alpha),
+            gathering: {
+              ...detail(alpha).gathering!,
+              connector_type: "ssh",
+              project_id: null,
+              script_path: "",
+              location: null,
+              inline_script: true,
+            },
+          },
+        })
+      : route.fallback(),
+  );
+  await page.goto("/sources/src-alpha");
+  // What a reader sees in each fact row (its hint stays out of it).
+  await expect
+    .poll(() => page.locator("dl > div").allInnerTexts())
+    .toEqual(
+      expect.arrayContaining([
+        "Script\nInline script",
+        "Project\nInline script",
+      ]),
+    );
+});
+
+// The host variables column fits a 1024px window: its search box shrinks
+// and its controls wrap rather than pushing Copy past the edge.
+test("a source page fits a 1024px window", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("option", { name: "web-01.example.net" }).click();
+  await expect(page.getByText("192.0.2.10")).toBeVisible();
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(0);
 });
