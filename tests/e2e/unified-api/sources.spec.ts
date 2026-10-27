@@ -564,3 +564,31 @@ test("a project's page lists its last pulls", async ({ page }) => {
   await expect(rows.nth(0)).toContainText("Pulled");
   await expect(rows.nth(1)).toContainText("1111111 no change");
 });
+
+// The History panel keeps the space panels keep between them, after the
+// hosts as after "No data yet".
+for (const cached of [true, false]) {
+  test(`History keeps its space from what is above it${cached ? "" : ", no data yet"}`, async ({
+    page,
+  }) => {
+    await mockApi(page);
+    if (!cached) {
+      const { detail, sources } = await import("./fixtures/api");
+      const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+      await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+        route.fulfill({ json: { ...detail(alpha), cached: false } }),
+      );
+    }
+    await page.goto("/sources/src-alpha");
+    const history = page.locator("section", {
+      has: page.getByRole("heading", { name: /^History/ }),
+    });
+    await history.waitFor();
+    const gap = await history.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top -
+        el.previousElementSibling!.getBoundingClientRect().bottom,
+    );
+    expect(gap).toBeGreaterThanOrEqual(16);
+  });
+}

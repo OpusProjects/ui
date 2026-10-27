@@ -10,6 +10,8 @@
   /* The hosts card runs as tall as the host beside it, so the block inside
      it has room to stay in view while the variables scroll. */
   align-items: stretch;
+  /* The space a panel keeps under it, before the History panel. */
+  margin-bottom: 20px;
 }
 
 .hostCard,
