@@ -1,4 +1,8 @@
-import { MetricsPage as Page } from "@opusprojects/unified-ui";
+import {
+  countOf,
+  formatCount,
+  MetricsPage as Page,
+} from "@opusprojects/unified-ui";
 import {
   BarList,
   KpiRow,
@@ -65,7 +69,7 @@ function MetricsContent({ scrapes }: { scrapes: Scrape[] }) {
       <KpiRow>
         <StatTile
           label="Hosts"
-          value={hosts.toLocaleString()}
+          value={formatCount(hosts)}
           hint={
             uniqueSample
               ? "Each hostname once across every source, ignoring case. A machine listed under two names, such as a VM name and its FQDN, counts twice. From unified_api_hosts_unique."
@@ -147,8 +151,8 @@ function slowestSyncs(samples: Sample[]): Bar[] {
           label: source,
           value: count > 0 ? total.value / count : 0,
           details: [
-            `${count} ${count === 1 ? "sync" : "syncs"}`,
-            failed > 0 ? `${failed} failed` : "None failed",
+            countOf(count, "sync"),
+            failed > 0 ? `${formatCount(failed)} failed` : "None failed",
           ],
         };
       })

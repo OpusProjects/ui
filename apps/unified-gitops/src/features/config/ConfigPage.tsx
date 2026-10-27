@@ -2,14 +2,15 @@ import { Link } from "react-router";
 import {
   EmptyState,
   Fact,
+  formatBytes,
+  formatCount,
+  formatSpan,
   Notice,
   PageHeader,
   Panel,
   SecretsPanel,
   SignInPanels,
   SkeletonSummary,
-  formatBytes,
-  formatSpan,
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
@@ -114,10 +115,10 @@ function ServerPanels({ settings }: { settings: Settings }) {
   const credentialSummary = !credentialList
     ? "…"
     : missing > 0
-      ? `${missing} of ${credentialList.length} missing`
-      : `${credentialList.length}, all working`;
+      ? `${formatCount(missing)} of ${formatCount(credentialList.length)} missing`
+      : `${formatCount(credentialList.length)}, all working`;
   const checkouts = projectList
-    ? `${projectList.filter((p) => p.checkout_present).length} of ${projectList.length} on disk`
+    ? `${formatCount(projectList.filter((p) => p.checkout_present).length)} of ${formatCount(projectList.length)} on disk`
     : "…";
   return (
     <>

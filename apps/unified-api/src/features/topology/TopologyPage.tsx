@@ -1,5 +1,7 @@
 import {
   ChipList,
+  countOf,
+  countStates,
   EmptyState,
   Fact,
   HealthSummary,
@@ -9,7 +11,6 @@ import {
   ResourceCard,
   SkeletonSummary,
   Tree,
-  countStates,
   type TreeItem,
 } from "@opusprojects/unified-ui";
 import type { HealthState } from "@opusprojects/unified-client";
@@ -240,13 +241,11 @@ function provides(
   // Unknown on a pushed map: the endpoints there are the root's, not ours.
   endpoints?: number,
 ) {
-  const count = (n: number, word: string) =>
-    `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
   return [
-    count(sources, "source"),
-    count(hosts, "host"),
-    count(groups, "group"),
-    ...(endpoints == null ? [] : [count(endpoints, "endpoint")]),
+    countOf(sources, "source"),
+    countOf(hosts, "host"),
+    countOf(groups, "group"),
+    ...(endpoints == null ? [] : [countOf(endpoints, "endpoint")]),
   ].join(", ");
 }
 

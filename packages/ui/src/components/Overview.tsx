@@ -10,7 +10,7 @@ import { compact, LineChart, type Series } from "./Charts";
 import { lift } from "./Lift";
 import { useNow } from "./LiveAge";
 import { Panel } from "./Page";
-import { formatSpan } from "../lib/format";
+import { formatCount, formatSpan } from "../lib/format";
 import styles from "./Overview.module.css";
 
 // The pieces of a unified-* front page: one card per area with how many of
@@ -80,8 +80,8 @@ export function AreaCard({
       ) : (
         <>
           <span className={styles.areaCount}>
-            {counts.fresh}
-            <span className={styles.areaOf}> of {total}</span>
+            {formatCount(counts.fresh)}
+            <span className={styles.areaOf}> of {formatCount(total)}</span>
           </span>
           <span className={styles.areaLabel}>{good}</span>
           <span className={styles.bar} aria-hidden>

@@ -4,12 +4,13 @@ import {
   Button,
   EmptyState,
   Fact,
+  formatCount,
+  formatSpan,
   HealthPill,
   Notice,
   PageHeader,
   Panel,
   SkeletonSummary,
-  formatSpan,
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
 import { sum, useMetrics } from "@opusprojects/unified-client";
@@ -141,7 +142,7 @@ function Overview({ endpoint }: { endpoint: Endpoint }) {
           {countText(counts.data, counts.data?.groups)}
         </Fact>
         <Fact label="Sources ready" hint={HINTS["Sources ready"]}>
-          {endpoint.sources_ready} of {total}
+          {formatCount(endpoint.sources_ready)} of {formatCount(total)}
         </Fact>
         {transform && (
           <>
@@ -221,7 +222,7 @@ function countText(
 ) {
   if (!counts) return "…";
   if (counts.missing_sources.length > 0) return "Unavailable";
-  return value == null ? "Depends on the script" : value.toLocaleString();
+  return value == null ? "Depends on the script" : formatCount(value);
 }
 
 // Milliseconds below a second, where most builtin runs land.

@@ -1,4 +1,4 @@
-import { MetricsPage as Page } from "@opusprojects/unified-ui";
+import { formatCount, MetricsPage as Page } from "@opusprojects/unified-ui";
 import {
   DataTable,
   HealthPill,
@@ -60,22 +60,22 @@ function MetricsContent({ scrapes }: { scrapes: Scrape[] }) {
       <KpiRow>
         <StatTile
           label="Applications"
-          value={String(applications)}
+          value={formatCount(applications)}
           hint={`Applications configured, from ${PREFIX}_application_status, one series per application and status.`}
         />
         <StatTile
           label="Synced"
-          value={String(inStatus(samples, "synced"))}
+          value={formatCount(inStatus(samples, "synced"))}
           hint="Applications whose last check found every declared object as declared."
         />
         <StatTile
           label="Failed"
-          value={String(inStatus(samples, "failed"))}
+          value={formatCount(inStatus(samples, "failed"))}
           hint="Applications whose last check or sync could not finish."
         />
         <StatTile
           label="Changes to apply"
-          value={pending.toLocaleString()}
+          value={formatCount(pending)}
           hint={`Operations the last checks found and nobody has applied yet, all applications together. From ${PREFIX}_application_pending_operations.`}
         />
       </KpiRow>
@@ -260,19 +260,19 @@ function CallTable({ samples }: { samples: Sample[] }) {
       key: "reads",
       label: "Reads",
       numeric: true,
-      render: (r) => r.reads.toLocaleString(),
+      render: (r) => formatCount(r.reads),
     },
     {
       key: "writes",
       label: "Writes",
       numeric: true,
-      render: (r) => r.writes.toLocaleString(),
+      render: (r) => formatCount(r.writes),
     },
     {
       key: "failed",
       label: "Failed",
       numeric: true,
-      render: (r) => r.failed.toLocaleString(),
+      render: (r) => formatCount(r.failed),
     },
     {
       key: "mean",

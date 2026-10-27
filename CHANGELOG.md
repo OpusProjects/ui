@@ -9,6 +9,10 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Fixed
+
+- Counts group thousands with a comma everywhere in both apps, 1,023 rather than 1023: cards, facts, tables, health summaries, the overview, pagination, "+N more", run and sync messages. They followed the browser's language, which in Spanish wrote 1023 and 10.000; one `formatCount` (and `countOf`, "1,023 hosts") in `@opusprojects/unified-ui` now formats them all the same way.
+
 ## [0.5.0] - 2026-10-27
 
 ### Added

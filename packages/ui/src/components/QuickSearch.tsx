@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Modal } from "./Modal";
 import styles from "./QuickSearch.module.css";
+import { countOf, formatCount } from "../lib/format";
 
 // The classes a result is drawn with (name, nameRow, detail), so every
 // app's results read alike whatever they show.
@@ -188,8 +189,8 @@ function SearchDialog<T>({
           </ul>
           <p className={styles.footer}>
             {total !== undefined && total > items.length
-              ? `The ${items.length} best of ${total.toLocaleString()} matches: type more.`
-              : `${items.length} ${items.length === 1 ? "match" : "matches"}.`}{" "}
+              ? `The ${formatCount(items.length)} best of ${formatCount(total)} matches: type more.`
+              : `${countOf(items.length, "match", "matches")}.`}{" "}
             ↑↓ to choose, Enter to open, Esc to close.
           </p>
         </>

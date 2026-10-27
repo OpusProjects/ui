@@ -4,10 +4,12 @@ import { afterRun, runOutcome, shortRevision, syncApplication } from "./model";
 import { useApplication } from "../../api/queries";
 import {
   Button,
+  countOf,
   DiffView,
+  formatCount,
   Modal,
-  RunButton,
   pageStyles as styles,
+  RunButton,
   serialize,
 } from "@opusprojects/unified-ui";
 import { api, unwrap, type Schemas } from "../../api/client";
@@ -215,9 +217,7 @@ export function OperationsDiff({
               ) : (
                 "File not known"
               )}
-              <span>
-                {ops.length} {ops.length === 1 ? "change" : "changes"}
-              </span>
+              <span>{countOf(ops.length, "change")}</span>
             </summary>
             {ops.map((op) => (
               <OperationDiff
@@ -416,7 +416,8 @@ function ChangesModal({
       ))}
       {operations.length < planned && (
         <p className={previewStyles.note}>
-          The first {operations.length} of {planned} changes.
+          The first {formatCount(operations.length)} of{" "}
+          {countOf(planned, "change")}.
         </p>
       )}
       <OperationsDiff operations={operations} failed={failed} />

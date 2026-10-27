@@ -1,16 +1,17 @@
 import { Link } from "react-router";
 import {
   EmptyState,
-  LiveAge,
-  SecretsPanel,
-  SignInPanels,
   Fact,
+  formatBytes,
+  formatCount,
+  formatSpan,
+  LiveAge,
   Notice,
   PageHeader,
   Panel,
+  SecretsPanel,
+  SignInPanels,
   SkeletonSummary,
-  formatBytes,
-  formatSpan,
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
@@ -130,10 +131,10 @@ function ServerPanels({ settings }: { settings: Settings }) {
   const credentialSummary = !credentialList
     ? "…"
     : missing > 0
-      ? `${missing} of ${credentialList.length} missing`
-      : `${credentialList.length}, all working`;
+      ? `${formatCount(missing)} of ${formatCount(credentialList.length)} missing`
+      : `${formatCount(credentialList.length)}, all working`;
   const checkouts = projectList
-    ? `${projectList.filter((p) => p.checkout_present).length} of ${projectList.length} on disk`
+    ? `${formatCount(projectList.filter((p) => p.checkout_present).length)} of ${formatCount(projectList.length)} on disk`
     : "…";
   return (
     <>
@@ -222,7 +223,7 @@ function ServerPanels({ settings }: { settings: Settings }) {
             {cache.persistence_path == null ? (
               "Never"
             ) : cache.consecutive_failures > 0 ? (
-              `Failing, ${cache.consecutive_failures} in a row`
+              `Failing, ${formatCount(cache.consecutive_failures)} in a row`
             ) : cache.last_saved_age_seconds != null ? (
               <LiveAge seconds={cache.last_saved_age_seconds} />
             ) : (

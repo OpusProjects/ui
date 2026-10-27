@@ -1,28 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import {
+  CodeView,
+  CopyButton,
+  countOf,
   EmptyState,
   Fact,
+  formatBytes,
+  formatCount,
+  formatEvery,
+  formatSpan,
+  FormatSwitch,
   FreshnessMeter,
   HealthPill,
+  LinesView,
   LiveAge,
   Notice,
   PageHeader,
   Pagination,
   Panel,
   SearchField,
-  SkeletonSummary,
-  formatBytes,
-  formatEvery,
-  formatSpan,
-  usePagination,
-  CodeView,
-  LinesView,
-  CopyButton,
-  FormatSwitch,
   SegmentedSwitch,
   serialize,
+  SkeletonSummary,
   useFormat,
+  usePagination,
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
@@ -181,10 +183,14 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
           change. Restricted callers get no settings beyond the TTL. */}
       <dl className={common.facts}>
         <Fact label="Hosts" hint={HINTS["Hosts"]}>
-          {detail.total_hosts?.toLocaleString() ?? "None yet"}
+          {detail.total_hosts != null
+            ? formatCount(detail.total_hosts)
+            : "None yet"}
         </Fact>
         <Fact label="Groups" hint={HINTS["Groups"]}>
-          {detail.total_groups?.toLocaleString() ?? "None yet"}
+          {detail.total_groups != null
+            ? formatCount(detail.total_groups)
+            : "None yet"}
         </Fact>
         <Fact label="Dataset size" hint={HINTS["Dataset size"]}>
           {detail.dataset_bytes != null
@@ -353,7 +359,7 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
         )}
         {detail.members && (
           <Fact label="Members" hint={HINTS["Members"]}>
-            {detail.members.length} sources
+            {countOf(detail.members.length, "source")}
           </Fact>
         )}
       </dl>
@@ -506,8 +512,8 @@ function HostBrowser({ id }: { id: string }) {
             {loading.isSuccess && (
               <span className={styles.varCount}>
                 {needle
-                  ? `${matching.length.toLocaleString()} of ${count(names.length, noun)}`
-                  : count(names.length, noun)}
+                  ? `${formatCount(matching.length)} of ${countOf(names.length, noun)}`
+                  : countOf(names.length, noun)}
               </span>
             )}
           </div>
@@ -622,10 +628,6 @@ function HostBrowser({ id }: { id: string }) {
   );
 }
 
-// "1 variable", "47 variables": the noun agrees with the number.
-const count = (n: number, noun: string) =>
-  `${n.toLocaleString()} ${n === 1 ? noun : `${noun}s`}`;
-
 // Host names hold dots, which an id may, but nothing else odd: kept as is
 // behind a prefix so a listbox option can be pointed at.
 const optionId = (list: string, name: string) => `${list}-option-${name}`;
@@ -654,7 +656,7 @@ function GroupVars({ id, group }: { id: string; group: string }) {
       vars={detail.data?.vars as Record<string, unknown> | undefined}
       loading={detail.isPending}
       error={detail.isError ? detail.error.message : null}
-      extra={detail.data ? count(detail.data.host_count, "host") : undefined}
+      extra={detail.data ? countOf(detail.data.host_count, "host") : undefined}
       none="This group has no variables of its own."
       hosts={{
         names: hosts.data?.hosts,
@@ -734,8 +736,8 @@ function VarsPanel({
         {vars && (
           <span className={styles.varCount}>
             {needle
-              ? `${shownCount} of ${count(Object.keys(vars).length, "variable")}`
-              : count(Object.keys(vars).length, "variable")}
+              ? `${formatCount(shownCount)} of ${countOf(Object.keys(vars).length, "variable")}`
+              : countOf(Object.keys(vars).length, "variable")}
             {extra && `, ${extra}`}
           </span>
         )}

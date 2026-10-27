@@ -2,21 +2,22 @@ import { Link, useParams } from "react-router";
 import { ArrowUpFromLine, SearchCheck } from "lucide-react";
 import {
   ChipList,
-  ListTable,
-  useConfirm,
   EmptyState,
   Fact,
+  formatAge,
+  formatCount,
+  formatSpan,
   HealthPill,
+  ListTable,
   LiveAge,
   Notice,
   PageHeader,
+  pageStyles as styles,
   Panel,
   RunButton,
   SkeletonSummary,
-  formatAge,
-  formatSpan,
-  pageStyles as styles,
   type ListColumn,
+  useConfirm,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
 import { useApplication, useAuth } from "../../api/queries";
@@ -317,10 +318,10 @@ function History({
       numeric: true,
       render: (r) =>
         r.mode === "apply" && r.applied.length > 0
-          ? `${r.applied.filter((a) => a.ok).length} of ${r.applied.length} applied`
+          ? `${formatCount(r.applied.filter((a) => a.ok).length)} of ${formatCount(r.applied.length)} applied`
           : r.planned === 0
             ? "None"
-            : `${r.planned} to apply`,
+            : `${formatCount(r.planned)} to apply`,
     },
     {
       key: "view",

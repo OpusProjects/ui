@@ -2,6 +2,7 @@ import {
   CardGrid,
   EmptyState,
   Fact,
+  formatCount,
   HealthSummary,
   Notice,
   PageHeader,
@@ -119,7 +120,8 @@ export function EndpointsPage() {
                         as separate items, wider than a word gap. */}
                     <span>
                       <strong>
-                        {endpoint.sources_ready} of {endpoint.source_ids.length}
+                        {formatCount(endpoint.sources_ready)} of{" "}
+                        {formatCount(endpoint.source_ids.length)}
                       </strong>{" "}
                       <span className={styles.soft}>ready</span>
                     </span>

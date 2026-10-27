@@ -1,7 +1,10 @@
 import {
   CardGrid,
+  countOf,
   EmptyState,
   Fact,
+  formatCount,
+  formatEvery,
   FreshnessMeter,
   HealthSummary,
   LiveAge,
@@ -10,7 +13,6 @@ import {
   ResourceCard,
   SkeletonGrid,
   SkeletonSummary,
-  formatEvery,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
@@ -186,12 +188,16 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
       <Fact label="Hosts">
         {/* One phrase, one element: a word gap, not the fact's item gap. */}
         <span>
-          <strong>{summary.total_hosts ?? "None yet"}</strong>
+          <strong>
+            {summary.total_hosts != null
+              ? formatCount(summary.total_hosts)
+              : "None yet"}
+          </strong>
           {detail?.total_groups != null && (
             <>
               {" "}
               <span className={styles.soft}>
-                in {detail.total_groups} groups
+                in {countOf(detail.total_groups, "group")}
               </span>
             </>
           )}

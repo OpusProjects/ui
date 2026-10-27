@@ -1,5 +1,6 @@
 import type { HealthState } from "@opusprojects/unified-client";
 import { api, unwrap, type Schemas } from "../../api/client";
+import { countOf, formatCount } from "@opusprojects/unified-ui";
 
 type Status = Schemas["SyncStatus"];
 type Run = Schemas["RunRecord"];
@@ -46,7 +47,7 @@ export function pending(app: Summary) {
     return "Unknown: last check failed";
   return app.pending_operations === 0
     ? "Nothing"
-    : `${app.pending_operations} ${app.pending_operations === 1 ? "change" : "changes"}`;
+    : countOf(app.pending_operations, "change");
 }
 
 // The commit as people quote it.
@@ -65,9 +66,6 @@ export const OP_LABEL = {
   delete: "Delete",
 } as const;
 
-const plural = (n: number, one: string, many: string) =>
-  `${n} ${n === 1 ? one : many}`;
-
 // What a run says on its button, in a few words.
 export function runOutcome(run: Run): { ok: boolean; message: string } {
   const failed = run.applied.filter((a) => !a.ok).length;
@@ -77,18 +75,18 @@ export function runOutcome(run: Run): { ok: boolean; message: string } {
         ok: true,
         message:
           run.mode === "apply" && run.applied.length > 0
-            ? `Applied ${plural(run.applied.length, "change", "changes")}`
+            ? `Applied ${countOf(run.applied.length, "change")}`
             : "In sync",
       };
     case "out_of_sync":
       return {
         ok: true,
-        message: `${plural(run.planned, "change", "changes")} to apply`,
+        message: `${countOf(run.planned, "change")} to apply`,
       };
     case "partial":
       return {
         ok: false,
-        message: `${run.applied.length - failed} applied, ${failed} failed`,
+        message: `${formatCount(run.applied.length - failed)} applied, ${formatCount(failed)} failed`,
       };
     default:
       // Short, so it fits beside the buttons: the error itself is on the

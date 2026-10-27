@@ -39,7 +39,14 @@ export {
 } from "./components/Health";
 export { lift } from "./components/Lift";
 export { ThemeSwitch } from "./components/ThemeSwitch";
-export { formatAge, formatBytes, formatEvery, formatSpan } from "./lib/format";
+export {
+  countOf,
+  formatAge,
+  formatBytes,
+  formatCount,
+  formatEvery,
+  formatSpan,
+} from "./lib/format";
 export { LiveAge, useLiveSeconds, useNow } from "./components/LiveAge";
 export { linkify } from "./components/AutoLink";
 export {

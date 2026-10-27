@@ -378,3 +378,46 @@ test("a source page fits a 1024px window", async ({ page }) => {
   );
   expect(overflow).toBe(0);
 });
+
+// Counts group thousands with a comma whatever the browser's language: in
+// Spanish, toLocaleString() wrote 1023 with no separator at all.
+test.describe("in a Spanish browser", () => {
+  test.use({ locale: "es-ES" });
+
+  test("a count of thousands reads 1,023", async ({ page }) => {
+    await mockApi(page);
+    const { detail, sources } = await import("./fixtures/api");
+    const listed = sources.map((s) =>
+      s.source_id === "src-alpha" ? { ...s, total_hosts: 1023 } : s,
+    );
+    const alpha = listed.find((s) => s.source_id === "src-alpha")!;
+    await page.route(/\/api\/v1\/sources(\?.*)?$/, (route) =>
+      route.request().method() === "GET"
+        ? route.fulfill({ json: listed })
+        : route.fallback(),
+    );
+    await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+      route.request().method() === "GET"
+        ? route.fulfill({
+            json: { ...detail(alpha), total_hosts: 1023, total_groups: 12000 },
+          })
+        : route.fallback(),
+    );
+
+    await page.goto("/sources");
+    const card = page.locator("article", {
+      has: page.getByRole("heading", { name: "src-alpha" }),
+    });
+    await expect(card).toContainText("1,023");
+    await expect(card).toContainText("12,000 groups");
+    await expect(card).not.toContainText("1023");
+
+    await page.goto("/sources/src-alpha");
+    await expect(
+      page.getByText("1,023", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText("12,000", { exact: true }).first(),
+    ).toBeVisible();
+  });
+});

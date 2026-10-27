@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "./Pagination.module.css";
+import { formatCount } from "../lib/format";
 
 export const PAGE_SIZES = [10, 20, 50, 100] as const;
 
@@ -33,8 +34,7 @@ export function Pagination({
   return (
     <nav className={styles.pager} aria-label={`${noun} pages`}>
       <span className={styles.count}>
-        {first.toLocaleString()}–{last.toLocaleString()} of{" "}
-        {total.toLocaleString()}
+        {formatCount(first)}–{formatCount(last)} of {formatCount(total)}
       </span>
       <span className={styles.buttons}>
         <label className={styles.size}>

@@ -2,20 +2,22 @@ import { Link } from "react-router";
 import { ArrowUpFromLine, SearchCheck } from "lucide-react";
 import {
   CardGrid,
+  countOf,
   EmptyState,
   Fact,
+  formatCount,
+  formatEvery,
   HealthSummary,
   ListToolbar,
   LiveAge,
   Notice,
   PageHeader,
+  pageStyles as styles,
   ResourceCard,
   RunAllButton,
   RunButton,
   SkeletonGrid,
   SkeletonSummary,
-  formatEvery,
-  pageStyles as styles,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { useListFilter } from "@opusprojects/unified-client";
@@ -115,10 +117,10 @@ export function ApplicationsPage() {
               icon={<ArrowUpFromLine />}
               // Writes to every system shown: one explicit yes first.
               confirm={(count) => ({
-                title: `Push ${count} ${count === 1 ? "application" : "applications"}?`,
+                title: `Push ${countOf(count, "application")}?`,
                 message:
                   "What each one's check finds is applied to its system now. Applications with nothing to apply are left as they are.",
-                confirmLabel: `Push ${count}`,
+                confirmLabel: `Push ${formatCount(count)}`,
               })}
               invalidate={[["applications"], ["application"]]}
               run={async (id) =>

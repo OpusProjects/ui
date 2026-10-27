@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import {
+  formatCount,
   HealthPill,
   ListName,
   ListSoft,
@@ -76,14 +77,20 @@ export function SourceTable({
       key: "hosts",
       label: "Hosts",
       numeric: true,
-      render: ({ row }) => row?.summary?.total_hosts?.toLocaleString() ?? "–",
+      render: ({ row }) =>
+        row?.summary?.total_hosts != null
+          ? formatCount(row.summary.total_hosts)
+          : "–",
     },
     // From the source's detail: the list does not count groups.
     {
       key: "groups",
       label: "Groups",
       numeric: true,
-      render: ({ row }) => row?.detail?.total_groups?.toLocaleString() ?? "–",
+      render: ({ row }) =>
+        row?.detail?.total_groups != null
+          ? formatCount(row.detail.total_groups)
+          : "–",
     },
     {
       key: "age",

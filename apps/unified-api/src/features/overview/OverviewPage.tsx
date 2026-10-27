@@ -3,21 +3,22 @@ import { Link } from "react-router";
 import {
   AreaCard,
   AreaGrid,
+  countStates as count,
   Fact,
+  formatCount,
   InstancePanel,
+  LiveSpan,
   NeedsAttention,
   Notice,
   OverviewColumns,
   PageHeader,
+  perMinuteText,
   RatePanel,
   RequestsPanel,
-  countStates as count,
-  perMinuteText,
-  LiveSpan,
-  useRatePerMinute,
-  useRequestsPerMinute,
   type Issue,
   type RatePart,
+  useRatePerMinute,
+  useRequestsPerMinute,
 } from "@opusprojects/unified-ui";
 import { cachedHealth, select, useMetrics } from "@opusprojects/unified-client";
 import {
@@ -313,9 +314,7 @@ function ThisInstance({ uptime, at }: { uptime?: number; at: number }) {
 
   return (
     <InstancePanel>
-      <Fact label="Hosts">
-        {unique != null ? unique.toLocaleString() : "…"}
-      </Fact>
+      <Fact label="Hosts">{unique != null ? formatCount(unique) : "…"}</Fact>
       <Fact label="Incoming requests">{perMinuteText(incoming)}</Fact>
       <Fact label="Outgoing requests">{perMinuteText(outgoing)}</Fact>
       {uptime != null && (
