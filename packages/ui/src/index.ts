@@ -132,6 +132,7 @@ export {
 export { RunAllButton } from "./components/RunAllButton";
 export {
   AreaCard,
+  AreaCardSkeleton,
   AreaGrid,
   InstancePanel,
   NeedsAttention,

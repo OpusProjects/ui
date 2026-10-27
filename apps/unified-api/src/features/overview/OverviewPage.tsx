@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import {
   AreaCard,
+  AreaCardSkeleton,
   AreaGrid,
   countStates as count,
   Fact,
@@ -22,6 +23,7 @@ import {
 } from "@opusprojects/unified-ui";
 import { cachedHealth, select, useMetrics } from "@opusprojects/unified-client";
 import {
+  useAuth,
   useConnectors,
   useCredentials,
   useEndpoints,
@@ -63,6 +65,8 @@ export function OverviewPage() {
   const credentials = useCredentials();
   const topology = useTopology();
   const settings = useSettings();
+  // Unknown yet counts as admin, as the menu does: the common caller.
+  const admin = useAuth().data?.me.role !== "restricted";
 
   // Views included, as on the Sources page, so the two counts agree.
   const sourceRows = sources.data ?? [];
@@ -191,64 +195,96 @@ export function OverviewPage() {
         <Notice title="Could not check this instance">{failed.message}</Notice>
       )}
 
-      <AreaGrid>
-        {sources.isSuccess && (
-          <AreaCard
-            link={link}
-            to="/sources"
-            icon={ICONS.sources}
-            title="Sources"
-            counts={count(sourceRows, sourceState)}
-            labels={SOURCE_LABELS}
-          />
+      {/* Each card holds its place while its list loads: the row keeps its
+          five slots rather than filling in and reflowing card by card. A list
+          only an admin may read gets none for a restricted key, whose request
+          is refused: its slot would show and then vanish. */}
+      <AreaGrid
+        loading={
+          sources.isLoading ||
+          (admin && connectors.isLoading) ||
+          endpoints.isLoading ||
+          (admin && projects.isLoading) ||
+          (admin && credentials.isLoading)
+        }
+      >
+        {sources.isLoading ? (
+          <AreaCardSkeleton />
+        ) : (
+          sources.isSuccess && (
+            <AreaCard
+              link={link}
+              to="/sources"
+              icon={ICONS.sources}
+              title="Sources"
+              counts={count(sourceRows, sourceState)}
+              labels={SOURCE_LABELS}
+            />
+          )
         )}
-        {connectors.isSuccess && (
-          <AreaCard
-            link={link}
-            to="/connectors"
-            icon={ICONS.connectors}
-            title="Connectors"
-            counts={count(connectors.data, connectorState)}
-            labels={CONNECTOR_LABELS}
-            goodWord="Working"
-          />
+        {admin && connectors.isLoading ? (
+          <AreaCardSkeleton />
+        ) : (
+          connectors.isSuccess && (
+            <AreaCard
+              link={link}
+              to="/connectors"
+              icon={ICONS.connectors}
+              title="Connectors"
+              counts={count(connectors.data, connectorState)}
+              labels={CONNECTOR_LABELS}
+              goodWord="Working"
+            />
+          )
         )}
-        {endpoints.isSuccess && (
-          <AreaCard
-            link={link}
-            to="/endpoints"
-            icon={ICONS.endpoints}
-            title="Endpoints"
-            counts={count(endpoints.data, endpointState)}
-            labels={ENDPOINT_LABELS}
-          />
+        {endpoints.isLoading ? (
+          <AreaCardSkeleton />
+        ) : (
+          endpoints.isSuccess && (
+            <AreaCard
+              link={link}
+              to="/endpoints"
+              icon={ICONS.endpoints}
+              title="Endpoints"
+              counts={count(endpoints.data, endpointState)}
+              labels={ENDPOINT_LABELS}
+            />
+          )
         )}
-        {projects.isSuccess && (
-          <AreaCard
-            link={link}
-            to="/projects"
-            icon={ICONS.projects}
-            title="Projects"
-            counts={count(projects.data, projectState)}
-            labels={PROJECT_LABELS}
-            goodWord="Synced"
-          />
+        {admin && projects.isLoading ? (
+          <AreaCardSkeleton />
+        ) : (
+          projects.isSuccess && (
+            <AreaCard
+              link={link}
+              to="/projects"
+              icon={ICONS.projects}
+              title="Projects"
+              counts={count(projects.data, projectState)}
+              labels={PROJECT_LABELS}
+              goodWord="Synced"
+            />
+          )
         )}
-        {credentials.isSuccess && (
-          <AreaCard
-            link={link}
-            to="/credentials"
-            icon={ICONS.credentials}
-            title="Credentials"
-            // Resolving is what this card counts: an unused credential
-            // resolves too (it is only a candidate for removal), as the
-            // Configuration page's "7, all working" counts it.
-            counts={count(credentials.data, (c) =>
-              credentialState(c) === "pending" ? "fresh" : credentialState(c),
-            )}
-            labels={CREDENTIAL_LABELS}
-            goodWord="Working"
-          />
+        {admin && credentials.isLoading ? (
+          <AreaCardSkeleton />
+        ) : (
+          credentials.isSuccess && (
+            <AreaCard
+              link={link}
+              to="/credentials"
+              icon={ICONS.credentials}
+              title="Credentials"
+              // Resolving is what this card counts: an unused credential
+              // resolves too (it is only a candidate for removal), as the
+              // Configuration page's "7, all working" counts it.
+              counts={count(credentials.data, (c) =>
+                credentialState(c) === "pending" ? "fresh" : credentialState(c),
+              )}
+              labels={CREDENTIAL_LABELS}
+              goodWord="Working"
+            />
+          )
         )}
       </AreaGrid>
 
