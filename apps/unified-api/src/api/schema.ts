@@ -755,8 +755,6 @@ export interface components {
       location?: string | null;
       /** @description Its description, or the identity when it has none */
       name: string;
-      /** @description "native" or "ansible" for a script connector; null otherwise */
-      output_format?: string | null;
       /**
        * @description The file it runs or reads. Null for the built-ins and for a
        *     connector with an inline `script`

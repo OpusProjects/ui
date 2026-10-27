@@ -142,7 +142,6 @@ const builtIn = (
   path: null,
   script_args: [],
   host_args: [],
-  output_format: null,
   timeout_seconds: null,
   used_by: [],
   health: { sources: 0, healthy: 0, failing: 0, never_synced: 0 },
@@ -158,7 +157,6 @@ export const connectors: Schemas["ConnectorInfo"][] = [
     path: "connectors/inventory.py",
     script_args: ["--format", "json"],
     host_args: ["--host"],
-    output_format: "native",
     timeout_seconds: 300,
     used_by: [
       {

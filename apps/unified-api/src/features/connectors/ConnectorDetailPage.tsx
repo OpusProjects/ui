@@ -55,8 +55,8 @@ const HINTS: Record<string, string> = {
   "Script args": "script_args. Arguments passed to the script on every run.",
   "Host args":
     "host_args. Arguments added when a sync asks for named hosts only (an on-demand refresh).",
-  "Output format":
-    "output_format. native: the script prints this instance's own dataset. ansible: it prints an Ansible inventory, which is converted.",
+  Prints:
+    "What the script prints: Ansible inventory JSON, as an Ansible dynamic inventory script's --list does (host variables under _meta.hostvars, each group a top-level key). It is the one format read.",
   Timeout:
     "timeout_seconds. How long one sync may run. A source may set its own; the table below shows the one each source syncs under.",
 };
@@ -191,7 +191,8 @@ function ItemFacts({ connector }: { connector: Connector }) {
       </Fact>
       {/* Every item connector says where it runs, so the Overview ends on
           full rows: nine facts for a script connector, six for ssh, which
-          has no host args or output format (refused on it). */}
+          has no host args (refused on it) and prints no inventory of its
+          own: it builds one from what each host answers. */}
       <Fact label="Location" hint={HINTS["Location"]}>
         {/* In italic, as Project's "Local file" or "On the host": a
             place, not a name to follow. */}
@@ -234,8 +235,10 @@ function ItemFacts({ connector }: { connector: Connector }) {
           <Fact label="Host args" hint={HINTS["Host args"]}>
             {args(connector.host_args)}
           </Fact>
-          <Fact label="Output format" hint={HINTS["Output format"]}>
-            {connector.output_format ?? "None"}
+          {/* Not a setting: the one format there is, in italic like the
+              other facts that describe rather than name. */}
+          <Fact label="Prints" hint={HINTS["Prints"]}>
+            <em className={common.soft}>Ansible inventory</em>
           </Fact>
         </>
       )}

@@ -91,7 +91,9 @@ test("a connector's page shows its facts and the sources using it", async ({
   await expect(overview.getByText("connectors/inventory.py")).toBeVisible();
   await expect(overview.getByText("--format json")).toBeVisible();
   await expect(overview.getByText("--host", { exact: true })).toBeVisible();
-  await expect(overview.getByText("native", { exact: true })).toBeVisible();
+  await expect(
+    overview.getByText("Ansible inventory", { exact: true }),
+  ).toBeVisible();
   await expect(overview.getByText("5m", { exact: true })).toBeVisible();
 
   const usedBy = page.locator("section", {
@@ -189,7 +191,6 @@ test("an ssh connector shows where its path is", async ({ page }) => {
     script,
     script_args: [],
     host_args: [],
-    output_format: null,
     used_by: [],
     health: { sources: 0, healthy: 0, failing: 0, never_synced: 0 },
   });
@@ -279,8 +280,8 @@ test("an ssh connector shows where its path is", async ({ page }) => {
 });
 
 // Every connector's Overview ends on full rows of three: nine facts for a
-// script connector (with Location and Sources), six for ssh (no host args
-// or output format, which it refuses).
+// script connector (with Location, Prints and Sources), six for ssh (no
+// host args, which it refuses, and no inventory of its own to print).
 test("connector overviews end on full rows", async ({ page }) => {
   await mockApi(page);
   const facts = () =>
@@ -292,6 +293,11 @@ test("connector overviews end on full rows", async ({ page }) => {
   await expect(facts()).toHaveCount(9);
   await expect(
     facts().filter({ hasText: "Sources" }).filter({ hasText: "2, 1 failing" }),
+  ).toHaveCount(1);
+  await expect(
+    facts()
+      .filter({ hasText: "Prints" })
+      .filter({ hasText: "Ansible inventory" }),
   ).toHaveCount(1);
   await page.goto("/connectors/remote");
   await expect(facts()).toHaveCount(3);
