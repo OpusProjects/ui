@@ -11,6 +11,7 @@ unified-ui version it builds into its image.
 
 ### Added
 
+- A History panel on a unified-api source's page (its last syncs: why and by whom, what each covered, the hosts and groups it brought or why it failed, how long it took) and on a project's page in both apps (its last pulls: why and by whom, the commit each moved the checkout from and to, with links), from the new `history` fields: unified-api 0.37.0 and unified-gitops 0.4.0; an older instance shows none. One `RunHistory` table in `@opusprojects/unified-ui`.
 - An Order menu ends every list page's toolbar (both apps): A to Z and Z to A, A to Z the default; on Sources also Fresh to Stale and Stale to Fresh, with worst first (Stale to Fresh) staying its default. The choice is remembered per list in the browser; arrow keys, Enter and Escape work, and on a narrow screen it opens leftwards when it would not fit. `useListFilter` takes the card's name, the orders offered and a key, `ListPage` a `name`, and `ListToolbar` its `orders` (`orderOptions()`, or `orderOptions([good, bad])` for the health ones).
 
 ### Changed

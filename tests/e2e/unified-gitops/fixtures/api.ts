@@ -205,6 +205,22 @@ const projects: Schemas["ProjectInfo"][] = [
       connectors: ["kv"],
     },
     sync_health: health(),
+    // The pull before a check, and a failed scheduled one.
+    history: [
+      {
+        started_at: Math.floor(Date.now() / 1000) - 60,
+        duration_ms: 640,
+        trigger: "check",
+        revision_before: "aaaaaaa1111111111111111111111111111111111",
+        revision: "bbbbbbb2222222222222222222222222222222222",
+      },
+      {
+        started_at: Math.floor(Date.now() / 1000) - 3600,
+        duration_ms: 30000,
+        trigger: "scheduled",
+        error: "git fetch: could not resolve host",
+      },
+    ],
   },
 ];
 

@@ -69,6 +69,25 @@ export const detail = (
   ttl_seconds: 3600,
   total_groups: 2,
   dataset_bytes: 2048,
+  // A manual sync that worked, and a scheduled one before it that failed.
+  history: [
+    {
+      started_at: Math.floor(Date.now() / 1000) - 120,
+      duration_ms: 4210,
+      trigger: "manual",
+      by: "key-ops",
+      scope: "full",
+      hosts: 1234,
+      groups: 12,
+    },
+    {
+      started_at: Math.floor(Date.now() / 1000) - 3600,
+      duration_ms: 300000,
+      trigger: "scheduled",
+      scope: "full",
+      error: "sync timed out after 300s",
+    },
+  ],
   gathering: {
     connector: "inventory",
     connector_type: "script",
@@ -125,6 +144,24 @@ export const projects: Schemas["ProjectInfo"][] = [
       enrichers: [],
     },
     sync_health: health(),
+    // A pull that moved the checkout, and one that found nothing new.
+    history: [
+      {
+        started_at: Math.floor(Date.now() / 1000) - 60,
+        duration_ms: 820,
+        trigger: "manual",
+        by: "key-ops",
+        revision_before: "1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        revision: "2222222bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      },
+      {
+        started_at: Math.floor(Date.now() / 1000) - 1800,
+        duration_ms: 310,
+        trigger: "scheduled",
+        revision_before: "1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        revision: "1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      },
+    ],
   },
 ];
 

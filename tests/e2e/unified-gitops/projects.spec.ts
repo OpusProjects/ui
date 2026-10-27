@@ -147,3 +147,19 @@ test("Pull all pulls every project and restarts their Last pull", async ({
   ]);
   await expect(lastPull).toContainText("20s ago");
 });
+
+// A project's last pulls in unified-gitops too, the pull before a check
+// among them.
+test("a project's page lists its last pulls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/projects/prj-state");
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const rows = history.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("Before a check");
+  await expect(rows.nth(0)).toContainText("aaaaaaa → bbbbbbb");
+  await expect(rows.nth(1)).toContainText("could not resolve host");
+  await expect(rows.nth(1)).toContainText("Failed");
+});

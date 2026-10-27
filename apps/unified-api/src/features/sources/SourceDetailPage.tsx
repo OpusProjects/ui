@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import {
-  PageHeader,
-  Pagination,
-  Panel,
   CodeView,
   CopyButton,
   countOf,
+  EmptyState,
   Fact,
   formatBytes,
   formatCount,
@@ -17,8 +15,11 @@ import {
   HealthPill,
   LinesView,
   LiveAge,
-  EmptyState,
   Notice,
+  PageHeader,
+  Pagination,
+  Panel,
+  RunHistory,
   Schedule,
   SearchField,
   SegmentedSwitch,
@@ -93,6 +94,15 @@ export function SourceDetailPage() {
               This source has not completed a sync. Its hosts appear here after
               the first successful one.
             </EmptyState>
+          )}
+          {/* A view syncs nothing: its members' pages have the histories. */}
+          {detail.data.kind === "source" && (
+            <Panel
+              title="History"
+              hint="The last syncs of this source, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, what it covered and brought, and how long it took."
+            >
+              <RunHistory runs={detail.data.history ?? []} kind="sync" />
+            </Panel>
           )}
         </>
       )}

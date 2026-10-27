@@ -84,6 +84,7 @@ export {
 export { pageStyles } from "./components/Common";
 export { ListToolbar } from "./components/ListToolbar";
 export { orderOptions, type OrderOption } from "./components/OrderMenu";
+export { RunHistory, type RunLike } from "./components/RunHistory";
 export { ListPage, type ListPageProps } from "./components/ListPage";
 export {
   Commit,

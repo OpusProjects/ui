@@ -230,7 +230,7 @@ test("a source's groups show their own variables", async ({ page }) => {
   await page.getByRole("button", { name: "Groups", exact: true }).click();
   await expect(page).toHaveURL(/list=groups/);
   await expect(page.getByRole("heading", { name: "Groups" })).toBeVisible();
-  await expect(page.getByText("2 groups")).toBeVisible();
+  await expect(page.getByText("2 groups", { exact: true })).toBeVisible();
   await page.getByRole("option", { name: "all" }).click();
   await expect(page).toHaveURL(/group=all/);
   const vars = page.getByRole("heading", { name: "all", exact: true });
@@ -529,4 +529,38 @@ test("other lists order by name only, A to Z first", async ({ page }) => {
     .getByRole("menuitemradio");
   await expect(items).toHaveText(["A to Z", "Z to A"]);
   await expect(items.first()).toHaveAttribute("aria-checked", "true");
+});
+
+// A source's last syncs, newest first: why and by whom, what each covered
+// and brought, or why it failed.
+test("a source's page lists its last syncs", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources/src-alpha");
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const rows = history.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("Manual by key-ops");
+  await expect(rows.nth(0)).toContainText("Full");
+  await expect(rows.nth(0)).toContainText("1,234 hosts, 12 groups");
+  await expect(rows.nth(0)).toContainText("4.2s");
+  await expect(rows.nth(0)).toContainText("Synced");
+  await expect(rows.nth(1)).toContainText("Scheduled");
+  await expect(rows.nth(1)).toContainText("sync timed out after 300s");
+  await expect(rows.nth(1)).toContainText("Failed");
+});
+
+test("a project's page lists its last pulls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/projects/prj-inventory");
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const rows = history.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("Manual by key-ops");
+  await expect(rows.nth(0)).toContainText("1111111 → 2222222");
+  await expect(rows.nth(0)).toContainText("Pulled");
+  await expect(rows.nth(1)).toContainText("1111111 no change");
 });

@@ -1,8 +1,10 @@
 import { Link, useParams } from "react-router";
 import {
+  detailStyles as common,
   DetailTitle,
   EmptyState,
   HealthPill,
+  type ListColumn,
   ListName,
   ListSoft,
   ListTable,
@@ -11,9 +13,8 @@ import {
   Panel,
   ProjectOverview,
   RunButton,
+  RunHistory,
   SkeletonSummary,
-  detailStyles as common,
-  type ListColumn,
 } from "@opusprojects/unified-ui";
 import { api, unwrap, type Schemas } from "../../api/client";
 import { useConnectors, useEndpoints, useProjects } from "../../api/queries";
@@ -121,6 +122,16 @@ export function ProjectDetailPage() {
               <EndpointList ids={project.used_by.endpoints} />
             </Panel>
           )}
+          <Panel
+            title="History"
+            hint="The last pulls of this project, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, and the commit it moved the checkout from and to."
+          >
+            <RunHistory
+              runs={project.history ?? []}
+              kind="pull"
+              gitUrl={project.git_url}
+            />
+          </Panel>
         </>
       )}
     </>
