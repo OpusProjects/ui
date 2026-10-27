@@ -9,6 +9,8 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
 ### Added
 
 - unified-api Connectors: an ssh connector shows what it runs. Files on the host: Runs and its path, Location On the host, Project _On the host_. A script here: File and its Project, as a script connector. A script written in the connector: Runs with it in a few words ("Shell script, 8 lines" rather than a fragment cut at its last `/`), Project _Inline script_, and on its page the whole script in a Script panel. Every connector's Overview is six facts on two full rows: Type, Project, Path (or Runs, or Script), Script args and Timeout, plus Location for an ssh connector and Host args for a script one. Output format is gone: unified-api 0.36.0 reads one output, Ansible inventory JSON. A connector with no project says why in italic (_Local file_, _On the host_, _Inline script_), as a built-in says _Built in_. Requires unified-api 0.36.0.
@@ -129,7 +131,8 @@ unified-ui version it builds into its image.
 - A demo image: the built UI behind nginx, forwarding to a unified-api.
 - Requires unified-api 0.34.0 or later, which also serves this UI itself.
 
-[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/OpusProjects/unified-ui/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/OpusProjects/unified-ui/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/OpusProjects/unified-ui/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/OpusProjects/unified-ui/compare/v0.1.0...v0.2.0
