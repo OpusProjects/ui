@@ -193,12 +193,9 @@ function ItemFacts({ connector }: { connector: Connector }) {
           full rows: nine facts for a script connector, six for ssh, which
           has no host args or output format (refused on it). */}
       <Fact label="Location" hint={HINTS["Location"]}>
-        {pathKind(connector) === "file" ? (
-          LOCATION_WORDS.file
-        ) : (
-          // In italic, as Project says it: no checkout, only a place.
-          <em className={common.soft}>{LOCATION_WORDS[pathKind(connector)]}</em>
-        )}
+        {/* In italic, as Project's "Local file" or "On the host": a
+            place, not a name to follow. */}
+        <em className={common.soft}>{LOCATION_WORDS[pathKind(connector)]}</em>
       </Fact>
       {pathKind(connector) === "inline" ? (
         <Fact label="Script" hint={HINTS["Script"]}>
