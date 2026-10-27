@@ -118,16 +118,19 @@ export function ProjectDetailPage() {
           />
           <UsedBy project={project} />
           <Webhooks project={project.name} />
-          <Panel
-            title="History"
-            hint="The last pulls of this project, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, and the commit it moved the checkout from and to."
-          >
-            <RunHistory
-              runs={project.history ?? []}
-              kind="pull"
-              gitUrl={project.git_url}
-            />
-          </Panel>
+          {/* An instance older than the history has none to show. */}
+          {project.history && (
+            <Panel
+              title="History"
+              hint="The last pulls of this project, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, and the commit it moved the checkout from and to. A pull before a check is listed only when it moved the commit or failed."
+            >
+              <RunHistory
+                runs={project.history}
+                kind="pull"
+                gitUrl={project.git_url}
+              />
+            </Panel>
+          )}
         </>
       )}
     </>

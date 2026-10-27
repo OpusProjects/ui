@@ -1,4 +1,4 @@
-import { formatCount } from "../lib/format";
+import { countOf } from "../lib/format";
 import { HealthPill } from "./Health";
 import { ListSoft, ListTable, type ListColumn } from "./ListTable";
 import { LiveAge } from "./LiveAge";
@@ -34,15 +34,15 @@ const triggerOf = (run: RunLike) => {
   return run.by ? `${word} by ${run.by}` : word;
 };
 
-// What a sync covered: "Full", "Host web01", "Group racks".
+// What a sync covered: "Full", "Host web01", "Hosts a, b", "Group racks".
 const coveredOf = (scope?: string | null) => {
   if (!scope || scope === "full") return "Full";
-  const [kind, target] = scope.split(/:(.*)/s);
-  return kind === "host"
-    ? `Host ${target}`
-    : kind === "group"
-      ? `Group ${target}`
-      : scope;
+  const [kind, target = ""] = scope.split(/:(.*)/s);
+  if (kind === "host") {
+    const hosts = target.split(",");
+    return `${hosts.length === 1 ? "Host" : "Hosts"} ${hosts.join(", ")}`;
+  }
+  return kind === "group" ? `Group ${target}` : scope;
 };
 
 // The moment it started, in UTC, for the hover on its age.
@@ -51,8 +51,9 @@ const startedAt = (unixSeconds: number) =>
 
 // A source's last syncs or a project's last pulls, newest first: what the
 // health above them sums up, one row per run. The same table in both apps.
-// An instance older than the history (no `history` in its answer) reads as
-// none yet: callers pass `?? []`.
+// An instance older than the history has no `history` in its answer: the
+// callers show no panel at all then, rather than one saying "no syncs"
+// beside a recent last success.
 export function RunHistory({
   runs,
   kind,
@@ -90,7 +91,7 @@ export function RunHistory({
               failed(run) ? (
                 <span className={detail.soft}>{run.error}</span>
               ) : (
-                `${formatCount(run.hosts ?? 0)} hosts, ${formatCount(run.groups ?? 0)} groups`
+                `${countOf(run.hosts ?? 0, "host")}, ${countOf(run.groups ?? 0, "group")}`
               ),
           },
         ]
@@ -150,7 +151,9 @@ export function RunHistory({
     <ListTable
       columns={columns}
       rows={runs}
-      rowKey={(run) => `${run.started_at}-${run.trigger}-${run.duration_ms}`}
+      // By place: two runs can share their second, trigger and duration
+      // (quick refreshes), and the list only ever grows at the top.
+      rowKey={(run) => String(runs.indexOf(run))}
       empty={
         kind === "sync"
           ? "No syncs since this instance started."

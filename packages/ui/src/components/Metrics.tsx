@@ -304,6 +304,7 @@ export function RouteTable({
       key: "route",
       label: "Route",
       render: (r) => <code className={common.mono}>{r.route}</code>,
+      title: (r) => r.route,
     },
     {
       key: "requests",

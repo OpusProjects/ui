@@ -94,16 +94,23 @@ export function formatSchedule(expression: string): string | null {
       : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 
   const seconds = sec === "0" ? 0 : null;
+  // A step is an even interval only when it divides its field's range: */7
+  // hours runs at 00, 07, 14 and 21, then 3h later at 00 again; that is no
+  // "every 7h", and it is shown as written instead.
+  const even = (n: string | undefined, range: number) =>
+    n !== undefined && Number(n) > 0 && range % Number(n) === 0;
   // Every N seconds, minutes or hours: an interval, said as one.
   if (any(dom) && any(month) && any(dow)) {
     const s = step(sec);
-    if (s && any(min) && any(hour)) return formatEvery(Number(s));
+    if (s && any(min) && any(hour))
+      return even(s, 60) ? formatEvery(Number(s)) : null;
     if (seconds === 0 && any(hour)) {
       const m = step(min);
-      if (m) return formatEvery(Number(m) * 60);
+      if (m) return even(m, 60) ? formatEvery(Number(m) * 60) : null;
       if (any(min)) return formatEvery(60);
     }
     const h = step(hour);
+    if (h && !even(h, 24)) return null;
     const at = nums(min);
     if (seconds === 0 && (h || any(hour)) && at?.length === 1) {
       const every = formatEvery((h ? Number(h) : 1) * 3600);
@@ -117,7 +124,7 @@ export function formatSchedule(expression: string): string | null {
   if (seconds !== 0 || !minutes || !hours || minutes.length !== 1) return null;
   const times = `${and(hours.map((h) => `${pad(h)}:${pad(minutes[0])}`))} UTC`;
   const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const MONTHS = [
     "",
     "jan",
@@ -153,8 +160,12 @@ export function formatSchedule(expression: string): string | null {
 
   if (any(dom) && any(month)) {
     if (any(dow)) return `daily at ${times}`;
-    const days = nums(dow, DAYS)?.map((d) => d % 7);
+    // Monday to Sunday, Sunday as 7 whether written 0 or 7, so a range
+    // ending on Sunday stays one ("Fri–Sun"); all seven are every day.
+    const days = nums(dow, DAYS)?.map((d) => d % 7 || 7);
     if (!days) return null;
+    days.sort((a, b) => a - b);
+    if (new Set(days).size === 7) return `daily at ${times}`;
     const runs =
       days.length > 2 && days.every((d, i) => i === 0 || d === days[i - 1] + 1)
         ? `${DAY_NAMES[days[0]]}–${DAY_NAMES[days[days.length - 1]]}`

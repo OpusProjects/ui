@@ -346,7 +346,7 @@ function CheckTable({ samples }: { samples: Sample[] }) {
         r.failures > 0 ? (
           <HealthPill
             state="failing"
-            labels={{ failing: `${r.failures} failed in a row` }}
+            labels={{ failing: `${formatCount(r.failures)} failed in a row` }}
           />
         ) : (
           <HealthPill state="fresh" labels={{ fresh: "Working" }} />

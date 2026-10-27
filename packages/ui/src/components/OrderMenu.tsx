@@ -58,17 +58,25 @@ export function OrderMenu({
       setAlignRight(true);
   }, [open]);
 
+  // Read when the menu opens, not as a dependency: the options are built
+  // afresh on every render of the page, and a poll re-rendering it must
+  // not pull the focus back from where the arrows took it.
+  const current = useRef(0);
+  current.current = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
+
   useEffect(() => {
     if (!open) return;
     // Opened: the item in use takes the focus, as a native menu does.
-    const current = options.findIndex((o) => o.value === value);
-    items.current[Math.max(0, current)]?.focus();
+    items.current[current.current]?.focus();
     const outside = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
-  }, [open, options, value]);
+  }, [open]);
 
   const close = () => {
     setOpen(false);

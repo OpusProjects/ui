@@ -82,7 +82,8 @@ export function ProjectTable({
       columns={columns}
       rows={rows}
       rowKey={(r) => r.name}
-      empty={empty}
+      // `projects: all` names none until the list arrives: not "none" yet.
+      empty={projects.isPending ? "Loading projects…" : empty}
       noun="projects"
     />
   );

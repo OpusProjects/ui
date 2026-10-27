@@ -84,7 +84,7 @@ export function OverviewPage() {
         text: (
           <>
             Source <b>{s.source_id}</b> is failing
-            {failures > 1 && `, ${failures} syncs in a row`}
+            {failures > 1 && `, ${formatCount(failures)} syncs in a row`}
           </>
         ),
         to: `/sources/${encodeURIComponent(s.source_id)}`,

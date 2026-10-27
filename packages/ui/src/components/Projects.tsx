@@ -18,7 +18,7 @@ import { ListPage } from "./ListPage";
 import { RunAllButton } from "./RunAllButton";
 import { RunButton } from "./RunButton";
 import { LiveAge } from "./LiveAge";
-import { formatEvery, formatSpan } from "../lib/format";
+import { formatCount, formatEvery, formatSpan } from "../lib/format";
 import { Schedule } from "./Detail";
 import styles from "./Common.module.css";
 
@@ -275,7 +275,9 @@ export function ProjectOverview({
         <HealthPill
           state={projectState(project)}
           labels={PROJECT_LABELS}
-          detail={failures > 1 ? `${failures} in a row` : undefined}
+          detail={
+            failures > 1 ? `${formatCount(failures)} in a row` : undefined
+          }
         />
       }
     >

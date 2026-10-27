@@ -38,8 +38,6 @@ export function DetailTitle({
   );
 }
 
-// A long value (a path, a list of origins) in one line, cut short with the
-// whole of it on hover.
 // A cron schedule in words ("daily at 04:15 UTC"), the expression itself on
 // hover; one too irregular to put in words is shown as written.
 export function Schedule({ cron }: { cron: string }) {
@@ -53,6 +51,8 @@ export function Schedule({ cron }: { cron: string }) {
   );
 }
 
+// A long value (a path, a list of origins) in one line, cut short with the
+// whole of it on hover.
 export function Clip({ value }: { value: string }) {
   return (
     <code className={`${styles.mono} ${styles.clipText}`} title={value}>

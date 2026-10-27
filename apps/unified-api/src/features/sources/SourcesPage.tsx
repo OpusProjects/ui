@@ -165,7 +165,9 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
       )}
       tag={isView ? "view" : undefined}
       state={state}
-      stateDetail={failures > 1 ? `${failures} in a row` : undefined}
+      stateDetail={
+        failures > 1 ? `${formatCount(failures)} in a row` : undefined
+      }
       error={health?.last_error}
       footer={
         <>

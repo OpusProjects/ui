@@ -125,6 +125,7 @@ test("Sync shows Syncing… until the new data is in", async ({ page }) => {
 // gives, even when that age is the same number as before (30s in the
 // fixture, before and after): each answer is counted from when it came.
 test("a Sync resets Data from and its meter", async ({ page }) => {
+  // The clock runs between steps: allow a second or two of drift.
   await page.clock.install();
   await mockApi(page);
   await page.goto("/sources/src-alpha");
@@ -133,14 +134,14 @@ test("a Sync resets Data from and its meter", async ({ page }) => {
     .locator("section", { hasText: "Overview" })
     .locator("dl > div", { has: page.locator("dt", { hasText: "Data from" }) })
     .first();
-  await expect(dataFrom).toContainText("30s ago");
+  await expect(dataFrom).toContainText(/\b3[0-2]s ago/);
   const meter = dataFrom.getByRole("meter");
   const before = Number(await meter.getAttribute("aria-valuenow"));
   // Less than a poll: only the live clock moves it.
   await page.clock.runFor(10_000);
-  await expect(dataFrom).toContainText("40s ago");
+  await expect(dataFrom).toContainText(/\b4[0-2]s ago/);
   await page.getByRole("button", { name: "Sync", exact: true }).click();
-  await expect(dataFrom).toContainText("30s ago");
+  await expect(dataFrom).toContainText(/\b3[0-2]s ago/);
   await expect
     .poll(async () => Number(await meter.getAttribute("aria-valuenow")))
     .toBe(before);

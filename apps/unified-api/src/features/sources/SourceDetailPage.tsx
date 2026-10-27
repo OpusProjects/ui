@@ -101,12 +101,12 @@ export function SourceDetailPage() {
           )}
           <UsedBy id={id} />
           {/* A view syncs nothing: its members' pages have the histories. */}
-          {detail.data.kind === "source" && (
+          {detail.data.kind === "source" && detail.data.history && (
             <Panel
               title="History"
               hint="The last syncs of this source, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, what it covered and brought, and how long it took."
             >
-              <RunHistory runs={detail.data.history ?? []} kind="sync" />
+              <RunHistory runs={detail.data.history} kind="sync" />
             </Panel>
           )}
         </>
@@ -179,7 +179,8 @@ const HINTS: Record<string, string> = {
 // removed. Each panel only when there is something in it.
 function UsedBy({ id }: { id: string }) {
   const endpoints = useEndpoints();
-  const sources = useSources();
+  // Only the views' details: they name their members.
+  const sources = useSources((s) => s.kind === "view");
   const reading = (endpoints.data ?? [])
     .filter((e) => e.source_ids.includes(id))
     .map((e) => e.endpoint_id);
@@ -232,7 +233,9 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
       aside={
         <HealthPill
           state={state}
-          detail={failures > 1 ? `${failures} in a row` : undefined}
+          detail={
+            failures > 1 ? `${formatCount(failures)} in a row` : undefined
+          }
         />
       }
     >
@@ -560,130 +563,132 @@ function HostBrowser({ id }: { id: string }) {
     });
 
   return (
-    <div className={styles.browser}>
-      <Panel className={styles.hostCard}>
-        <div>
-          {/* Each column opens with its own heading, on one line: "Hosts" on
+    <div className={styles.browserFrame}>
+      <div className={styles.browser}>
+        <Panel className={styles.hostCard}>
+          <div>
+            {/* Each column opens with its own heading, on one line: "Hosts" on
               the left, the selected host on the right. */}
-          <div className={styles.columnHead}>
-            <h2 className={styles.columnTitle}>
-              {mode === "hosts" ? "Hosts" : "Groups"}
-            </h2>
-            {loading.isSuccess && (
-              <span className={styles.varCount}>
-                {needle
-                  ? `${formatCount(matching.length)} of ${countOf(names.length, noun)}`
-                  : countOf(names.length, noun)}
-              </span>
-            )}
-          </div>
-          {/* From the search down: what stays in view while the variables
-              scroll; the heading above scrolls away with the page. */}
-          <div className={styles.hostSticky}>
-            <div className={styles.toolbar}>
-              <SearchField
-                label={`Search ${mode}`}
-                placeholder={`Search ${mode}`}
-                value={query}
-                onChange={setQuery}
-                size="compact"
-              />
-              <SegmentedSwitch
-                label="Show"
-                value={mode}
-                onChange={setMode}
-                options={[
-                  { value: "hosts", label: "Hosts" },
-                  { value: "groups", label: "Groups" },
-                ]}
-              />
+            <div className={styles.columnHead}>
+              <h2 className={styles.columnTitle}>
+                {mode === "hosts" ? "Hosts" : "Groups"}
+              </h2>
+              {loading.isSuccess && (
+                <span className={styles.varCount}>
+                  {needle
+                    ? `${formatCount(matching.length)} of ${countOf(names.length, noun)}`
+                    : countOf(names.length, noun)}
+                </span>
+              )}
             </div>
-            {loading.isPending && (
-              <p className={common.soft}>Loading {mode}…</p>
-            )}
-            {loading.isError && (
-              <p className={common.soft}>{loading.error.message}</p>
-            )}
-            {/* Only a search can fail to match; an empty source or group
+            {/* From the search down: what stays in view while the variables
+              scroll; the heading above scrolls away with the page. */}
+            <div className={styles.hostSticky}>
+              <div className={styles.toolbar}>
+                <SearchField
+                  label={`Search ${mode}`}
+                  placeholder={`Search ${mode}`}
+                  value={query}
+                  onChange={setQuery}
+                  size="compact"
+                />
+                <SegmentedSwitch
+                  label="Show"
+                  value={mode}
+                  onChange={setMode}
+                  options={[
+                    { value: "hosts", label: "Hosts" },
+                    { value: "groups", label: "Groups" },
+                  ]}
+                />
+              </div>
+              {loading.isPending && (
+                <p className={common.soft}>Loading {mode}…</p>
+              )}
+              {loading.isError && (
+                <p className={common.soft}>{loading.error.message}</p>
+              )}
+              {/* Only a search can fail to match; an empty source or group
                 has nothing to match against, and says so. */}
-            {loading.isSuccess && matching.length === 0 && (
-              <p className={common.soft}>
-                {needle
-                  ? `No ${noun} matches the search.`
-                  : `No ${mode} right now.`}
-              </p>
-            )}
-            {/* A listbox, framed like the fields above it: one focus stop,
+              {loading.isSuccess && matching.length === 0 && (
+                <p className={common.soft}>
+                  {needle
+                    ? `No ${noun} matches the search.`
+                    : `No ${mode} right now.`}
+                </p>
+              )}
+              {/* A listbox, framed like the fields above it: one focus stop,
                 arrow keys move the selection, every row is an option. */}
-            {shown.length > 0 && (
-              <ul
-                ref={list}
-                className={styles.hostList}
-                role="listbox"
-                aria-label={mode === "hosts" ? "Hosts" : "Groups"}
-                aria-activedescendant={
-                  selected && shown.includes(selected)
-                    ? optionId(mode, selected)
-                    : undefined
-                }
-                tabIndex={shown.length > 0 ? 0 : -1}
-                onKeyDown={(e) => {
-                  const at = selected ? shown.indexOf(selected) : -1;
-                  const next =
-                    e.key === "ArrowDown"
-                      ? Math.min(shown.length - 1, at + 1)
-                      : e.key === "ArrowUp"
-                        ? Math.max(0, at - 1)
-                        : e.key === "Home"
-                          ? 0
-                          : e.key === "End"
-                            ? shown.length - 1
-                            : null;
-                  if (next === null || shown.length === 0) return;
-                  e.preventDefault();
-                  select(shown[next]);
-                }}
-              >
-                {shown.map((name) => (
-                  <li
-                    key={name}
-                    id={optionId(mode, name)}
-                    role="option"
-                    aria-selected={name === selected}
-                    className={styles.hostOption}
-                    onClick={() => select(name)}
-                    title={name}
-                  >
-                    {name}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Pagination {...pager} noun={mode} />
+              {shown.length > 0 && (
+                <ul
+                  ref={list}
+                  className={styles.hostList}
+                  role="listbox"
+                  aria-label={mode === "hosts" ? "Hosts" : "Groups"}
+                  aria-activedescendant={
+                    selected && shown.includes(selected)
+                      ? optionId(mode, selected)
+                      : undefined
+                  }
+                  tabIndex={shown.length > 0 ? 0 : -1}
+                  onKeyDown={(e) => {
+                    const at = selected ? shown.indexOf(selected) : -1;
+                    const next =
+                      e.key === "ArrowDown"
+                        ? Math.min(shown.length - 1, at + 1)
+                        : e.key === "ArrowUp"
+                          ? Math.max(0, at - 1)
+                          : e.key === "Home"
+                            ? 0
+                            : e.key === "End"
+                              ? shown.length - 1
+                              : null;
+                    if (next === null || shown.length === 0) return;
+                    e.preventDefault();
+                    select(shown[next]);
+                  }}
+                >
+                  {shown.map((name) => (
+                    <li
+                      key={name}
+                      id={optionId(mode, name)}
+                      role="option"
+                      aria-selected={name === selected}
+                      className={styles.hostOption}
+                      onClick={() => select(name)}
+                      title={name}
+                    >
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Pagination {...pager} noun={mode} />
+            </div>
           </div>
-        </div>
-      </Panel>
-      <Panel className={styles.varsCard}>
-        <div ref={varsTop} />
-        {selected ? (
-          mode === "hosts" ? (
-            <HostVars id={id} host={selected} />
+        </Panel>
+        <Panel className={styles.varsCard}>
+          <div ref={varsTop} />
+          {selected ? (
+            mode === "hosts" ? (
+              <HostVars id={id} host={selected} />
+            ) : (
+              <GroupVars id={id} group={selected} />
+            )
+          ) : loading.isSuccess && names.length === 0 ? (
+            // Nothing to pick: say why there is nothing, not "pick one".
+            <EmptyState title={`No ${mode} to show`}>
+              {mode === "hosts"
+                ? "This source holds no hosts right now. They appear here after a sync that brings some."
+                : "This source has no groups right now."}
+            </EmptyState>
           ) : (
-            <GroupVars id={id} group={selected} />
-          )
-        ) : loading.isSuccess && names.length === 0 ? (
-          // Nothing to pick: say why there is nothing, not "pick one".
-          <EmptyState title={`No ${mode} to show`}>
-            {mode === "hosts"
-              ? "This source holds no hosts right now. They appear here after a sync that brings some."
-              : "This source has no groups right now."}
-          </EmptyState>
-        ) : (
-          <EmptyState title={`No ${noun} selected`}>
-            Pick one on the left.
-          </EmptyState>
-        )}
-      </Panel>
+            <EmptyState title={`No ${noun} selected`}>
+              Pick one on the left.
+            </EmptyState>
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }

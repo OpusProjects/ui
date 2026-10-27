@@ -480,6 +480,8 @@ export interface Column<T> {
   label: string;
   numeric?: boolean;
   render: (row: T) => ReactNode;
+  // The whole value on hover, for a cell cut short when the table is narrow.
+  title?: (row: T) => string;
 }
 
 // The least space between one column's content and the next; below it the
@@ -488,20 +490,35 @@ const MIN_GAP = 24;
 // The padding outside the first and last columns, where a row's hover
 // highlight needs room round the text.
 const EDGE = 10;
+// The least a text column keeps when it gives way to the others.
+const MIN_TEXT = 120;
 
 // Width of each column in pixels, so the space between one column's content
 // and the next is the same everywhere. Each gap goes inside the column whose
 // content is aligned away from it: after a left-aligned column's content,
 // before a right-aligned (numeric) one's. Between a numeric column and a
 // left-aligned one neither side has room, so the second is padded. Null when
-// the gaps would be under MIN_GAP.
+// the gaps would be under MIN_GAP even with the widest text column cut short
+// (`clip`, ending in an ellipsis) down to MIN_TEXT.
 function evenColumns(content: number[], numeric: boolean[], total: number) {
   const gaps = content.length - 1;
   const inner = total - 2 * EDGE;
   if (gaps <= 0 || inner <= 0) return null;
-  const gap = (inner - content.reduce((a, b) => a + b, 0)) / gaps;
-  if (gap < MIN_GAP) return null;
   const width = content.slice();
+  let gap = (inner - content.reduce((a, b) => a + b, 0)) / gaps;
+  let clip: number | null = null;
+  if (gap < MIN_GAP) {
+    // Too wide as it is: a long route or name gives way rather than the
+    // panel scrolling sideways for a few pixels.
+    const text = content.map((_, i) => i).filter((i) => !numeric[i]);
+    if (text.length === 0) return null;
+    const widest = text.reduce((a, b) => (content[b] > content[a] ? b : a));
+    const short = (MIN_GAP - gap) * gaps;
+    if (content[widest] - short < MIN_TEXT) return null;
+    width[widest] -= short;
+    gap = MIN_GAP;
+    clip = widest;
+  }
   const pad = content.map(() => 0);
   for (let i = 0; i < gaps; i++) {
     if (!numeric[i]) width[i] += gap;
@@ -513,7 +530,11 @@ function evenColumns(content: number[], numeric: boolean[], total: number) {
   width[0] += EDGE;
   width[gaps] += EDGE;
   const px = (n: number) => `${Number(n.toFixed(2))}px`;
-  return { width: width.map(px), pad: pad.map((n) => (n ? px(n) : undefined)) };
+  return {
+    width: width.map(px),
+    pad: pad.map((n) => (n ? px(n) : undefined)),
+    clip,
+  };
 }
 
 export function DataTable<T>({
@@ -555,8 +576,13 @@ export function DataTable<T>({
   });
 
   // Each cell's content in one measurable box, as wide as it naturally is.
-  const fit = (i: number, content: ReactNode) => (
-    <span className={styles.fit} data-col={i}>
+  const fit = (i: number, content: ReactNode, title?: string) => (
+    <span
+      className={styles.fit}
+      data-col={i}
+      data-clip={widths?.clip === i || undefined}
+      title={title}
+    >
       {content}
     </span>
   );
@@ -597,7 +623,7 @@ export function DataTable<T>({
                   data-numeric={column.numeric || undefined}
                   style={{ paddingLeft: widths?.pad[i] }}
                 >
-                  {fit(i, column.render(row))}
+                  {fit(i, column.render(row), column.title?.(row))}
                 </td>
               ))}
             </tr>
