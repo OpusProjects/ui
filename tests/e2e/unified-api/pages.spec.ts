@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mockApi } from "./fixtures/api";
+import { credentials, mockApi } from "./fixtures/api";
 
 // Every section opens on its own heading, with no error thrown on the way:
 // the cheapest check that a refactor did not break a route or an import.
@@ -176,4 +176,62 @@ test("the overview holds a place for each card while it loads", async ({
   await expect(
     page.getByRole("main").getByRole("link", { name: /^Projects/ }),
   ).toBeVisible();
+});
+
+// A Vault is a credential: Configuration lists each in the Secrets card (name,
+// address, cache), and its own page lists the credentials read from it.
+test("each Vault is a row of the Secrets card, with its readers on its page", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const vault = {
+    ...credentials[0],
+    credential_id: "cred-vault",
+    name: "Team Vault",
+    type: "vault",
+    backend: "vault",
+    env_vars: ["VAULT_TOKEN"],
+    secret_keys: ["token"],
+    vault: null,
+    vault_connection: {
+      address: "https://vault.example.net:8200",
+      mount: "secret",
+      auth: "token",
+      kubernetes_role: null,
+      token_env: "VAULT_TOKEN",
+      timeout_seconds: 10,
+      cache_ttl_seconds: 300,
+    },
+    used_by: {
+      credentials: ["cred-d42"],
+      sources: [],
+      projects: [],
+      ldap: false,
+    },
+  };
+  const reader = {
+    ...credentials[0],
+    credential_id: "cred-d42",
+    name: "Device42",
+    backend: "vault",
+    vault: "cred-vault",
+    vault_path: "infra/d42",
+    env_vars: [],
+  };
+  await page.route(/\/api\/v1\/credentials$/, (route) =>
+    route.fulfill({ json: [...credentials, vault, reader] }),
+  );
+
+  await page.goto("/config");
+  const secrets = page.locator("section", { hasText: "Secrets" }).last();
+  const row = secrets.getByRole("row", { name: /Team Vault/ });
+  await expect(row).toContainText("https://vault.example.net:8200");
+  await expect(row).toContainText("5m");
+
+  await row.getByRole("link").first().click();
+  await expect(page).toHaveURL(/\/credentials\/cred-vault$/);
+  await expect(page.getByText("VAULT_TOKEN")).toBeVisible();
+  const readerRow = page.getByRole("row", { name: /Device42/ });
+  await expect(readerRow).toContainText("infra/d42");
+  await expect(readerRow.getByRole("link", { name: "cred-d42" })).toBeVisible();
 });

@@ -11,6 +11,7 @@ import {
   Panel,
   SecretsPanel,
   SignInPanels,
+  type VaultRow,
   SkeletonSummary,
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
@@ -136,15 +137,35 @@ function ServerPanels({
   // When the settings were fetched: the last save restarts on every answer.
   at: number;
 }) {
-  const { server, cache, projects, secrets, config_api } = settings;
+  const { server, cache, projects, config_api } = settings;
+  // Every Vault: the type: vault credentials, and the deprecated
+  // config.yaml one when it is still set.
+  const credentials = useCredentials();
+  const vaults: VaultRow[] = [
+    ...(credentials.data ?? []).flatMap((c) =>
+      c.vault_connection
+        ? [
+            {
+              id: c.credential_id,
+              name: c.name,
+              address: c.vault_connection.address,
+              cache_ttl_seconds: c.vault_connection.cache_ttl_seconds,
+            },
+          ]
+        : [],
+    ),
+    ...(settings.secrets.vault
+      ? [
+          {
+            id: null,
+            name: "config.yaml (deprecated)",
+            address: settings.secrets.vault.address,
+            cache_ttl_seconds: settings.secrets.cache_ttl_seconds ?? null,
+          },
+        ]
+      : []),
+  ];
   const projectList = useProjects().data;
-  const credentialList = useCredentials().data;
-  const missing = credentialList?.filter((c) => !c.resolves).length ?? 0;
-  const credentialSummary = !credentialList
-    ? "…"
-    : missing > 0
-      ? `${formatCount(missing)} of ${formatCount(credentialList.length)} missing`
-      : `${formatCount(credentialList.length)}, all working`;
   const checkouts = projectList
     ? `${formatCount(projectList.filter((p) => p.checkout_present).length)} of ${formatCount(projectList.length)} on disk`
     : "…";
@@ -255,15 +276,7 @@ function ServerPanels({
         </dl>
       </Panel>
 
-      <SecretsPanel
-        secrets={secrets}
-        credentialSummary={credentialSummary}
-        aside={
-          <Link to="/credentials" className={common.link}>
-            See every credential
-          </Link>
-        }
-      />
+      <SecretsPanel vaults={vaults} loading={!credentials.data} />
     </>
   );
 }

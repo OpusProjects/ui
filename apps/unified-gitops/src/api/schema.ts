@@ -629,14 +629,22 @@ export interface components {
       secret_file?: string | null;
       /** @description The names the connector receives the secrets under (not their values) */
       secret_keys: string[];
-      /** @description `username_password`, `token` or `ssh_key` */
+      /** @description `username_password`, `token`, `ssh_key` or `vault` */
       type: string;
       used_by: components["schemas"]["CredentialUsersInfo"];
+      /**
+       * @description The `type: vault` credential a vault_path is read from (absent = the
+       *     deprecated config.yaml secrets.vault)
+       */
+      vault?: string | null;
+      vault_connection?: components["schemas"]["VaultConnectionInfo"] | null;
       vault_path?: string | null;
     };
     CredentialUsersInfo: {
       /** @description Applications whose connector receives it */
       applications: string[];
+      /** @description For a `type: vault` credential: the credentials reading from it */
+      credentials: string[];
       /** @description Whether the LDAP login's service account binds with it */
       ldap: boolean;
       projects: string[];
@@ -916,10 +924,10 @@ export interface components {
     SecretsSettings: {
       /**
        * Format: int64
-       * @description How long a resolved secret is reused: also how long a rotation takes
-       *     to be picked up
+       * @description The deprecated config.yaml cache over every credential, when still
+       *     set (a Vault credential now has its own `cache_ttl_seconds`)
        */
-      cache_ttl_seconds: number;
+      cache_ttl_seconds?: number | null;
       vault?: components["schemas"]["VaultSettings"] | null;
     };
     ServerSettings: {
@@ -1006,6 +1014,20 @@ export interface components {
       errors?: string[];
       summary?: components["schemas"]["ConfigSummary"] | null;
       valid: boolean;
+    };
+    VaultConnectionInfo: {
+      address: string;
+      /** @description `token` or `kubernetes` */
+      auth: string;
+      /** Format: int64 */
+      cache_ttl_seconds: number;
+      kubernetes_role?: string | null;
+      /** @description The KV v2 mount `vault_path` values live under */
+      mount: string;
+      /** Format: int64 */
+      timeout_seconds: number;
+      /** @description The variable holding its token, for token auth */
+      token_env?: string | null;
     };
     VaultSettings: {
       address: string;

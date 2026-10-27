@@ -16,7 +16,12 @@ import type { Schemas } from "../../api/client";
 import { useCredentials, useProjects } from "../../api/queries";
 import { CredentialOverview, DetailTitle } from "@opusprojects/unified-ui";
 import { SourceTable } from "../../shared/SourceTable";
-import { credentialUsers, usedBy } from "./model";
+import {
+  CREDENTIAL_LABELS,
+  credentialState,
+  credentialUsers,
+  usedBy,
+} from "./model";
 import { PROJECT_LABELS, projectState } from "../projects/model";
 import { ICONS } from "../../sections";
 
@@ -25,11 +30,11 @@ type Project = Schemas["ProjectInfo"];
 // The overview's hints that are this app's own: what receives the secrets,
 // and what can name a credential.
 const HINTS = {
-  type: "type. username_password, token or ssh_key: what the connector expects to receive.",
+  type: "type. username_password, token or ssh_key: what the connector expects to receive; or vault, a Vault other credentials are read from.",
   secretKeys:
     "secret_keys. The names the connector receives the secrets under; never their values.",
   usedBy:
-    "What names this credential: sources (credentials), projects (credential) and the LDAP login (bind_credential).",
+    "What names this credential: sources (credentials), projects (credential), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
 };
 
 export function CredentialDetailPage() {
@@ -68,6 +73,14 @@ export function CredentialDetailPage() {
             usedBy={usedBy(credential)}
             hints={HINTS}
           />
+          {(credential.used_by.credentials?.length ?? 0) > 0 && (
+            <Panel
+              title="Credentials"
+              hint="The credentials read from this Vault: their vault names it, and each is read at its vault_path."
+            >
+              <ReaderTable ids={credential.used_by.credentials} />
+            </Panel>
+          )}
           {/* Shown when sources use it, or when nothing does (so the page
               says so); not as an empty card above the project that does. */}
           {(credential.used_by.sources.length > 0 ||
@@ -94,6 +107,75 @@ export function CredentialDetailPage() {
         </>
       )}
     </>
+  );
+}
+
+// The credentials read from a Vault: each linked by name, where in the Vault
+// it is read, and whether it resolves.
+function ReaderTable({ ids }: { ids: string[] }) {
+  const credentials = useCredentials();
+  const byId = new Map(
+    (credentials.data ?? []).map((c) => [c.credential_id, c]),
+  );
+  type Row = { id: string; credential?: Schemas["CredentialInfo"] };
+  const rows: Row[] = [...ids]
+    .sort()
+    .map((id) => ({ id, credential: byId.get(id) }));
+  const columns: ListColumn<Row>[] = [
+    {
+      key: "name",
+      label: "Credential",
+      role: "name",
+      title: (r) => r.id,
+      render: (r) => (
+        <ListName
+          name={r.credential?.name ?? r.id}
+          link={(className, children) => (
+            <Link
+              to={`/credentials/${encodeURIComponent(r.id)}`}
+              className={className}
+            >
+              {children}
+            </Link>
+          )}
+          id={r.id}
+        />
+      ),
+    },
+    {
+      key: "path",
+      label: "Vault path",
+      title: (r) => r.credential?.vault_path ?? "",
+      render: (r) =>
+        r.credential?.vault_path ? (
+          <code>{r.credential.vault_path}</code>
+        ) : (
+          <ListSoft>–</ListSoft>
+        ),
+    },
+    {
+      key: "state",
+      label: "State",
+      role: "state",
+      render: (r) =>
+        r.credential ? (
+          <HealthPill
+            state={credentialState(r.credential)}
+            labels={CREDENTIAL_LABELS}
+          />
+        ) : (
+          <ListSoft>–</ListSoft>
+        ),
+    },
+  ];
+  return (
+    <ListTable
+      columns={columns}
+      rows={rows}
+      rowKey={(r) => r.id}
+      empty="No credential is read from this Vault."
+      noun="credentials"
+    />
   );
 }
 

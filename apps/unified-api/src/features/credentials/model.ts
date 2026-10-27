@@ -6,8 +6,12 @@ type Credential = Schemas["CredentialInfo"];
 
 export { CREDENTIAL_LABELS };
 
+// A Vault's users are the credentials reading from it. Absent from an
+// instance older than Vault credentials (0.36): none.
+const readers = (u: Credential["used_by"]) => u.credentials?.length ?? 0;
+
 export const credentialUsers = ({ used_by: u }: Credential) =>
-  u.sources.length + u.projects.length + (u.ldap ? 1 : 0);
+  readers(u) + u.sources.length + u.projects.length + (u.ldap ? 1 : 0);
 
 export const credentialState = (credential: Credential) =>
   stateOf(credential, credentialUsers(credential));
@@ -15,6 +19,7 @@ export const credentialState = (credential: Credential) =>
 export const usedBy = ({ used_by: u }: Credential) =>
   describeUsers(
     [
+      [readers(u), ["credential", "credentials"]],
       [u.sources.length, ["source", "sources"]],
       [u.projects.length, ["project", "projects"]],
     ],

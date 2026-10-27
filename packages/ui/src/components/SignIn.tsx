@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { Fact } from "./Health";
 import { Badge, ChipList, Panel } from "./Page";
-import { formatSpan } from "../lib/format";
 import detail from "./Detail.module.css";
 import common from "./Common.module.css";
 
@@ -46,17 +45,6 @@ const HINTS: Record<string, string> = {
   "Bind account":
     "server.ui.ldap.bind_credential. The credential of the service account that looks users up.",
   "Search base": "server.ui.ldap.search_base. Where users are looked for.",
-  "Secret cache":
-    "secrets.cache_ttl_seconds. How long a resolved secret is reused, which is also how long a rotated secret takes to be picked up.",
-  Vault:
-    "secrets.vault.address. The Vault credentials can be read from (with vault_path in credentials.yaml). Not used: secrets come only from environment variables and files.",
-  Credentials:
-    "The credentials configured, and whether their secrets resolve right now. The Credentials page has each one.",
-  "Vault timeout":
-    "secrets.vault.timeout_seconds. How long a Vault call may take before resolution fails.",
-  "Vault mount": "secrets.vault.mount. The KV v2 engine secrets are read from.",
-  "Vault sign-in":
-    "secrets.vault.kubernetes_role, or token_env. How this instance signs in to Vault: as its Kubernetes service account, or with a token from an environment variable.",
 };
 
 // "app-a, app-b", or Everything for an admin.
@@ -209,62 +197,5 @@ export function SignInPanels({
         </Panel>
       )}
     </>
-  );
-}
-
-export interface SecretsView {
-  cache_ttl_seconds: number;
-  vault?: {
-    address: string;
-    mount: string;
-    auth: string;
-    kubernetes_role?: string | null;
-    token_env?: string | null;
-    timeout_seconds: number;
-  } | null;
-}
-
-// Where secrets come from, and whether the configured credentials resolve.
-export function SecretsPanel({
-  secrets,
-  credentialSummary,
-  aside,
-}: {
-  secrets: SecretsView;
-  // "7, all resolve" / "1 of 7 missing" / "…"
-  credentialSummary: string;
-  // A way to every credential (the app's router link).
-  aside?: ReactNode;
-}) {
-  const vault = secrets.vault;
-  return (
-    <Panel title="Secrets" aside={aside}>
-      <dl className={detail.facts}>
-        <Fact label="Secret cache" hint={HINTS["Secret cache"]}>
-          {formatSpan(secrets.cache_ttl_seconds)}
-        </Fact>
-        <Fact label="Vault" hint={HINTS["Vault"]}>
-          {vault ? <Clip value={vault.address} /> : "Not used"}
-        </Fact>
-        <Fact label="Credentials" hint={HINTS["Credentials"]}>
-          {credentialSummary}
-        </Fact>
-        {vault && (
-          <>
-            <Fact label="Vault mount" hint={HINTS["Vault mount"]}>
-              <code className={detail.mono}>{vault.mount}</code>
-            </Fact>
-            <Fact label="Vault sign-in" hint={HINTS["Vault sign-in"]}>
-              {vault.auth === "kubernetes"
-                ? `Kubernetes role ${vault.kubernetes_role ?? ""}`
-                : `Token from ${vault.token_env ?? "an env var"}`}
-            </Fact>
-            <Fact label="Vault timeout" hint={HINTS["Vault timeout"]}>
-              {formatSpan(vault.timeout_seconds)}
-            </Fact>
-          </>
-        )}
-      </dl>
-    </Panel>
   );
 }
