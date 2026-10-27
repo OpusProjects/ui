@@ -84,8 +84,14 @@ export function EndpointsPage() {
               {filter.visible.map((endpoint) => (
                 <ResourceCard
                   key={endpoint.endpoint_id}
-                  title={endpoint.name}
-                  id={endpoint.endpoint_id}
+                  // The name as the title, the description under it, as
+                  // every card and the page it opens.
+                  title={endpoint.endpoint_id}
+                  description={
+                    endpoint.name !== endpoint.endpoint_id
+                      ? endpoint.name
+                      : null
+                  }
                   state={endpointState(endpoint)}
                   labels={ENDPOINT_LABELS}
                   titleLink={(title, className) => (

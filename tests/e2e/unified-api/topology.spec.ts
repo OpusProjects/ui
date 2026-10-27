@@ -139,7 +139,8 @@ test("a line follows a peer swapped for another", async ({ page }) => {
   url = "https://unified-api-dc3.example.net";
   await page.clock.fastForward(61_000);
   await expect(tree).toContainText("dc3");
-  await page.setViewportSize({ width: 1100, height: 720 });
+  // Still wide enough for the levels side by side (narrower, they stack).
+  await page.setViewportSize({ width: 1500, height: 720 });
   // The line ends at the new card's left edge, halfway down it.
   const card = tree.locator("li li [data-tree-node] > *").first();
   await expect
@@ -200,3 +201,143 @@ for (const [later, moving] of [
   });
 
 const TRIP_MS = 2400;
+
+// Where the levels side by side would be wider than the page, the tree
+// stacks rather than scrolling sideways; where there is room, it draws its
+// lines, and on a wide screen the cards take the room, not the lines.
+test("the tree never scrolls sideways, and its lines stay short", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto("/topology");
+  const tree = page.getByRole("list", { name: /federation/i });
+  await expect(tree).toContainText("edge");
+  await expect(tree).toHaveAttribute("data-stacked", "");
+  const overflow = await tree.evaluate((t) => t.scrollWidth - t.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 1920, height: 900 });
+  await expect(tree).not.toHaveAttribute("data-stacked", "");
+  await expect
+    .poll(
+      async () =>
+        (await tree.locator("svg line").first().boundingBox())?.width ?? 0,
+    )
+    .toBeGreaterThan(0);
+  const line = await tree.locator("svg line").first().boundingBox();
+  // The usual gap plus a little (and the line's round ends): the cards
+  // grew instead.
+  expect(line!.width).toBeLessThanOrEqual(96 + 64 + 6);
+});
+
+// A card's sources are one line: as many chips as fit, then +N more on
+// that line, never a second row.
+test("a card's sources fit on one line", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto("/topology");
+  const chips = page
+    .getByRole("list", { name: /federation/i })
+    .locator("dl > div", { has: page.locator("dt", { hasText: "Sources" }) })
+    .first()
+    .locator("[data-line]");
+  await expect(chips).toBeVisible();
+  const tops = await chips.evaluate((row) =>
+    Array.from(row.children)
+      .filter((c) => getComputedStyle(c).visibility !== "hidden")
+      .map((c) => Math.round(c.getBoundingClientRect().top)),
+  );
+  expect(new Set(tops).size).toBe(1);
+});
+
+// Chips that grow after the first count (a font arriving late) are counted
+// again: fewer of them, and "+N more" whole, never clipped at the edge.
+test("chips that grow after drawing still leave +N more whole", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { topology } = await import("./fixtures/api");
+  const peer = topology.peers![0];
+  const sources = Array.from({ length: 10 }, (_, i) => ({
+    ...peer.sources[0],
+    remote_source: `src-edge-dc${i}-fleet`,
+  }));
+  await page.route(/\/api\/v1\/topology(\?.*)?$/, (route) =>
+    route.fulfill({ json: { ...topology, peers: [{ ...peer, sources }] } }),
+  );
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/topology");
+  const row = page.locator("[data-line]", { has: page.getByRole("button") });
+  await expect(row).toHaveCount(1);
+  const before = await row.locator("a, code:not([aria-hidden] *)").count();
+  // Every chip a good deal wider, the line's width unchanged.
+  await page.addStyleTag({ content: "code, a { letter-spacing: 2px; }" });
+  await expect
+    .poll(() => row.locator("a, code:not([aria-hidden] *)").count())
+    .toBeLessThan(before);
+  const fits = await row.evaluate((line) => {
+    const button = line.querySelector("button")!;
+    return (
+      button.getBoundingClientRect().right <=
+        line.getBoundingClientRect().right + 0.5 &&
+      button.scrollWidth <= button.clientWidth
+    );
+  });
+  expect(fits).toBe(true);
+});
+
+// The chips on the line wider than the copies the count measures (what a
+// browser's own font or link style can do): the line still ends on whole
+// chips and a whole "+N more", never a name cut short with "…".
+test("the line keeps whole chips when they come out wider than measured", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { topology } = await import("./fixtures/api");
+  const peer = topology.peers![0];
+  const sources = Array.from({ length: 10 }, (_, i) => ({
+    ...peer.sources[0],
+    remote_source: `src-edge-dc${i}-fleet`,
+  }));
+  await page.route(/\/api\/v1\/topology(\?.*)?$/, (route) =>
+    route.fulfill({ json: { ...topology, peers: [{ ...peer, sources }] } }),
+  );
+  // Only the chips on the line, not the measured copies.
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent =
+        "[data-line] > a, [data-line] > code { letter-spacing: 3px; }";
+      document.head.append(style);
+    });
+  });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/topology");
+  const row = page.locator("[data-line]", { has: page.getByRole("button") });
+  await expect(row).toHaveCount(1);
+  const whole = await row.evaluate((line) => {
+    const edge = line.getBoundingClientRect().right;
+    const shown = Array.from(line.children).filter(
+      (el) => !el.hasAttribute("aria-hidden"),
+    );
+    return shown.every(
+      (el) =>
+        el.scrollWidth <= el.clientWidth &&
+        el.getBoundingClientRect().right <= edge + 0.5,
+    );
+  });
+  expect(whole).toBe(true);
+});
+
+// Topology opens like every section: one card counting its instances, this
+// one included, as plain counts (the tree has nothing to filter).
+test("topology opens with one summary of its instances", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/topology");
+  const summary = page.getByRole("region", { name: /instances health/i });
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText(/instances? (is|are) connected|need/);
+  await expect(summary.getByRole("button")).toHaveCount(0);
+  await expect(page.getByText("Federated host entries")).toHaveCount(0);
+});

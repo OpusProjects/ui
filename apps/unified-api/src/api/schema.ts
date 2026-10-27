@@ -739,6 +739,13 @@ export interface components {
       /** @description Those sources' sync health, counted */
       health: components["schemas"]["ConnectorHealth"];
       host_args: string[];
+      /**
+       * @description ssh only: where `path` is. "host": on each host (a pattern of facts
+       *     files, or one program); "instance": a script here, streamed to each
+       *     host. Null for the inline form, where `path` is the command itself,
+       *     and for every other connector
+       */
+      location?: string | null;
       /** @description Its description, or the identity when it has none */
       name: string;
       /** @description "native" or "ansible" for a script connector; null otherwise */
@@ -746,9 +753,9 @@ export interface components {
       /** @description Null for the built-ins */
       path?: string | null;
       /**
-       * @description The project whose checkout holds the script. Null for ssh (the script
-       *     runs on the remote host) and for the built-ins (a static_inventory
-       *     source names its own project)
+       * @description The project whose checkout holds the script. Null for a script on
+       *     this instance's disk, for an ssh path on the hosts, and for the
+       *     built-ins (a static_inventory source names its own project)
        */
       project_id?: string | null;
       script_args: string[];
@@ -3140,7 +3147,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorBody"];
         };
       };
-      /** @description Signed in through the UI rather than with an API key */
+      /** @description A browser session (signed in through the UI, with a key or a directory account) rather than an API key sent with the request */
       403: {
         headers: {
           [name: string]: unknown;

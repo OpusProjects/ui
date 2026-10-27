@@ -11,9 +11,11 @@ export function CredentialsPage() {
     <Page
       query={useCredentials()}
       view={(c: Credential) => ({
+        // The name as the title, as on every card; the description under it
+        // when it says more than the name.
         id: c.credential_id,
-        title: c.name,
-        idTag: c.credential_id,
+        title: c.credential_id,
+        description: c.name !== c.credential_id ? c.name : null,
         users: credentialUsers(c),
       })}
       icon={ICONS.credentials}

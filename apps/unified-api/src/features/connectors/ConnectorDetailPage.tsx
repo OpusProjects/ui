@@ -3,6 +3,7 @@ import {
   EmptyState,
   Fact,
   HealthPill,
+  LinesView,
   ListName,
   ListTable,
   Notice,
@@ -21,7 +22,12 @@ import {
   BUILT_IN,
   connectorLabels,
   connectorState,
+  LOCATION_WORDS,
+  commandLines,
+  commandSummary,
   describe,
+  noProject,
+  pathKind,
   stateDetail,
 } from "./model";
 
@@ -37,7 +43,13 @@ const HINTS: Record<string, string> = {
   Reads: "What a source using this connector gathers its data from.",
   Project:
     "project. The git project whose checkout holds the script. None: path is a file on this instance's own disk (in the image, or mounted).",
-  Path: "path. The script a sync runs, relative to the project's checkout when it has one. For ssh, the command run on each host.",
+  Path: "path. The script a sync runs, relative to the project's checkout when it has one.",
+  Command:
+    "path. The inline form: the command run on each host, written in the item itself (shown in full below when it is a script).",
+  Location:
+    "location. Where path is: on this instance (a script, read from its project at each sync and streamed to each host over ssh) or on each host (facts files to read, or a program to run there).",
+  "On each host":
+    "path. On each host: a pattern reads every matching file as a fact (an executable is run, anything else read as JSON or INI, named after its file); a single path is a program run there.",
   "Script args": "script_args. Arguments passed to the script on every run.",
   "Host args":
     "host_args. Arguments added when a sync asks for named hosts only (an on-demand refresh).",
@@ -83,6 +95,27 @@ export function ConnectorDetailPage() {
       {connector && (
         <>
           <Overview connector={connector} />
+          {pathKind(connector) === "inline" && (
+            <Notice title="Written inline" tone="stale">
+              This connector&apos;s command is part of its item. Put it in a
+              script file and set project (or location: instance), or, to read
+              facts files on the hosts, set location: host with their path. The
+              inline form still works and will be removed.
+            </Notice>
+          )}
+          {pathKind(connector) === "inline" &&
+            connector.path &&
+            commandLines(connector.path).length > 1 && (
+              <Panel
+                title="Command"
+                hint="path. The shell script this connector runs on each host, as written in its configuration."
+              >
+                <LinesView
+                  lines={connector.path.split("\n")}
+                  label="Command run on each host"
+                />
+              </Panel>
+            )}
           <Panel
             title="Sources"
             hint="The sources using this connector: their connector names it. Each syncs under its own timeout when it sets one, the connector's otherwise."
@@ -156,20 +189,45 @@ function ItemFacts({ connector }: { connector: Connector }) {
           >
             {connector.project_id}
           </Link>
-        ) : connector.connector_type === "ssh" ? (
-          "None (runs on each host)"
         ) : (
-          "None (local file)"
+          <em className={common.soft} title={noProject(connector).why}>
+            {noProject(connector).text}
+          </em>
         )}
       </Fact>
-      <Fact label="Path" hint={HINTS["Path"]}>
-        <code
-          className={`${common.mono} ${common.clipText}`}
-          title={connector.path ?? undefined}
-        >
-          {connector.path ?? "None"}
-        </code>
-      </Fact>
+      {connector.connector_type === "ssh" && (
+        <Fact label="Location" hint={HINTS["Location"]}>
+          {LOCATION_WORDS[pathKind(connector)]}
+        </Fact>
+      )}
+      {pathKind(connector) === "inline" ? (
+        <Fact label="Command" hint={HINTS["Command"]}>
+          <code
+            className={`${common.mono} ${common.clipText}`}
+            title={connector.path ?? undefined}
+          >
+            {commandSummary(connector.path)}
+          </code>
+        </Fact>
+      ) : pathKind(connector) === "host" ? (
+        <Fact label="Runs" hint={HINTS["On each host"]}>
+          <code
+            className={`${common.mono} ${common.clipText}`}
+            title={connector.path ?? undefined}
+          >
+            {connector.path}
+          </code>
+        </Fact>
+      ) : (
+        <Fact label="Path" hint={HINTS["Path"]}>
+          <code
+            className={`${common.mono} ${common.clipText}`}
+            title={connector.path ?? undefined}
+          >
+            {connector.path ?? "None"}
+          </code>
+        </Fact>
+      )}
 
       <Fact label="Script args" hint={HINTS["Script args"]}>
         {args(connector.script_args)}

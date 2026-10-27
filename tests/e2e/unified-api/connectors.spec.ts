@@ -165,3 +165,80 @@ test("a project's page lists the connectors using it", async ({ page }) => {
     row.getByRole("link", { name: "inventory", exact: true }),
   ).toHaveAttribute("href", "/connectors/inventory");
 });
+
+// An ssh connector says where its path is: on the host (Runs, *On the
+// host*), a script here (File, its project), or the old inline form (its
+// command in a few words, never a fragment cut at its last "/").
+test("an ssh connector shows where its path is", async ({ page }) => {
+  await mockApi(page);
+  const { connectors } = await import("./fixtures/api");
+  const ssh = (
+    connector_id: string,
+    location: string | null,
+    path: string,
+    project_id: string | null = null,
+  ) => ({
+    ...connectors[0],
+    connector_id,
+    name: connector_id,
+    connector_type: "ssh",
+    location,
+    path,
+    project_id,
+    script_args: [],
+    host_args: [],
+    output_format: null,
+    used_by: [],
+    health: { sources: 0, healthy: 0, failing: 0, never_synced: 0 },
+  });
+  const all = [
+    ...connectors,
+    ssh("ssh-facts", "host", "/etc/ansible/facts.d/*.fact"),
+    ssh("ssh-osinfo", "instance", "ssh/osinfo.sh", "prj-inventory"),
+    ssh(
+      "ssh-inline",
+      null,
+      "j(){ printf '%s' \"$1\" | tr -d '\"\\\\'; }\nuname -r\nhostname",
+    ),
+  ];
+  await page.route(/\/api\/v1\/connectors(\/[^/?]+)?(\?.*)?$/, (route) => {
+    const id = /\/api\/v1\/connectors\/([^/?]+)/.exec(route.request().url());
+    return route.fulfill({
+      json: id ? all.find((c) => c.connector_id === id[1]) : all,
+    });
+  });
+  await page.goto("/connectors");
+  const card = (id: string) =>
+    page.locator("article", { has: page.getByRole("heading", { name: id }) });
+
+  const facts = card("ssh-facts");
+  await expect(facts.getByText("Runs", { exact: true })).toBeVisible();
+  await expect(
+    facts.getByText("/etc/ansible/facts.d/*.fact", { exact: true }),
+  ).toBeVisible();
+  await expect(facts.getByText("On the host", { exact: true })).toBeVisible();
+
+  const script = card("ssh-osinfo");
+  await expect(script.getByText("File", { exact: true })).toBeVisible();
+  await expect(script.getByText("osinfo.sh", { exact: true })).toBeVisible();
+  await expect(
+    script.getByRole("link", { name: "prj-inventory" }),
+  ).toBeVisible();
+
+  const inline = card("ssh-inline");
+  await expect(
+    inline.getByText("Shell script, 3 lines", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    inline.getByText("In the configuration", { exact: true }),
+  ).toBeVisible();
+
+  // Its page: the notice, and the whole script.
+  await page.goto("/connectors/ssh-inline");
+  await expect(page.getByText("Written inline")).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: /command run on each host/i })
+      .or(page.getByLabel("Command run on each host")),
+  ).toContainText("hostname");
+});

@@ -11,8 +11,8 @@ import styles from "./Tree.module.css";
 // A hierarchy drawn as nodes joined by lines: the root on the left, each
 // level of children in a column to its right, each child joined to its parent
 // by its own straight line (as AWX draws a workflow), so a link's state is
-// that link's alone. On a narrow screen the levels stack and indent instead,
-// with border lines down the left.
+// that link's alone. Where that does not fit the page, the levels stack and
+// indent instead, with border lines down the left.
 //
 // Generic on purpose: a federation of instances, a project's dependency
 // chain, anything with one parent per node.
@@ -29,26 +29,71 @@ export interface TreeItem {
   pulse?: number;
 }
 
+// The gap between levels (Tree.module.css --tree-gap), what a line keeps
+// beyond it on a wide screen, and the widest a card grows to fill one.
+const LINE_GAP = 96;
+const LINE_SLACK = 64;
+const MAX_CARD = 760;
+
 export function Tree({ root, label }: { root: TreeItem; label: string }) {
   const list = useRef<HTMLUListElement>(null);
   // Every card as wide as the widest one's own content (each on one line,
   // capped by the CSS), so the root and its children line up and none
-  // stretches across the page. Measured after every render (what the cards
-  // hold changes) and once the fonts are in, which changes widths.
+  // stretches across the page. Then, if the levels side by side are wider
+  // than the page, the tree stacks instead (indented, lines down the left)
+  // rather than scrolling sideways: decided by measuring, so it holds for
+  // any number of levels and any width of card, not one window size.
+  // Done again after every render (what the cards hold changes), when the
+  // fonts are in, and when the space changes.
   useLayoutEffect(() => {
     const tree = list.current;
     if (!tree) return;
-    const match = () => {
+    const layout = () => {
+      tree.removeAttribute("data-stacked");
       tree.removeAttribute("data-matched");
       let widest = 0;
+      let deepest = 0;
       tree.querySelectorAll("[data-tree-node]").forEach((node) => {
         widest = Math.max(widest, node.getBoundingClientRect().width);
+        let depth = 0;
+        for (
+          let el = node.parentElement;
+          el && el !== tree;
+          el = el.parentElement
+        )
+          if (el.tagName === "UL") depth += 1;
+        deepest = Math.max(deepest, depth);
       });
-      tree.style.setProperty("--tree-card-width", `${Math.ceil(widest)}px`);
+      // On a wide screen the cards take the room rather than the lines:
+      // each level a share of the width, its line kept near its usual
+      // length, up to a ceiling past which a card is only blank space.
+      const levels = deepest + 1;
+      const share =
+        (tree.clientWidth - (levels - 1) * (LINE_GAP + LINE_SLACK)) / levels;
+      const width = Math.max(widest, Math.min(share, MAX_CARD));
+      tree.style.setProperty("--tree-card-width", `${Math.floor(width)}px`);
       tree.setAttribute("data-matched", "");
+      if (tree.scrollWidth > tree.clientWidth + 1)
+        tree.setAttribute("data-stacked", "");
     };
-    match();
-    void document.fonts?.ready.then(match);
+    layout();
+    void document.fonts?.ready.then(layout);
+    let width = tree.clientWidth;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      // Only a change of width: stacking changes the height, and must not
+      // start it all again. On the next frame, so what it changes is not
+      // reported to observers in the same pass.
+      if (tree.clientWidth === width) return;
+      width = tree.clientWidth;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(layout);
+    });
+    observer.observe(tree);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   });
   return (
     <ul className={styles.tree} aria-label={label} ref={list}>

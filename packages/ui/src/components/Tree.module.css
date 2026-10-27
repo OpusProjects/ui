@@ -10,8 +10,8 @@
 
 .tree {
   --tree-gap: 96px;
-  /* On a very wide screen the lines lengthen to the right edge, up to this:
-     past it a line is a long walk for the eye, not more information. */
+  /* On a very wide screen the cards widen (Tree), and past this the tree
+     stops growing: a line is then a long walk for the eye. */
   max-width: 1600px;
   --tree-line: var(--uu-line-strong);
   --tree-width: 3px;
@@ -36,7 +36,7 @@
   z-index: 1;
   flex: none;
   width: max-content;
-  min-width: 520px;
+  min-width: 360px;
   max-width: 640px;
 }
 
@@ -63,12 +63,16 @@
 .children > .item > .node {
   flex: none;
   width: max-content;
-  min-width: 520px;
+  min-width: 360px;
   max-width: 640px;
 }
 
-.tree[data-matched] .node {
+/* Matched: as wide as Tree worked out, which on a wide screen is more than
+   the content's own ceiling. */
+.tree[data-matched] .node,
+.tree[data-matched] .children > .item > .node {
   width: var(--tree-card-width);
+  max-width: none;
 }
 
 .links {
@@ -125,64 +129,63 @@
   stroke: var(--uu-failing);
 }
 
-/* Narrow screens: one column, each level indented under its parent, the
-   spine down the left and a stub into each child in that child's colour. */
-@media (max-width: 760px) {
-  .links {
-    display: none;
-  }
+/* Stacked, where side by side does not fit (Tree measures): one column,
+   each level indented under its parent, the spine down the left and a stub
+   into each child in that child's colour. */
+.tree[data-stacked] .links {
+  display: none;
+}
 
-  .item {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.tree[data-stacked] .item {
+  flex-direction: column;
+  align-items: stretch;
+}
 
-  .children > .item {
-    margin-left: 0;
-  }
+.tree[data-stacked] .children > .item {
+  margin-left: 0;
+}
 
-  .node,
-  .children > .item > .node,
-  .tree[data-matched] .node {
-    width: auto;
-    min-width: 0;
-    max-width: none;
-  }
+/* After the matched width above, so this wins over it. */
+.tree[data-stacked] .node,
+.tree[data-stacked] .children > .item > .node {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
 
-  .children {
-    position: relative;
-    gap: 12px;
-    padding: 12px 0 0 20px;
-  }
+.tree[data-stacked] .children {
+  position: relative;
+  gap: 12px;
+  padding: 12px 0 0 20px;
+}
 
-  .children > .item::before,
-  .children > .item::after {
-    content: "";
-    position: absolute;
-    left: -12px;
-  }
+.tree[data-stacked] .children > .item::before,
+.tree[data-stacked] .children > .item::after {
+  content: "";
+  position: absolute;
+  left: -12px;
+}
 
-  .children > .item::before {
-    top: 24px;
-    width: 12px;
-    border-top: var(--tree-width) solid var(--tree-stub, var(--tree-line));
-  }
+.tree[data-stacked] .children > .item::before {
+  top: 24px;
+  width: 12px;
+  border-top: var(--tree-width) solid var(--tree-stub, var(--tree-line));
+}
 
-  .children > .item::after {
-    top: -12px;
-    bottom: calc(100% - 24px);
-    border-left: var(--tree-width) solid var(--tree-line);
-  }
+.tree[data-stacked] .children > .item::after {
+  top: -12px;
+  bottom: calc(100% - 24px);
+  border-left: var(--tree-width) solid var(--tree-line);
+}
 
-  .children > .item:not(:last-child)::after {
-    bottom: -12px;
-  }
+.tree[data-stacked] .children > .item:not(:last-child)::after {
+  bottom: -12px;
+}
 
-  .children > .item[data-link="ok"] {
-    --tree-stub: var(--uu-fresh);
-  }
+.tree[data-stacked] .children > .item[data-link="ok"] {
+  --tree-stub: var(--uu-fresh);
+}
 
-  .children > .item[data-link="failing"] {
-    --tree-stub: var(--uu-failing);
-  }
+.tree[data-stacked] .children > .item[data-link="failing"] {
+  --tree-stub: var(--uu-failing);
 }

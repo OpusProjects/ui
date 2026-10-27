@@ -11,11 +11,18 @@ unified-ui version it builds into its image.
 
 ### Added
 
+- unified-api Connectors: an ssh connector shows where its path is. On the host: Runs and its path, Location On the host, Project *On the host*. A script here: File and its Project, as a script connector. The old inline form: Runs with its command in a few words ("Shell script, 8 lines" rather than a fragment cut at its last `/`), Project *In the configuration*, and on its page an amber notice saying how to move it and the whole script in a Command panel. A connector with no project says why in italic (*Local file*, *On the host*, *In the configuration*), as a built-in says *Built in*. Requires unified-api 0.36.0.
+- `ChipList` takes `limit="line"`: as many chips as fit on one line with "+N more" on that line, counted from the chips' real widths and again whenever they or the line change size (a font arriving late), never fewer than one, and never a name cut short. `HealthSummary` without `onSelect` shows its counts as labels rather than filter buttons.
 - unified-api Overview: an "Outgoing requests (per minute)" chart under the incoming one, in its own colour, counting the calls to the external systems' APIs (each connector script run, full or partial, and each enricher run, with the split and the failures in the tooltip; from `unified_api_source_requests_total`); This instance shows Incoming requests and Outgoing requests on separate rows. Requires unified-api 0.36.0.
 
 ### Fixed
 
 - unified-api: every Sync button (a source's page, its card, Sync all) gets fresh data now. It asks with `refresh_origin=true`, so a federated source's origin gathers again before answering; before, a sync only copied that instance's cache, however old, and the source stayed stale. The button says Syncing… until the new data has loaded. Data from and its freshness meter then start again from the new age, even when the server reports the same age as before (each age counts on from the answer it came in, `at`), and the meter now fills every second as the count beside it goes up (`useLiveSeconds`, shared by `LiveAge` and `FreshnessMeter`). The fresh and stale counts in the Sources header and on the Overview come from the same query and change with it.
+
+### Changed
+
+- unified-api Topology: opens with one summary card of its instances, connected or unreachable, as every other section does, in place of the four tiles (the federated host entries counted a host twice when two sources held it). Each card's Sources is one line of chips; the cards are narrower (360px at least, was 520px), wider on a wide screen so the lines between them stay short, and where the levels side by side do not fit the page the tree stacks instead of scrolling sideways, decided by measuring rather than at one window width.
+- unified-api Sources, Endpoints, Projects and Credentials cards are titled by the item's name with its description under it, as every other card and the page each one opens (they showed the description first and the name under it).
 
 ## [0.4.0] - 2026-10-27
 

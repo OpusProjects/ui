@@ -102,6 +102,21 @@ test("a Sync resets Data from and its meter", async ({ page }) => {
     .toBe(before);
 });
 
+// A card is titled by the item's name, as the page it opens is, with the
+// description under it: sources and endpoints read like every other card.
+test("source and endpoint cards are titled by name", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources");
+  const alpha = page.locator("article", { hasText: "src-alpha" });
+  await expect(alpha.getByRole("heading")).toHaveText("src-alpha");
+  await expect(alpha.getByText("ALPHA", { exact: true })).toBeVisible();
+
+  await page.goto("/endpoints");
+  const all = page.locator("article", { hasText: "ep-all" });
+  await expect(all.getByRole("heading")).toHaveText("ep-all");
+  await expect(all.getByText("Everything", { exact: true })).toBeVisible();
+});
+
 test("a token in a project's git address is never shown", async ({ page }) => {
   await mockApi(page);
   for (const path of ["/projects", "/projects/prj-inventory"]) {

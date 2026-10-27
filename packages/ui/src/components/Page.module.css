@@ -251,9 +251,52 @@
 }
 
 .chips {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+
+/* One line (ChipList limit="line"): what does not fit is behind "+N more",
+   so nothing wraps; the clip only guards a line measured a frame late. */
+.chips[data-line] {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+/* If the line is still short (a font that loads late, a width that has
+   not been measured yet), the chips give way, a name ending in "…", and
+   the button never does: what is left is always one click away. */
+.chips[data-line] > * {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chips[data-line] > button {
+  flex: none;
+}
+
+/* Every chip at its own width, out of sight, for ChipList to measure: in a
+   box of no size, so its overflowing line widens nothing around it. */
+.chipRuler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  gap: 5px;
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.chipRuler > * {
+  flex: none;
 }
 
 .chip {

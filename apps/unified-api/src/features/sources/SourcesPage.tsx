@@ -132,8 +132,12 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
 
   return (
     <ResourceCard
-      title={detail?.name ?? summary.source_id}
-      id={summary.source_id}
+      // The name is the title, as on the page it opens; the description
+      // (when it says more than the name) underneath.
+      title={summary.source_id}
+      description={
+        detail?.name && detail.name !== summary.source_id ? detail.name : null
+      }
       titleLink={(title, className) => (
         <Link
           to={`/sources/${encodeURIComponent(summary.source_id)}`}

@@ -11,9 +11,11 @@ export function ProjectsPage() {
     <Page
       query={useProjects()}
       view={(p: Project) => ({
+        // The name as the title, as on every card; the description under it
+        // when it says more than the name.
         id: p.project_id,
-        title: p.name,
-        idTag: p.project_id,
+        title: p.project_id,
+        description: p.name !== p.project_id ? p.name : null,
         credential: p.credential_id,
       })}
       pull={pull}

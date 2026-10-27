@@ -38,8 +38,11 @@ interface HealthSummaryProps {
   // What is counted, as [one, many]: ["source", "sources"].
   noun: [string, string];
   labels?: Labels;
-  selected: HealthState | null;
-  onSelect: (state: HealthState | null) => void;
+  // Picking a state filters the page to it. Left out (a page with nothing
+  // to filter, as the Topology tree), the counts are plain labels rather
+  // than buttons that would do nothing.
+  selected?: HealthState | null;
+  onSelect?: (state: HealthState | null) => void;
   // Its own "Show all" chip, which clears only the state picked here. Off
   // where the page has a "Show all" of its own that also clears the search:
   // two buttons by one name that do different things.
@@ -56,7 +59,7 @@ export function HealthSummary({
   counts,
   noun,
   labels,
-  selected,
+  selected = null,
   onSelect,
   showAll = true,
   good = "healthy",
@@ -112,9 +115,26 @@ export function HealthSummary({
           />
         ))}
       </div>
-      <div className={styles.filters} role="group" aria-label="Show only">
+      <div
+        className={styles.filters}
+        role="group"
+        aria-label={onSelect ? "Show only" : "Counts"}
+      >
         {present.map((state) => {
           const active = selected === state;
+          if (!onSelect)
+            return (
+              <span
+                key={state}
+                className={styles.filter}
+                data-state={state}
+                data-static
+              >
+                <span className={styles.dot} aria-hidden />
+                <span className={styles.count}>{counts[state]}</span>
+                {labelFor(state, labels)}
+              </span>
+            );
           return (
             <button
               key={state}
@@ -130,7 +150,7 @@ export function HealthSummary({
             </button>
           );
         })}
-        {selected && showAll && (
+        {selected && showAll && onSelect && (
           <button
             type="button"
             className={styles.clear}
