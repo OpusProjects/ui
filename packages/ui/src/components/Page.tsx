@@ -1,5 +1,7 @@
 import {
   Fragment,
+  useLayoutEffect,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type ReactNode,
@@ -190,8 +192,10 @@ interface ChipListProps {
   items: string[];
   empty?: string;
   // Show this many, then a "+N more" button that opens the rest (and a
-  // "Show less" to fold them again). Unset = always all.
-  limit?: number;
+  // "Show less" to fold them again). "line": as many as fit on one line,
+  // the button included, measured (and measured again when the space
+  // changes). Unset = always all.
+  limit?: number | "line";
   // Makes a chip a link to what it names: given the item and the chip's
   // class, returns the app's link (its router's Link, an <a>), or nothing to
   // leave that chip plain. The app supplies the link, as with ResourceCard's
@@ -207,23 +211,134 @@ export function ChipList({
   linkTo,
 }: ChipListProps) {
   const [open, setOpen] = useState(false);
+  const line = limit === "line";
+  const box = useRef<HTMLSpanElement>(null);
+  const ruler = useRef<HTMLSpanElement>(null);
+  const key = items.join("\n");
+  // How many fit on the line, in "line" mode, and the list that was counted:
+  // a count belongs to its list, so a new list starts from its own count,
+  // never from the old one's or from all of it. Until counted (the first
+  // render), every chip.
+  const [counted, setCounted] = useState<{ key: string; fit: number } | null>(
+    null,
+  );
+  const fit = counted && counted.key === key ? counted.fit : items.length;
+  useLayoutEffect(() => {
+    if (!line) return;
+    const container = box.current;
+    const sample = ruler.current;
+    if (!container || !sample) return;
+    // The ruler holds every chip, then the widest the button can read, on
+    // one unwrapped line out of sight: their widths, without the line
+    // itself having to overflow first.
+    const count = () => {
+      const width = container.clientWidth;
+      const measured = Array.from(sample.children).map(
+        (el) => el.getBoundingClientRect().width,
+      );
+      const button = measured.pop() ?? 0;
+      const gap = parseFloat(getComputedStyle(sample).columnGap) || 0;
+      let used = 0;
+      let n = 0;
+      for (let i = 0; i < measured.length; i++) {
+        const next = used + (i > 0 ? gap : 0) + measured[i];
+        const more = i + 1 < measured.length ? gap + button : 0;
+        // A pixel to spare: the widths are fractional, the line's is not.
+        if (next + more > width - 1) break;
+        used = next;
+        n = i + 1;
+      }
+      // At least one, even if it must be cut short: a button alone says
+      // nothing about what the list holds.
+      setCounted({ key, fit: Math.max(1, n) });
+    };
+    count();
+    // Counted again whenever the line's width changes, and whenever a
+    // chip's does: a font that arrives after the first count widens every
+    // chip without the line changing at all, and the old count then
+    // pushed "+N more" past the edge. On the next frame: the count changes
+    // what the line holds, which an observer in the same pass would be
+    // told about mid-loop.
+    let frame = 0;
+    const later = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(count);
+    };
+    const observer = new ResizeObserver(later);
+    observer.observe(container);
+    for (const chip of Array.from(sample.children)) observer.observe(chip);
+    void document.fonts?.ready.then(later);
+    document.fonts?.addEventListener("loadingdone", later);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      document.fonts?.removeEventListener("loadingdone", later);
+    };
+  }, [line, key]);
+
+  // The count above is worked out from copies of the chips; the line
+  // itself has the last word. If a chip on it came out shortened (its name
+  // ending in "…") or the button runs past the edge, one chip fewer, before
+  // the browser paints: whatever made the copies narrower (a font, a link's
+  // own style), the line ends on whole chips and a whole button.
+  // Only once the list has been counted, and only when the count changes:
+  // a step down from a measured count is one or two renders, where
+  // stepping down from the whole list was one render per chip (and past
+  // fifty, React's update limit).
+  useLayoutEffect(() => {
+    if (!line || open || !counted || counted.key !== key || counted.fit <= 1)
+      return;
+    const container = box.current;
+    if (!container) return;
+    const edge = container.getBoundingClientRect().right;
+    const shown = Array.from(container.children).filter(
+      (el) => el !== ruler.current,
+    );
+    const short = shown.some(
+      (el) =>
+        el.scrollWidth > el.clientWidth + 0.5 ||
+        el.getBoundingClientRect().right > edge + 0.5,
+    );
+    if (short)
+      setCounted((c) =>
+        c && c.key === key && c.fit > 1 ? { key, fit: c.fit - 1 } : c,
+      );
+  }, [line, open, counted, key]);
+
   if (items.length === 0)
     return <span className={styles.chipEmpty}>{empty}</span>;
 
-  const folded = limit !== undefined && items.length > limit;
-  const shown = folded && !open ? items.slice(0, limit) : items;
+  const keep = line ? fit : (limit ?? items.length);
+  const folded = items.length > keep;
+  const shown = folded && !open ? items.slice(0, keep) : items;
+  // Keyed by position too: a list may name the same thing twice.
+  const chip = (item: string, index: number) => {
+    const link = linkTo?.(item, `${styles.chip} ${styles.chipLink}`);
+    return link ? (
+      <Fragment key={`${index}-${item}`}>{link}</Fragment>
+    ) : (
+      <code key={`${index}-${item}`} className={styles.chip} title={item}>
+        {item}
+      </code>
+    );
+  };
   return (
-    <span className={styles.chips}>
-      {shown.map((item) => {
-        const link = linkTo?.(item, `${styles.chip} ${styles.chipLink}`);
-        return link ? (
-          <Fragment key={item}>{link}</Fragment>
-        ) : (
-          <code key={item} className={styles.chip}>
-            {item}
-          </code>
-        );
-      })}
+    <span
+      className={styles.chips}
+      ref={box}
+      data-line={(line && !open) || undefined}
+    >
+      {line && (
+        <span className={styles.chipRuler} ref={ruler} aria-hidden>
+          {items.map((item, index) => (
+            <code key={`${index}-${item}`} className={styles.chip}>
+              {item}
+            </code>
+          ))}
+          <span className={styles.chipToggle}>+{items.length} more</span>
+        </span>
+      )}
+      {shown.map(chip)}
       {folded && (
         <button
           type="button"
@@ -231,7 +346,7 @@ export function ChipList({
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
-          {open ? "Show less" : `+${items.length - limit} more`}
+          {open ? "Show less" : `+${items.length - keep} more`}
         </button>
       )}
     </span>

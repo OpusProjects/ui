@@ -57,5 +57,110 @@ export function describe(connector: Connector): string | null {
   return connector.name !== connector.connector_id ? connector.name : null;
 }
 
+// What a connector's path is, which decides the words it is shown in:
+// - file: a script here (a script connector, or an ssh one with location:
+//   instance, streamed to each host)
+// - host: on each host, run there (location: host), whether one program or
+//   a pattern of facts files
+// - inline: an ssh connector's own script, written in the item
+export type PathKind = "file" | "host" | "inline";
+
+export function pathKind(connector: Connector): PathKind {
+  if (connector.connector_type !== "ssh") return "file";
+  if (connector.script != null) return "inline";
+  if (connector.location === "host") return "host";
+  return "file";
+}
+
+// What it runs, as text: its file's path, or its own script.
+export const runs = (connector: Connector) =>
+  connector.script ?? connector.path ?? "";
+
+// Its path as a fact: the label, and the value in a few words (the whole
+// path is on hover and on the connector's page).
+export function pathFact(connector: Connector): {
+  label: string;
+  value: string;
+} {
+  const path = connector.path ?? "";
+  switch (pathKind(connector)) {
+    case "host":
+      return { label: "Runs", value: path };
+    case "inline":
+      return { label: "Runs", value: commandSummary(connector.script) };
+    case "file":
+      return { label: "File", value: path.split("/").at(-1) || "None" };
+  }
+}
+
+// Where its path is, on the connector's page.
+export const LOCATION_WORDS: Record<PathKind, string> = {
+  file: "On this instance",
+  host: "On the host",
+  inline: "Inline script",
+};
+
+// What Project says when there is none: where the path is instead, in the
+// italic a built-in's "Built in" is shown in, and why on hover.
+export function noProject(connector: Connector): {
+  text: string;
+  why: string;
+} {
+  switch (pathKind(connector)) {
+    case "host":
+      return {
+        text: "On the host",
+        why: "Its path is on the hosts, so no project checkout is used.",
+      };
+    case "inline":
+      return {
+        text: "Inline script",
+        why: "Its script is written in the connector itself, not in a project.",
+      };
+    case "file":
+      return {
+        text: "Local file",
+        why: "Its path is on this instance's disk, not in a project.",
+      };
+  }
+}
+
+// The script's lines, blank ones left out of the count.
+export const commandLines = (command: string) =>
+  command.split("\n").filter((line) => line.trim() !== "");
+
+// In a few words, for a card or a fact: the command itself when it is one
+// line, "Shell script, 8 lines" when it is more.
+export function commandSummary(command: string | null | undefined): string {
+  if (!command) return "None";
+  const lines = commandLines(command);
+  return lines.length > 1
+    ? `${scriptKind(command)} script, ${lines.length} lines`
+    : (lines[0] ?? "None");
+}
+
+// What runs it, from its #! line as the ssh connector reads it (env and its
+// options skipped): Python, Perl, Ruby, Node; a shell otherwise.
+function scriptKind(script: string): string {
+  const first = script.split("\n", 1)[0] ?? "";
+  if (!first.startsWith("#!")) return "Shell";
+  const words = first.slice(2).trim().split(/\s+/);
+  if (words[0]?.endsWith("/env"))
+    while (
+      words.length > 1 &&
+      (words[0].endsWith("/env") || words[0].startsWith("-"))
+    )
+      words.shift();
+  const name = (words[0] ?? "").split("/").pop() ?? "";
+  for (const [prefix, kind] of [
+    ["python", "Python"],
+    ["perl", "Perl"],
+    ["ruby", "Ruby"],
+    ["node", "Node"],
+  ])
+    if (name.startsWith(prefix)) return kind;
+  return "Shell";
+}
+
 export const connectorPath = (id: string) =>
   `/connectors/${encodeURIComponent(id)}`;

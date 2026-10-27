@@ -82,7 +82,16 @@ export function SourcesPage() {
                 noun: ["source", "sources"],
               }}
               invalidate={[["sources"], ["source"]]}
-              run={async (id) => (await syncSource(id)).success}
+              run={async (id) =>
+                (
+                  await syncSource(
+                    id,
+                    sources.rows.some(
+                      (r) => r.summary.source_id === id && r.summary.federated,
+                    ),
+                  )
+                ).success
+              }
             />
           </ListToolbar>
           {filter.visible.length === 0 ? (
@@ -132,8 +141,12 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
 
   return (
     <ResourceCard
-      title={detail?.name ?? summary.source_id}
-      id={summary.source_id}
+      // The name is the title, as on the page it opens; the description
+      // (when it says more than the name) underneath.
+      title={summary.source_id}
+      description={
+        detail?.name && detail.name !== summary.source_id ? detail.name : null
+      }
       titleLink={(title, className) => (
         <Link
           to={`/sources/${encodeURIComponent(summary.source_id)}`}
@@ -164,7 +177,7 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
               label="Sync"
               busyLabel="Syncing…"
               invalidate={[["sources"], ["source", summary.source_id]]}
-              run={() => syncNow(summary.source_id)}
+              run={() => syncNow(summary.source_id, summary.federated)}
             />
           )}
         </>

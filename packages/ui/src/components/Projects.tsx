@@ -34,9 +34,9 @@ export interface ProjectLike {
 export interface ProjectView {
   // The identity: its URL and what references name.
   id: string;
+  // The name, as on every card and the page it opens; the description goes
+  // under it.
   title: string;
-  // Shown under the title, when the title is a label rather than the id.
-  idTag?: string;
   description?: string | null;
   // The credential it pulls with, if any.
   credential?: string | null;
@@ -136,7 +136,6 @@ export function ProjectsPage<T extends ProjectLike>({
           <ResourceCard
             key={v.id}
             title={v.title}
-            id={v.idTag}
             description={v.description}
             state={projectState(project)}
             labels={PROJECT_LABELS}

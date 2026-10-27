@@ -2,14 +2,14 @@ import {
   ChipList,
   EmptyState,
   Fact,
-  KpiRow,
+  HealthSummary,
   LiveAge,
   Notice,
   PageHeader,
   ResourceCard,
   SkeletonSummary,
-  StatTile,
   Tree,
+  countStates,
   type TreeItem,
 } from "@opusprojects/unified-ui";
 import type { HealthState } from "@opusprojects/unified-client";
@@ -102,7 +102,6 @@ function TopologyContent({
 }) {
   const topology = view.topology;
   const peers = allPeers(view);
-  const reachable = peers.filter((p) => peerState(p) !== "failing").length;
   const sourceList = useSourceList();
   // Which endpoints read which sources: a peer's card says how many of them
   // depend on what it provides, i.e. what breaks for consumers if it goes.
@@ -125,6 +124,14 @@ function TopologyContent({
   const ownAges = ownSources.flatMap((s) =>
     s.age_seconds == null ? [] : [s.age_seconds],
   );
+  // The root of the map, as the summary counts it: this instance, which is
+  // the one answering; or, on a map pushed from above, that instance, as
+  // its own card judges it (unreachable once its pushes stop).
+  const rootState: HealthState = view.upstream
+    ? view.upstream.age_seconds > PUSH_STALE_SECONDS
+      ? "failing"
+      : "fresh"
+    : "fresh";
   // The page measures links, not health: this instance is connected while
   // at least one of its peers answers.
   const selfState: HealthState = peersOf(topology).some(
@@ -132,11 +139,6 @@ function TopologyContent({
   )
     ? "fresh"
     : "failing";
-  const federatedSources = peers.reduce((n, p) => n + p.sources.length, 0);
-  const federatedHosts = peers.reduce(
-    (n, p) => n + p.sources.reduce((m, s) => m + (s.hosts ?? 0), 0),
-    0,
-  );
 
   const root: TreeItem = {
     key: "self",
@@ -160,8 +162,10 @@ function TopologyContent({
         </Fact>
         <Fact label="Version">{topology.version}</Fact>
         <Fact label="Provides">
-          {/* One line: the root card widens to fit it (see Tree's .node). */}
-          <span className={styles.nowrap}>
+          {/* One line while the cards sit side by side (they are as wide as
+              their widest line); wrapped when the tree stacks on a narrow
+              screen, rather than pushing the page sideways. */}
+          <span>
             {provides(ownSources.length, ownHosts, ownGroups, endpoints.length)}
           </span>
         </Fact>
@@ -179,7 +183,7 @@ function TopologyContent({
           <div className={styles.fitWidth}>
             <ChipList
               items={ownSources.map((s) => s.source_id).sort()}
-              limit={3}
+              limit="line"
               linkTo={sourceLink}
             />
           </div>
@@ -191,28 +195,19 @@ function TopologyContent({
 
   return (
     <>
-      <KpiRow>
-        <StatTile
-          label="Instances"
-          value={String(peers.length + 1)}
-          hint="This instance plus every peer found by following remote sources, two levels deep."
+      {/* One card, as every other section opens: how many instances are
+          connected, this one included, and always counted as connected (it
+          is the one answering; its own card says if it is cut off). None
+          without peers: "No peers" below says it. Counts only: the tree has
+          nothing to filter. */}
+      {peers.length > 0 && (
+        <HealthSummary
+          counts={countStates([rootState, ...peers.map(peerState)], (s) => s)}
+          noun={["instance", "instances"]}
+          labels={PEER_LABELS}
+          good="connected"
         />
-        <StatTile
-          label="Reachable"
-          value={`${reachable} of ${peers.length}`}
-          hint="Peers that answered when asked to describe themselves. One that did not still shows, with the reason."
-        />
-        <StatTile
-          label="Federated sources"
-          value={String(federatedSources)}
-          hint="Remote sources: sources whose data is pulled from another unified-api instance rather than gathered here."
-        />
-        <StatTile
-          label="Federated host entries"
-          value={federatedHosts.toLocaleString()}
-          hint="Hosts held by those remote sources, added up. A host in two of them counts twice."
-        />
-      </KpiRow>
+      )}
 
       {view.upstream && view.upstream.age_seconds > PUSH_STALE_SECONDS && (
         <Notice tone="stale" title="This map may be out of date">
@@ -349,29 +344,33 @@ function peerItem(
           </Fact>
         )}
         <Fact label="Sources">
-          <ChipList
-            items={[...new Set(peer.sources.map((s) => s.remote_source))]}
-            limit={3}
-            // The chip names the source on the peer; it opens the source
-            // here that mirrors it (src-kvm on dc01 opens
-            // src-edge-dc01-kvm).
-            linkTo={
-              // This instance's own sources, as the root names them.
-              isSelf
-                ? (remote, className) => sourceLink(remote, className)
-                : direct && !view.upstream
-                  ? (remote, className) => {
-                      const local = peer.sources
-                        .filter((s) => s.remote_source === remote)
-                        .map((s) => s.source_id)
-                        .sort()[0];
-                      return local
-                        ? sourceLink(local, className, remote)
-                        : undefined;
-                    }
-                  : undefined
-            }
-          />
+          {/* Sized by the text above, not by the chips: one line of them,
+              the rest behind +N more. */}
+          <div className={styles.fitWidth}>
+            <ChipList
+              items={[...new Set(peer.sources.map((s) => s.remote_source))]}
+              limit="line"
+              // The chip names the source on the peer; it opens the source
+              // here that mirrors it (src-kvm on dc01 opens
+              // src-edge-dc01-kvm).
+              linkTo={
+                // This instance's own sources, as the root names them.
+                isSelf
+                  ? (remote, className) => sourceLink(remote, className)
+                  : direct && !view.upstream
+                    ? (remote, className) => {
+                        const local = peer.sources
+                          .filter((s) => s.remote_source === remote)
+                          .map((s) => s.source_id)
+                          .sort()[0];
+                        return local
+                          ? sourceLink(local, className, remote)
+                          : undefined;
+                      }
+                    : undefined
+              }
+            />
+          </div>
         </Fact>
       </ResourceCard>
     ),
@@ -417,7 +416,7 @@ function UpstreamCard({
         <VersionText version={federation.topology.version} self={version} />
       </Fact>
       <Fact label="Provides">
-        <span className={styles.nowrap}>
+        <span>
           {provides(
             sender.sources.length,
             sender.hosts,
@@ -435,7 +434,7 @@ function UpstreamCard({
         <div className={styles.fitWidth}>
           <ChipList
             items={sender.sources}
-            limit={3}
+            limit="line"
             // Its sources' pages are on its own UI, when its address is known.
             linkTo={
               url

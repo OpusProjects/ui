@@ -25,22 +25,66 @@ test("Sync sends the CSRF token", async ({ page }) => {
   expect(calls.writes[0].headers["x-csrf-token"]).toBe("e2e-csrf");
 });
 
-// Sync means fresh data, now: a federated source's origin gathers again
-// (refresh_origin), or the sync only copies its cache, however old.
-test("every Sync asks for fresh data", async ({ page }) => {
+// Sync means fresh data, now. A federated source asks its origin to gather
+// again (refresh_origin), or it would only copy the origin's cache; a local
+// source gathers anyway, and is asked nothing more (the flag would stop it
+// reusing a sync already running). Which is which comes with the list, to
+// every key: no detail needed, so a Sync pressed early asks the same.
+test("Sync asks a federated source's origin to gather, and only it", async ({
+  page,
+}) => {
   const calls = await mockApi(page);
-  await page.goto("/sources/src-alpha");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
-  await expect.poll(() => calls.writes.length).toBe(1);
-  expect(calls.writes[0].query).toBe("?refresh_origin=true");
+  const { detail, sources } = await import("./fixtures/api");
+  // src-beta reads another instance.
+  const listed = sources.map((s) =>
+    s.source_id === "src-beta" ? { ...s, federated: true } : s,
+  );
+  await page.route(/\/api\/v1\/sources(\?.*)?$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: listed })
+      : route.fallback(),
+  );
+  const beta = listed.find((s) => s.source_id === "src-beta")!;
+  // Its own detail held back: the card's Sync must not need it.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/v1\/sources\/src-beta$/, async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    await held;
+    await route.fulfill({ json: { ...detail(beta), federated: true } });
+  });
 
   await page.goto("/sources");
-  await page.waitForLoadState("networkidle");
+  const card = (id: string) =>
+    page.locator("article", { has: page.getByRole("heading", { name: id }) });
+  await card("src-beta")
+    .getByRole("button", { name: "Sync", exact: true })
+    .click();
+  await expect.poll(() => calls.writes.length).toBe(1);
+  expect(calls.writes[0].query).toBe("?refresh_origin=true");
+  await card("src-alpha")
+    .getByRole("button", { name: "Sync", exact: true })
+    .click();
+  await expect.poll(() => calls.writes.length).toBe(2);
+  expect(calls.writes[1].query).toBe("");
+
   await page.getByRole("button", { name: "Sync all", exact: true }).click();
-  await expect.poll(() => calls.writes.length).toBeGreaterThan(1);
-  for (const write of calls.writes)
-    expect(write.query).toBe("?refresh_origin=true");
+  await expect.poll(() => calls.writes.length).toBe(4);
+  const all = Object.fromEntries(
+    calls.writes.slice(2).map((w) => [w.path, w.query]),
+  );
+  expect(all).toEqual({
+    "/api/v1/sources/src-alpha/sync": "",
+    "/api/v1/sources/src-beta/sync": "?refresh_origin=true",
+  });
+  release();
+
+  // The source's own page reads the same flag from its detail.
+  await page.goto("/sources/src-beta");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect.poll(() => calls.writes.length).toBe(5);
+  expect(calls.writes[4].query).toBe("?refresh_origin=true");
 });
 
 // The button says Syncing… for as long as the sync runs and the new data
@@ -100,6 +144,21 @@ test("a Sync resets Data from and its meter", async ({ page }) => {
   await expect
     .poll(async () => Number(await meter.getAttribute("aria-valuenow")))
     .toBe(before);
+});
+
+// A card is titled by the item's name, as the page it opens is, with the
+// description under it: sources and endpoints read like every other card.
+test("source and endpoint cards are titled by name", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources");
+  const alpha = page.locator("article", { hasText: "src-alpha" });
+  await expect(alpha.getByRole("heading")).toHaveText("src-alpha");
+  await expect(alpha.getByText("ALPHA", { exact: true })).toBeVisible();
+
+  await page.goto("/endpoints");
+  const all = page.locator("article", { hasText: "ep-all" });
+  await expect(all.getByRole("heading")).toHaveText("ep-all");
+  await expect(all.getByText("Everything", { exact: true })).toBeVisible();
 });
 
 test("a token in a project's git address is never shown", async ({ page }) => {
@@ -266,4 +325,56 @@ test("ages keep counting between polls", async ({ page }) => {
   const before = await attempt.innerText();
   await expect(attempt).not.toHaveText(before, { timeout: 4000 });
   expect(await attempt.innerText()).toMatch(/^3\ds ago$/);
+});
+
+// A source whose ssh connector writes its script inline says so, as its
+// connector's page does, and shows no blank Script.
+test("a source with an inline ssh script says so", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({
+          json: {
+            ...detail(alpha),
+            gathering: {
+              ...detail(alpha).gathering!,
+              connector_type: "ssh",
+              project_id: null,
+              script_path: "",
+              location: null,
+              inline_script: true,
+            },
+          },
+        })
+      : route.fallback(),
+  );
+  await page.goto("/sources/src-alpha");
+  // What a reader sees in each fact row (its hint stays out of it).
+  await expect
+    .poll(() => page.locator("dl > div").allInnerTexts())
+    .toEqual(
+      expect.arrayContaining([
+        "Script\nInline script",
+        "Project\nInline script",
+      ]),
+    );
+});
+
+// The host variables column fits a 1024px window: its search box shrinks
+// and its controls wrap rather than pushing Copy past the edge.
+test("a source page fits a 1024px window", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("option", { name: "web-01.example.net" }).click();
+  await expect(page.getByText("192.0.2.10")).toBeVisible();
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(0);
 });

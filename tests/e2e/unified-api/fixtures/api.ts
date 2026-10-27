@@ -31,6 +31,7 @@ export const sources: Schemas["CachedSourceInfo"][] = [
     url: "/api/v1/sources/src-alpha",
     kind: "source",
     cached: true,
+    federated: false,
     is_fresh: true,
     age_seconds: 30,
     total_hosts: 3,
@@ -42,6 +43,7 @@ export const sources: Schemas["CachedSourceInfo"][] = [
     url: "/api/v1/sources/src-beta",
     kind: "source",
     cached: true,
+    federated: false,
     is_fresh: false,
     age_seconds: 7200,
     total_hosts: 2,
@@ -59,7 +61,9 @@ const HOSTS: Record<string, string[]> = {
   "src-beta": ["db-01.example.net", "cache-01.example.net"],
 };
 
-const detail = (s: Schemas["CachedSourceInfo"]): Schemas["SourceDetail"] => ({
+export const detail = (
+  s: Schemas["CachedSourceInfo"],
+): Schemas["SourceDetail"] => ({
   ...s,
   name: s.source_id.replace("src-", "").toUpperCase(),
   ttl_seconds: 3600,
@@ -78,6 +82,8 @@ const detail = (s: Schemas["CachedSourceInfo"]): Schemas["SourceDetail"] => ({
     allow_on_demand_refresh: true,
     remote_url: null,
     config_keys: [],
+    location: null,
+    inline_script: false,
   },
 });
 
@@ -136,7 +142,6 @@ const builtIn = (
   path: null,
   script_args: [],
   host_args: [],
-  output_format: null,
   timeout_seconds: null,
   used_by: [],
   health: { sources: 0, healthy: 0, failing: 0, never_synced: 0 },
@@ -152,7 +157,6 @@ export const connectors: Schemas["ConnectorInfo"][] = [
     path: "connectors/inventory.py",
     script_args: ["--format", "json"],
     host_args: ["--host"],
-    output_format: "native",
     timeout_seconds: 300,
     used_by: [
       {

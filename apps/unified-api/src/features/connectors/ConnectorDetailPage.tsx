@@ -3,6 +3,7 @@ import {
   EmptyState,
   Fact,
   HealthPill,
+  LinesView,
   ListName,
   ListTable,
   Notice,
@@ -21,7 +22,12 @@ import {
   BUILT_IN,
   connectorLabels,
   connectorState,
+  LOCATION_WORDS,
+  commandLines,
+  commandSummary,
   describe,
+  noProject,
+  pathKind,
   stateDetail,
 } from "./model";
 
@@ -36,13 +42,17 @@ const HINTS: Record<string, string> = {
     "A connector every instance has. No item defines it, and a source names it with connector: and its own settings.",
   Reads: "What a source using this connector gathers its data from.",
   Project:
-    "project. The git project whose checkout holds the script. None: path is a file on this instance's own disk (in the image, or mounted).",
-  Path: "path. The script a sync runs, relative to the project's checkout when it has one. For ssh, the command run on each host.",
+    "project. The git project whose checkout holds the script. Local file: path is on this instance's own disk (in the image, or mounted). On the host: path is on each host. Inline script: the script is written in the connector.",
+  Path: "path. The script a sync runs, relative to the project's checkout when it has one.",
+  Script:
+    "script. The script written in the connector, streamed to each host and run there as a file from here would be (shown in full below).",
+  Location:
+    "location. Where what it runs is: on this instance (a script, read at each sync and streamed to each host), on each host (files run if executable, read as facts otherwise), or written in the connector (its own script).",
+  "On each host":
+    "path. On each host: a pattern reads every matching file as a fact (an executable is run, anything else read as JSON or INI, named after its file); a single path is a program run there.",
   "Script args": "script_args. Arguments passed to the script on every run.",
   "Host args":
     "host_args. Arguments added when a sync asks for named hosts only (an on-demand refresh).",
-  "Output format":
-    "output_format. native: the script prints this instance's own dataset. ansible: it prints an Ansible inventory, which is converted.",
   Timeout:
     "timeout_seconds. How long one sync may run. A source may set its own; the table below shows the one each source syncs under.",
 };
@@ -83,6 +93,19 @@ export function ConnectorDetailPage() {
       {connector && (
         <>
           <Overview connector={connector} />
+          {pathKind(connector) === "inline" &&
+            connector.script &&
+            commandLines(connector.script).length > 1 && (
+              <Panel
+                title="Script"
+                hint="script. The script this connector streams to each host and runs there, as written in it."
+              >
+                <LinesView
+                  lines={connector.script.replace(/\n+$/, "").split("\n")}
+                  label="Script run on each host"
+                />
+              </Panel>
+            )}
           <Panel
             title="Sources"
             hint="The sources using this connector: their connector names it. Each syncs under its own timeout when it sets one, the connector's otherwise."
@@ -156,30 +179,59 @@ function ItemFacts({ connector }: { connector: Connector }) {
           >
             {connector.project_id}
           </Link>
-        ) : connector.connector_type === "ssh" ? (
-          "None (runs on each host)"
         ) : (
-          "None (local file)"
+          <em className={common.soft} title={noProject(connector).why}>
+            {noProject(connector).text}
+          </em>
         )}
       </Fact>
-      <Fact label="Path" hint={HINTS["Path"]}>
-        <code
-          className={`${common.mono} ${common.clipText}`}
-          title={connector.path ?? undefined}
-        >
-          {connector.path ?? "None"}
-        </code>
-      </Fact>
+      {/* Six facts, two full rows, for both kinds: what can be set and
+          varies. ssh says where its path is; a script connector's is always
+          here, so it shows its host args in that place instead. */}
+      {connector.connector_type === "ssh" && (
+        <Fact label="Location" hint={HINTS["Location"]}>
+          {/* In italic, as Project's "Local file" or "On the host": a
+              place, not a name to follow. */}
+          <em className={common.soft}>{LOCATION_WORDS[pathKind(connector)]}</em>
+        </Fact>
+      )}
+      {pathKind(connector) === "inline" ? (
+        <Fact label="Script" hint={HINTS["Script"]}>
+          <code
+            className={`${common.mono} ${common.clipText}`}
+            title={connector.script ?? undefined}
+          >
+            {commandSummary(connector.script)}
+          </code>
+        </Fact>
+      ) : pathKind(connector) === "host" ? (
+        <Fact label="Runs" hint={HINTS["On each host"]}>
+          <code
+            className={`${common.mono} ${common.clipText}`}
+            title={connector.path ?? undefined}
+          >
+            {connector.path}
+          </code>
+        </Fact>
+      ) : (
+        <Fact label="Path" hint={HINTS["Path"]}>
+          <code
+            className={`${common.mono} ${common.clipText}`}
+            title={connector.path ?? undefined}
+          >
+            {connector.path ?? "None"}
+          </code>
+        </Fact>
+      )}
 
       <Fact label="Script args" hint={HINTS["Script args"]}>
         {args(connector.script_args)}
       </Fact>
-      <Fact label="Host args" hint={HINTS["Host args"]}>
-        {args(connector.host_args)}
-      </Fact>
-      <Fact label="Output format" hint={HINTS["Output format"]}>
-        {connector.output_format ?? "None"}
-      </Fact>
+      {connector.connector_type !== "ssh" && (
+        <Fact label="Host args" hint={HINTS["Host args"]}>
+          {args(connector.host_args)}
+        </Fact>
+      )}
 
       <Fact label="Timeout" hint={HINTS["Timeout"]}>
         {formatSpan(connector.timeout_seconds ?? 300)}

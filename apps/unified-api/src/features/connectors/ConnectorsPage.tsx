@@ -24,6 +24,9 @@ import {
   connectorPath,
   connectorState,
   describe,
+  noProject,
+  pathFact,
+  runs,
   stateDetail,
 } from "./model";
 
@@ -36,6 +39,8 @@ const searchText = (connector: Connector) =>
     describe(connector) ?? "",
     connector.connector_type,
     connector.path ?? "",
+    // An inline script is found by what it runs.
+    connector.script ?? "",
     connector.project_id ?? "",
     ...connector.used_by.map((u) => `${u.source_id} ${u.name}`),
   ].join(" ");
@@ -156,11 +161,14 @@ function ConnectorCard({ connector }: { connector: Connector }) {
         </>
       ) : (
         <>
-          <Fact label="File">
-            {/* The last part; the whole path on hover and on the
+          <Fact label={pathFact(connector).label}>
+            {/* In a few words; the whole path on hover and on the
                 connector's page. */}
-            <code className={styles.mono} title={connector.path ?? undefined}>
-              {connector.path?.split("/").at(-1) ?? "None"}
+            <code
+              className={`${styles.mono} ${styles.clipText}`}
+              title={runs(connector)}
+            >
+              {pathFact(connector).value}
             </code>
           </Fact>
           <Fact label="Project">
@@ -172,11 +180,9 @@ function ConnectorCard({ connector }: { connector: Connector }) {
                 {connector.project_id}
               </Link>
             ) : (
-              <span className={styles.soft}>
-                {connector.connector_type === "ssh"
-                  ? "None (runs on each host)"
-                  : "None (local file)"}
-              </span>
+              <em className={styles.soft} title={noProject(connector).why}>
+                {noProject(connector).text}
+              </em>
             )}
           </Fact>
         </>

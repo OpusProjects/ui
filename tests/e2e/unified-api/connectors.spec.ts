@@ -91,7 +91,6 @@ test("a connector's page shows its facts and the sources using it", async ({
   await expect(overview.getByText("connectors/inventory.py")).toBeVisible();
   await expect(overview.getByText("--format json")).toBeVisible();
   await expect(overview.getByText("--host", { exact: true })).toBeVisible();
-  await expect(overview.getByText("native", { exact: true })).toBeVisible();
   await expect(overview.getByText("5m", { exact: true })).toBeVisible();
 
   const usedBy = page.locator("section", {
@@ -164,4 +163,142 @@ test("a project's page lists the connectors using it", async ({ page }) => {
   await expect(
     row.getByRole("link", { name: "inventory", exact: true }),
   ).toHaveAttribute("href", "/connectors/inventory");
+});
+
+// An ssh connector says what it runs: files on the host (Runs, *On the
+// host*), a script here (File, its project), or its own inline script (in a
+// few words, never a fragment cut at its last "/").
+test("an ssh connector shows where its path is", async ({ page }) => {
+  await mockApi(page);
+  const { connectors } = await import("./fixtures/api");
+  const ssh = (
+    connector_id: string,
+    location: string | null,
+    path: string | null,
+    project_id: string | null = null,
+    script: string | null = null,
+  ) => ({
+    ...connectors[0],
+    connector_id,
+    name: connector_id,
+    connector_type: "ssh",
+    location,
+    path,
+    project_id,
+    script,
+    script_args: [],
+    host_args: [],
+    used_by: [],
+    health: { sources: 0, healthy: 0, failing: 0, never_synced: 0 },
+  });
+  const all = [
+    ...connectors,
+    ssh("ssh-py", null, null, null, "#!/usr/bin/env -S python3 -u\nprint(1)"),
+    ssh("ssh-facts", "host", "/etc/ansible/facts.d/*.fact"),
+    ssh("ssh-osinfo", "instance", "ssh/osinfo.sh", "prj-inventory"),
+    ssh(
+      "ssh-inline",
+      null,
+      null,
+      null,
+      "j(){ printf '%s' \"$1\" | tr -d '\"\\\\'; }\nuname -r\nhostname",
+    ),
+  ];
+  await page.route(/\/api\/v1\/connectors(\/[^/?]+)?(\?.*)?$/, (route) => {
+    const id = /\/api\/v1\/connectors\/([^/?]+)/.exec(route.request().url());
+    return route.fulfill({
+      json: id ? all.find((c) => c.connector_id === id[1]) : all,
+    });
+  });
+  await page.goto("/connectors");
+  const card = (id: string) =>
+    page.locator("article", { has: page.getByRole("heading", { name: id }) });
+
+  const facts = card("ssh-facts");
+  await expect(facts.getByText("Runs", { exact: true })).toBeVisible();
+  await expect(
+    facts.getByText("/etc/ansible/facts.d/*.fact", { exact: true }),
+  ).toBeVisible();
+  await expect(facts.getByText("On the host", { exact: true })).toBeVisible();
+
+  const script = card("ssh-osinfo");
+  await expect(script.getByText("File", { exact: true })).toBeVisible();
+  await expect(script.getByText("osinfo.sh", { exact: true })).toBeVisible();
+  await expect(
+    script.getByRole("link", { name: "prj-inventory" }),
+  ).toBeVisible();
+
+  const inline = card("ssh-inline");
+  await expect(
+    inline.getByText("Shell script, 3 lines", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    inline.getByText("Inline script", { exact: true }),
+  ).toBeVisible();
+
+  // Named after the interpreter its #! line names.
+  await expect(
+    card("ssh-py").getByText("Python script, 2 lines", { exact: true }),
+  ).toBeVisible();
+
+  // Found by what it runs.
+  await page
+    .getByRole("searchbox")
+    .or(page.getByPlaceholder(/search/i))
+    .first()
+    .fill("hostname");
+  await expect(card("ssh-inline")).toBeVisible();
+  await expect(card("ssh-facts")).toHaveCount(0);
+
+  // Its page: six facts, the whole script, and no warning: inline is a
+  // choice.
+  await page.goto("/connectors/ssh-inline");
+  await expect(
+    page
+      .locator("section", { hasText: "Overview" })
+      .first()
+      .locator("dl > div"),
+  ).toHaveCount(6);
+  await expect
+    .poll(() =>
+      page
+        .locator("section", { hasText: "Overview" })
+        .first()
+        .locator("dl > div")
+        .allInnerTexts(),
+    )
+    .toEqual(expect.arrayContaining(["Location\nInline script"]));
+  await expect(page.getByText("Written inline")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("region", { name: /command run on each host/i })
+      .or(page.getByLabel("Script run on each host")),
+  ).toContainText("hostname");
+});
+
+// Every connector's Overview ends on full rows of three: six facts for a
+// script connector and for ssh alike, what can be set and varies. A script
+// connector's location is always here, so its host args take that place.
+test("connector overviews end on full rows", async ({ page }) => {
+  await mockApi(page);
+  const facts = () =>
+    page
+      .locator("section", { hasText: "Overview" })
+      .first()
+      .locator("dl > div");
+  await page.goto("/connectors/inventory");
+  await expect(facts()).toHaveCount(6);
+  const labels = (await facts().locator("dt").allInnerTexts()).map((t) =>
+    t.trim(),
+  );
+  expect(labels).toEqual([
+    "Type",
+    "Project",
+    "Path",
+    "Script args",
+    "Host args",
+    "Timeout",
+  ]);
+  await page.goto("/connectors/remote");
+  await expect(facts()).toHaveCount(3);
 });

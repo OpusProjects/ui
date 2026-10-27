@@ -99,6 +99,13 @@
   border-color: var(--uu-line-strong);
 }
 
+/* A count with nothing to filter: a label, not a button. */
+.filter[data-static],
+.filter[data-static]:hover {
+  border-color: var(--uu-line);
+  cursor: default;
+}
+
 .filter[aria-pressed="true"] {
   border-color: var(--tone);
   background: color-mix(in srgb, var(--tone) 12%, transparent);

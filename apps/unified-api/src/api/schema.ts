@@ -616,6 +616,13 @@ export interface components {
        *     exists to explain.
        */
       cached: boolean;
+      /**
+       * @description Whether its data is copied from another unified-api (the remote
+       *     connector): what a Sync must ask that instance to gather again
+       *     (`refresh_origin`). Shown to every caller: the federation map already
+       *     names each remote source's origin.
+       */
+      federated: boolean;
       is_fresh: boolean;
       /**
        * @description "source" for a cached source, "view" for a read-only composite over
@@ -739,18 +746,31 @@ export interface components {
       /** @description Those sources' sync health, counted */
       health: components["schemas"]["ConnectorHealth"];
       host_args: string[];
+      /**
+       * @description ssh only: where `path` is. "host": on each host, a file or a
+       *     pattern of files, each run if executable or read if not, as facts;
+       *     "instance": a script here, streamed to each host. Null for a
+       *     connector that writes its `script` inline, and for every other kind
+       */
+      location?: string | null;
       /** @description Its description, or the identity when it has none */
       name: string;
-      /** @description "native" or "ansible" for a script connector; null otherwise */
-      output_format?: string | null;
-      /** @description Null for the built-ins */
+      /**
+       * @description The file it runs or reads. Null for the built-ins and for a
+       *     connector with an inline `script`
+       */
       path?: string | null;
       /**
-       * @description The project whose checkout holds the script. Null for ssh (the script
-       *     runs on the remote host) and for the built-ins (a static_inventory
-       *     source names its own project)
+       * @description The project whose checkout holds the script. Null for a script on
+       *     this instance's disk, for an ssh path on the hosts, and for the
+       *     built-ins (a static_inventory source names its own project)
        */
       project_id?: string | null;
+      /**
+       * @description ssh only: the script written in the item, streamed to each host and
+       *     run there; null when it names a `path`
+       */
+      script?: string | null;
       script_args: string[];
       /**
        * Format: int64
@@ -968,10 +988,18 @@ export interface components {
       connector_type: components["schemas"]["ConnectorType"];
       /** @description Credential ids this connector is given — names, never secrets */
       credential_ids: string[];
+      /** @description ssh only: the connector runs a script written in its own item */
+      inline_script: boolean;
+      /**
+       * @description ssh only: where `script_path` is, "host" or "instance"; null for an
+       *     inline script and for every other connector
+       */
+      location?: string | null;
       /**
        * @description The project whose checkout holds the script (from the connector) or
-       *     the inventory (a static_inventory source's own). Null for remote and
-       *     ssh sources, which run nothing from a checkout
+       *     the inventory (a static_inventory source's own). Null for remote
+       *     sources, and for ssh sources whose path is on the hosts or whose
+       *     script is inline
        */
       project_id?: string | null;
       /**
@@ -982,6 +1010,11 @@ export interface components {
       remote_url?: string | null;
       /** @description Cron expression (UTC), the alternative to an interval */
       schedule?: string | null;
+      /**
+       * @description The file the connector runs or reads. Empty for an ssh connector
+       *     whose script is inline (its text is on the admin-only connectors API,
+       *     not here: this page is open to restricted keys)
+       */
       script_path: string;
       /**
        * Format: int64
@@ -1288,6 +1321,11 @@ export interface components {
        *     just to measure it would make opening a page cost a full serialization.
        */
       dataset_bytes?: number | null;
+      /**
+       * @description Whether its data is copied from another unified-api (the remote
+       *     connector), for every caller: see the same field on the list
+       */
+      federated: boolean;
       gathering?: components["schemas"]["Gathering"] | null;
       is_fresh: boolean;
       /** @description "source" or "view" */
@@ -3140,7 +3178,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorBody"];
         };
       };
-      /** @description Signed in through the UI rather than with an API key */
+      /** @description A browser session (signed in through the UI, with a key or a directory account) rather than an API key sent with the request */
       403: {
         headers: {
           [name: string]: unknown;
