@@ -234,7 +234,10 @@ export function ApplicationsPage() {
                     </span>
                   </Fact>
                   <Fact label="Last check">
-                    <LiveAge seconds={app.last_checked_age_seconds} />
+                    <LiveAge
+                      seconds={app.last_checked_age_seconds}
+                      at={applications.dataUpdatedAt}
+                    />
                   </Fact>
                   <Fact label="Runs">
                     {formatEvery(app.sync_interval_seconds)}, {mode(app)}

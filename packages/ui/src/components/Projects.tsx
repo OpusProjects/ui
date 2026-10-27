@@ -195,6 +195,7 @@ export function ProjectsPage<T extends ProjectLike>({
             <Fact label="Last pull">
               <LiveAge
                 seconds={project.sync_health?.last_success_age_seconds}
+                at={query.dataUpdatedAt}
               />
             </Fact>
             {project.schedule ? (
@@ -250,10 +251,15 @@ export function ProjectOverview({
   project,
   credential,
   hints,
+  at,
 }: {
   project: ProjectDetailLike;
   credential?: string | null;
   hints: { lastSuccess: string; pullInterval: string };
+  // When the project was fetched (the query's dataUpdatedAt): its ages
+  // restart on every answer, so a pull resets them even when the age it
+  // reports is the same as the last one (0 after a pull, 0 after the next).
+  at?: number;
 }) {
   const health = project.sync_health;
   const failures = health?.consecutive_failures ?? 0;
@@ -311,11 +317,11 @@ export function ProjectOverview({
         </Fact>
 
         <Fact label="Last attempt" hint={HINTS["Last attempt"]}>
-          <LiveAge seconds={health?.last_attempt_age_seconds} />
+          <LiveAge seconds={health?.last_attempt_age_seconds} at={at} />
         </Fact>
         <Fact label="Last success" hint={hints.lastSuccess}>
           {health?.last_success_age_seconds != null ? (
-            <LiveAge seconds={health.last_success_age_seconds} />
+            <LiveAge seconds={health.last_success_age_seconds} at={at} />
           ) : (
             "Never"
           )}

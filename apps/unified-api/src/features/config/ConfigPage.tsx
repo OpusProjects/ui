@@ -115,7 +115,12 @@ export function ConfigPage() {
               admins.
             </EmptyState>
           )}
-          {settings.data && <ServerPanels settings={settings.data} />}
+          {settings.data && (
+            <ServerPanels
+              settings={settings.data}
+              at={settings.dataUpdatedAt}
+            />
+          )}
           <SignIn auth={auth.data} />
         </>
       )}
@@ -123,7 +128,14 @@ export function ConfigPage() {
   );
 }
 
-function ServerPanels({ settings }: { settings: Settings }) {
+function ServerPanels({
+  settings,
+  at,
+}: {
+  settings: Settings;
+  // When the settings were fetched: the last save restarts on every answer.
+  at: number;
+}) {
   const { server, cache, projects, secrets, config_api } = settings;
   const projectList = useProjects().data;
   const credentialList = useCredentials().data;
@@ -225,7 +237,7 @@ function ServerPanels({ settings }: { settings: Settings }) {
             ) : cache.consecutive_failures > 0 ? (
               `Failing, ${formatCount(cache.consecutive_failures)} in a row`
             ) : cache.last_saved_age_seconds != null ? (
-              <LiveAge seconds={cache.last_saved_age_seconds} />
+              <LiveAge seconds={cache.last_saved_age_seconds} at={at} />
             ) : (
               "Not yet"
             )}

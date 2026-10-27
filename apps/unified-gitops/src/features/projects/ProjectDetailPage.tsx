@@ -90,6 +90,7 @@ export function ProjectDetailPage() {
             project={project}
             credential={project.credential}
             hints={HINTS}
+            at={projects.dataUpdatedAt}
           />
           <UsedBy project={project} />
         </>
@@ -181,7 +182,7 @@ function UsedBy({ project }: { project: Project }) {
           hint="The applications using this project: their desired state is a folder in its checkout, pulled before every check."
         >
           <ListTable
-            columns={applicationColumns("folder")}
+            columns={applicationColumns("folder", applications.dataUpdatedAt)}
             rows={used_by.applications.map((name) => ({
               name,
               app: apps.get(name),

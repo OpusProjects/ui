@@ -123,7 +123,10 @@ function Users({ credential }: { credential: Credential }) {
       label: "Last pull",
       render: (r) =>
         r.project ? (
-          <LiveAge seconds={r.project.sync_health?.last_success_age_seconds} />
+          <LiveAge
+            seconds={r.project.sync_health?.last_success_age_seconds}
+            at={projects.dataUpdatedAt}
+          />
         ) : (
           none
         ),
@@ -166,7 +169,10 @@ function Users({ credential }: { credential: Credential }) {
           hint="The applications using this credential: their credentials name it, and their connector receives these secrets on every run."
         >
           <ListTable
-            columns={applicationColumns("connector")}
+            columns={applicationColumns(
+              "connector",
+              applications.dataUpdatedAt,
+            )}
             rows={appNames.map((n) => ({ name: n, app: apps.get(n) }))}
             rowKey={(r) => r.name}
             empty="No application uses it."

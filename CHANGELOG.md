@@ -20,6 +20,7 @@ unified-ui version it builds into its image.
 
 ### Fixed
 
+- A project's Last attempt and Last success (its page and card, both apps) restart when it is pulled, as Data from does after a Sync: they were counted on from the first answer whenever the next one reported the same age, so a Pull seemed not to reset them. The same for an application's Last check (card and tables), the projects on a credential's page, a source's Last success and the last cache save on Configuration.
 - Tables size each column from its content's real width, rounded up, and again when that content or the fonts change: a state pill ("Not synced yet" on a connector's sources) could overhang its column by a fraction of a pixel and give the table a horizontal scrollbar on a screen with classic scrollbars.
 - Counts group thousands with a comma everywhere in both apps, 1,023 rather than 1023: cards, facts, tables, health summaries, the overview, pagination, "+N more", run and sync messages. They followed the browser's language, which in Spanish wrote 1023 and 10.000; one `formatCount` (and `countOf`, "1,023 hosts") in `@opusprojects/unified-ui` now formats them all the same way.
 

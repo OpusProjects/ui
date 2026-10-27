@@ -385,7 +385,7 @@ function Listens({ webhook: n }: { webhook: Webhook }) {
 
   return (
     <ListTable
-      columns={applicationColumns("connector")}
+      columns={applicationColumns("connector", applications.dataUpdatedAt)}
       rows={rows.map((app) => ({ name: app.name, app }))}
       rowKey={(r) => r.name}
       empty="It listens to no application: name some under applications: or projects: in the configuration, or write all."

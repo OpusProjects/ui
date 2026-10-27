@@ -94,6 +94,7 @@ export function ProjectDetailPage() {
             project={project}
             credential={project.credential_id}
             hints={HINTS}
+            at={projects.dataUpdatedAt}
           />
           <Panel
             title="Sources"

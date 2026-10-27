@@ -93,3 +93,31 @@ test("a restricted key is refused the project page, with the reason", async ({
     "Could not load this project",
   );
 });
+
+// A pull restarts the project's ages from the new answer, even when it
+// reports the same age as the last one did: without when the answer came,
+// two equal ages look like one and the count ran on from the first.
+test("a Pull restarts Last attempt and Last success", async ({ page }) => {
+  await page.clock.install();
+  await mockApi(page);
+  await page.goto("/projects/prj-state");
+  await page.waitForLoadState("networkidle");
+  const fact = (label: string) =>
+    page
+      .locator("section", { hasText: "Overview" })
+      .locator("dl > div", { has: page.locator("dt", { hasText: label }) })
+      .first();
+  await expect(fact("Last success")).toContainText("20s ago");
+  // Less than a poll: only the live clock moves them.
+  await page.clock.runFor(10_000);
+  await expect(fact("Last success")).toContainText("30s ago");
+  await expect(fact("Last attempt")).toContainText("30s ago");
+  await page
+    .locator("main > header, main header")
+    .first()
+    .getByRole("button", { name: "Pull", exact: true })
+    .click();
+  // The fixture answers 20 again: the count starts over from it.
+  await expect(fact("Last success")).toContainText("20s ago");
+  await expect(fact("Last attempt")).toContainText("20s ago");
+});

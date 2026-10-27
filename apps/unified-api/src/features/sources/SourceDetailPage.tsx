@@ -234,6 +234,7 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
               {detail.sync_health?.last_success_age_seconds != null ? (
                 <LiveAge
                   seconds={detail.sync_health.last_success_age_seconds}
+                  at={at}
                 />
               ) : (
                 "Never"
