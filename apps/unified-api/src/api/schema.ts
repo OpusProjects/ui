@@ -722,6 +722,8 @@ export interface components {
       credentials: number;
       endpoints: number;
       enrichers: number;
+      groups: number;
+      hosts: number;
       projects: number;
       sources: number;
       views: number;
@@ -819,9 +821,17 @@ export interface components {
       /** @description `username_password`, `token` or `ssh_key` */
       type: string;
       used_by: components["schemas"]["CredentialUsersInfo"];
+      /**
+       * @description The `type: vault` credential a vault_path is read from (absent = the
+       *     deprecated config.yaml secrets.vault)
+       */
+      vault?: string | null;
+      vault_connection?: components["schemas"]["VaultConnectionInfo"] | null;
       vault_path?: string | null;
     };
     CredentialUsersInfo: {
+      /** @description For a `type: vault` credential: the credentials reading from it */
+      credentials: string[];
       /** @description Whether the LDAP login's service account binds with it */
       ldap: boolean;
       projects: string[];
@@ -1235,11 +1245,15 @@ export interface components {
     };
     RunInfo: {
       /**
-       * @description Who asked, for a manual run: the API key's name or the signed-in user.
-       *     Admin keys only.
+       * @description Who asked, for a manual run or a downstream instance's refresh: the
+       *     API key's name or the signed-in user. Admin keys only.
        */
       by?: string | null;
-      /** Format: int64 */
+      /**
+       * Format: int64
+       * @description How long it took. A sync's is the gather and the cache write (the
+       *     sync response's `sync_duration_ms`), not the enrichment after it
+       */
       duration_ms: number;
       /** @description Why it failed; absent when it worked */
       error?: string | null;
@@ -1258,7 +1272,8 @@ export interface components {
       started_at: number;
       /**
        * @description "scheduled", "manual" (Sync, Pull, the API), "refresh" (an on-demand
-       *     read) or "startup" (the clones at boot, a project added by a reload)
+       *     read, here or on a downstream instance federating the source) or
+       *     "startup" (a clone of a missing checkout, at boot or on a reload)
        */
       trigger: string;
     };
@@ -1289,10 +1304,10 @@ export interface components {
     SecretsSettings: {
       /**
        * Format: int64
-       * @description How long a resolved secret is reused: also how long a rotation takes
-       *     to be picked up
+       * @description The deprecated config.yaml cache over every credential, when still
+       *     set (a Vault credential now has its own `cache_ttl_seconds`)
        */
-      cache_ttl_seconds: number;
+      cache_ttl_seconds?: number | null;
       vault?: components["schemas"]["VaultSettings"] | null;
     };
     ServerSettings: {
@@ -1458,6 +1473,22 @@ export interface components {
       errors?: string[];
       summary?: components["schemas"]["ConfigSummary"] | null;
       valid: boolean;
+    };
+    VaultConnectionInfo: {
+      address: string;
+      /** @description `token` (with the variable holding it) or `kubernetes` (with its role) */
+      auth: string;
+      /**
+       * Format: int64
+       * @description How long a value read from this Vault is reused
+       */
+      cache_ttl_seconds: number;
+      kubernetes_role?: string | null;
+      mount: string;
+      /** Format: int64 */
+      timeout_seconds: number;
+      /** @description The environment variable the token is read from, for token auth */
+      token_env?: string | null;
     };
     VaultSettings: {
       address: string;

@@ -230,7 +230,12 @@ export const credentials: Schemas["CredentialInfo"][] = [
     file_keys: [],
     resolves: true,
     error: null,
-    used_by: { sources: ["src-alpha", "src-beta"], projects: [], ldap: false },
+    used_by: {
+      credentials: [],
+      sources: ["src-alpha", "src-beta"],
+      projects: [],
+      ldap: false,
+    },
   },
 ];
 

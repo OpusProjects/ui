@@ -100,9 +100,11 @@ export {
   CredentialOverview,
   CredentialsPage,
   credentialState,
+  SecretsPanel,
   type CredentialDetailLike,
   type CredentialLike,
   type CredentialView,
+  type VaultRow,
 } from "./components/Credentials";
 export {
   ListName,
@@ -158,12 +160,10 @@ export {
   milliseconds,
 } from "./components/Metrics";
 export {
-  SecretsPanel,
   SignInPanels,
   type AccessRuleView,
   type ApiKeyView,
   type LdapView,
-  type SecretsView,
 } from "./components/SignIn";
 export {
   startApp,

@@ -238,6 +238,7 @@ const credentials: Schemas["CredentialInfo"][] = [
     resolves: false,
     error: "Env var 'STORE_PASSWORD' not set",
     used_by: {
+      credentials: [],
       applications: ["drifted"],
       projects: ["prj-state"],
       ldap: false,
