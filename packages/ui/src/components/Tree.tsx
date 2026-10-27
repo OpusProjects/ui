@@ -30,22 +30,29 @@ export interface TreeItem {
 }
 
 // The gap between levels (Tree.module.css --tree-gap), what a line keeps
-// beyond it on a wide screen, and the widest a card grows to fill one.
+// beyond it on a wide screen, and the widest a card grows to fill one. And
+// how far each level is indented when the tree stacks (--tree-indent).
 const LINE_GAP = 96;
 const LINE_SLACK = 64;
 const MAX_CARD = 760;
+const MIN_CARD = 360;
+const INDENT = 20;
 
 export function Tree({ root, label }: { root: TreeItem; label: string }) {
   const list = useRef<HTMLUListElement>(null);
   // Laid out by measuring, so it holds for any number of levels and any
-  // width of card, not one window size:
-  // 1. Side by side at each card's own width (each on one line, capped by
-  //    the CSS). If that is wider than the page, the tree stacks instead
-  //    (indented, lines down the left) rather than scrolling sideways.
-  // 2. Otherwise every card is matched to the widest, so the levels line up
-  //    and none stretches across the page; on a wide screen wider still, so
-  //    the cards take the room rather than the lines — but only if the
-  //    matched tree also fits: if not, the cards keep their own widths.
+  // width of card, not one window size. Every card takes one width, the
+  // widest card's, so they line up whatever each holds:
+  // 1. Side by side, every card as wide as the widest (each measured on one
+  //    line, capped by the CSS); on a wide screen wider still, so the cards
+  //    take the room rather than the lines.
+  // 2. Where that does not fit, side by side still, the room shared evenly,
+  //    while each share is a card's least width (MIN_CARD, as the CSS): what
+  //    a card holds adapts (fewer chips before "+N more", lines wrapping).
+  //    Stacking a tree that fits would waste a laptop's width.
+  // 3. Narrower than that, stacked (indented, lines down the left) rather
+  //    than scrolling sideways, every card again one width: as wide as the
+  //    most indented one can be.
   // Done after every render (what the cards hold changes), when the fonts
   // are in, and when the width changes.
   const layout = useRef(() => {});
@@ -68,15 +75,20 @@ export function Tree({ root, label }: { root: TreeItem; label: string }) {
       deepest = Math.max(deepest, depth);
     });
     const available = tree.clientWidth;
-    if (tree.scrollWidth > available + 1) {
-      tree.setAttribute("data-stacked", "");
-      return;
-    }
     const levels = deepest + 1;
+    const fits = (width: number) =>
+      levels * width + (levels - 1) * LINE_GAP <= available;
     const share = (available - (levels - 1) * (LINE_GAP + LINE_SLACK)) / levels;
-    const width = Math.floor(Math.max(widest, Math.min(share, MAX_CARD)));
-    if (levels * width + (levels - 1) * LINE_GAP > available) return;
-    tree.style.setProperty("--tree-card-width", `${width}px`);
+    const roomy = Math.floor(Math.max(widest, Math.min(share, MAX_CARD)));
+    const even = Math.floor((available - (levels - 1) * LINE_GAP) / levels);
+    const width = fits(roomy) ? roomy : even >= MIN_CARD ? even : null;
+    if (width === null) {
+      tree.setAttribute("data-stacked", "");
+      const stacked = Math.floor(available - deepest * INDENT);
+      tree.style.setProperty("--tree-card-width", `${stacked}px`);
+    } else {
+      tree.style.setProperty("--tree-card-width", `${width}px`);
+    }
     tree.setAttribute("data-matched", "");
   };
   useLayoutEffect(() => layout.current());

@@ -36,7 +36,7 @@
   z-index: 1;
   flex: none;
   width: max-content;
-  min-width: 360px;
+  min-width: 360px; /* Tree.tsx MIN_CARD: keep the two the same. */
   max-width: 640px;
 }
 
@@ -145,17 +145,19 @@
   margin-left: 0;
 }
 
-/* After the matched width above, so this wins over it. */
+/* Stacked, every card one width too (Tree sets it: as wide as the most
+   indented card can be), so they line up down the page. */
 .tree[data-stacked] .node,
 .tree[data-stacked] .children > .item > .node {
-  width: auto;
+  width: var(--tree-card-width, auto);
   min-width: 0;
-  max-width: none;
+  max-width: 100%;
 }
 
 .tree[data-stacked] .children {
   position: relative;
   gap: 12px;
+  /* The indent is Tree.tsx INDENT: keep the two the same. */
   padding: 12px 0 0 20px;
 }
 
