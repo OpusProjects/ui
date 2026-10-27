@@ -132,6 +132,10 @@ const HINTS: Record<string, string> = {
     "config.url. The unified-api instance this source pulls from, named as on the Topology page. Opens it.",
   Script:
     "path. What the connector runs, or the inventory file a static inventory reads, inside the project's git checkout.",
+  "On each host":
+    "path. On each host: a pattern reads every matching file as a fact (an executable is run, anything else read as JSON or INI, named after its file); a single path is a program run there.",
+  "Inline script":
+    "script. The script written in the connector, streamed to each host and run there. Its text is on the connector's page.",
   Project:
     "project. The git project that holds the script (named by the connector) or, for a static inventory, the inventory file.",
   "Last attempt":
@@ -306,7 +310,13 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
                     (whose text is on the connector's page, admin-only). */}
                 <Fact
                   label={gathering.location === "host" ? "Runs" : "Script"}
-                  hint={HINTS["Script"]}
+                  hint={
+                    gathering.inline_script
+                      ? HINTS["Inline script"]
+                      : gathering.location === "host"
+                        ? HINTS["On each host"]
+                        : HINTS["Script"]
+                  }
                 >
                   {gathering.inline_script ? (
                     <em className={common.soft}>Inline script</em>

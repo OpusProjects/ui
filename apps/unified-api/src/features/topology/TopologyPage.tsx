@@ -124,8 +124,6 @@ function TopologyContent({
   const ownAges = ownSources.flatMap((s) =>
     s.age_seconds == null ? [] : [s.age_seconds],
   );
-  // The page measures links, not health: this instance is connected while
-  // at least one of its peers answers.
   // The root of the map, as the summary counts it: this instance, which is
   // the one answering; or, on a map pushed from above, that instance, as
   // its own card judges it (unreachable once its pushes stop).
@@ -134,6 +132,8 @@ function TopologyContent({
       ? "failing"
       : "fresh"
     : "fresh";
+  // The page measures links, not health: this instance is connected while
+  // at least one of its peers answers.
   const selfState: HealthState = peersOf(topology).some(
     (p) => peerState(p) !== "failing",
   )

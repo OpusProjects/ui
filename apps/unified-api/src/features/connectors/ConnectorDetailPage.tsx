@@ -42,7 +42,7 @@ const HINTS: Record<string, string> = {
     "A connector every instance has. No item defines it, and a source names it with connector: and its own settings.",
   Reads: "What a source using this connector gathers its data from.",
   Project:
-    "project. The git project whose checkout holds the script. None: path is a file on this instance's own disk (in the image, or mounted).",
+    "project. The git project whose checkout holds the script. Local file: path is on this instance's own disk (in the image, or mounted). On the host: path is on each host. Inline script: the script is written in the connector.",
   Path: "path. The script a sync runs, relative to the project's checkout when it has one.",
   Script:
     "script. The script written in the connector, streamed to each host and run there as a file from here would be (shown in full below).",
@@ -101,7 +101,7 @@ export function ConnectorDetailPage() {
                 hint="script. The script this connector streams to each host and runs there, as written in it."
               >
                 <LinesView
-                  lines={connector.script.split("\n")}
+                  lines={connector.script.replace(/\n+$/, "").split("\n")}
                   label="Script run on each host"
                 />
               </Panel>
