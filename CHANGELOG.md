@@ -13,6 +13,10 @@ unified-ui version it builds into its image.
 
 - unified-api Overview: an "Outgoing requests (per minute)" chart under the incoming one, in its own colour, counting the calls to the external systems' APIs (each connector script run, full or partial, and each enricher run, with the split and the failures in the tooltip; from `unified_api_source_requests_total`); This instance shows Incoming requests and Outgoing requests on separate rows. Requires unified-api 0.36.0.
 
+### Fixed
+
+- unified-api: every Sync button (a source's page, its card, Sync all) gets fresh data now. It asks with `refresh_origin=true`, so a federated source's origin gathers again before answering; before, a sync only copied that instance's cache, however old, and the source stayed stale. The button says Syncing… until the new data has loaded.
+
 ## [0.4.0] - 2026-10-27
 
 ### Added

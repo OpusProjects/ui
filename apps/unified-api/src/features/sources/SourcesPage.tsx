@@ -16,7 +16,7 @@ import {
 import { cachedHealth } from "@opusprojects/unified-client";
 import { Link } from "react-router";
 import { ExternalLink } from "lucide-react";
-import { api, unwrap } from "../../api/client";
+import { syncNow, syncSource } from "./sync";
 import { useSources, type SourceRow } from "../../api/queries";
 import { ListToolbar } from "@opusprojects/unified-ui";
 import { RunAllButton } from "@opusprojects/unified-ui";
@@ -82,13 +82,7 @@ export function SourcesPage() {
                 noun: ["source", "sources"],
               }}
               invalidate={[["sources"], ["source"]]}
-              run={async (id) =>
-                unwrap(
-                  await api.POST("/api/v1/sources/{id}/sync", {
-                    params: { path: { id } },
-                  }),
-                ).success
-              }
+              run={async (id) => (await syncSource(id)).success}
             />
           </ListToolbar>
           {filter.visible.length === 0 ? (
@@ -164,16 +158,7 @@ function SourceCard({ row }: { row: SourceRow }) {
               label="Sync"
               busyLabel="Syncing…"
               invalidate={[["sources"], ["source", summary.source_id]]}
-              run={async () => {
-                const result = unwrap(
-                  await api.POST("/api/v1/sources/{id}/sync", {
-                    params: { path: { id: summary.source_id } },
-                  }),
-                );
-                return result.success
-                  ? { ok: true, message: `Synced ${result.total_hosts} hosts` }
-                  : { ok: false, message: "Sync failed" };
-              }}
+              run={() => syncNow(summary.source_id)}
             />
           )}
         </>

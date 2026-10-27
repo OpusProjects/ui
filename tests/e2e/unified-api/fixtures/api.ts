@@ -267,7 +267,13 @@ unified_api_source_requests_total{source="src-a",operation="full",outcome="succe
 // What each call that left the page asked for, so a test can check a write
 // was made (and with what).
 export interface Calls {
-  writes: { method: string; path: string; headers: Record<string, string> }[];
+  writes: {
+    method: string;
+    path: string;
+    // The query string, "" when there is none.
+    query: string;
+    headers: Record<string, string>;
+  }[];
 }
 
 const json = (route: Route, body: unknown, status = 200) =>
@@ -302,6 +308,7 @@ export async function mockApi(page: Page): Promise<Calls> {
       calls.writes.push({
         method: request.method(),
         path,
+        query: url.search,
         headers: request.headers(),
       });
       return json(route, { status: "accepted" }, 202);

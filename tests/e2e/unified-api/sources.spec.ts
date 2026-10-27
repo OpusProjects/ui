@@ -25,6 +25,58 @@ test("Sync sends the CSRF token", async ({ page }) => {
   expect(calls.writes[0].headers["x-csrf-token"]).toBe("e2e-csrf");
 });
 
+// Sync means fresh data, now: a federated source's origin gathers again
+// (refresh_origin), or the sync only copies its cache, however old.
+test("every Sync asks for fresh data", async ({ page }) => {
+  const calls = await mockApi(page);
+  await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect.poll(() => calls.writes.length).toBe(1);
+  expect(calls.writes[0].query).toBe("?refresh_origin=true");
+
+  await page.goto("/sources");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Sync all", exact: true }).click();
+  await expect.poll(() => calls.writes.length).toBeGreaterThan(1);
+  for (const write of calls.writes)
+    expect(write.query).toBe("?refresh_origin=true");
+});
+
+// The button says Syncing… for as long as the sync runs and the new data
+// loads, and only then is it pressable again.
+test("Sync shows Syncing… until the new data is in", async ({ page }) => {
+  await mockApi(page);
+  let answer: () => void = () => {};
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  await page.route("**/api/v1/sources/src-alpha/sync*", async (route) => {
+    await answered;
+    await route.fulfill({
+      json: {
+        source_id: "src-alpha",
+        success: true,
+        total_hosts: 3,
+        total_groups: 1,
+        duration_ms: 5,
+        scope: "full",
+        error: null,
+        coalesced: false,
+      },
+    });
+  });
+  await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  const busy = page.getByRole("button", { name: "Syncing…" });
+  await expect(busy).toBeVisible();
+  await expect(busy).toBeDisabled();
+  answer();
+  await expect(page.getByText("Synced 3 hosts")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sync", exact: true }),
+  ).toBeEnabled();
+});
+
 test("a token in a project's git address is never shown", async ({ page }) => {
   await mockApi(page);
   for (const path of ["/projects", "/projects/prj-inventory"]) {

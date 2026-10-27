@@ -26,7 +26,7 @@ import {
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
-import { api, unwrap } from "../../api/client";
+import { syncNow } from "./sync";
 import {
   useHostVars,
   useSourceDetail,
@@ -99,16 +99,7 @@ function SyncNow({ id }: { id: string }) {
       label="Sync"
       busyLabel="Syncing…"
       invalidate={[["sources"], ["source", id]]}
-      run={async () => {
-        const result = unwrap(
-          await api.POST("/api/v1/sources/{id}/sync", {
-            params: { path: { id } },
-          }),
-        );
-        return result.success
-          ? { ok: true, message: `Synced ${result.total_hosts} hosts` }
-          : { ok: false, message: "Sync failed" };
-      }}
+      run={() => syncNow(id)}
     />
   );
 }
