@@ -63,6 +63,27 @@ test("this instance counts requests over the last minute", async ({ page }) => {
   await expect(panel).toContainText("in the last minute");
 });
 
+// What it receives and what it sends to the systems' APIs, apart.
+test("the overview charts incoming and outgoing requests apart", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Incoming requests (per minute)" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Outgoing requests (per minute)" }),
+  ).toBeVisible();
+  const instance = page.locator("section", { hasText: "This instance" });
+  await expect(
+    instance.getByText("Incoming requests", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    instance.getByText("Outgoing requests", { exact: true }),
+  ).toBeVisible();
+});
+
 // Running for counts on, a second at a time, in exact units.
 test("this instance's running time ticks", async ({ page }) => {
   await page.clock.install();

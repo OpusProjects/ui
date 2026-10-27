@@ -260,6 +260,8 @@ const METRICS = `# TYPE unified_api_http_requests_total counter
 unified_api_http_requests_total{method="GET",path="/api/v1/sources",status="200"} 10
 # TYPE unified_api_hosts_unique gauge
 unified_api_hosts_unique 4
+# TYPE unified_api_source_requests_total counter
+unified_api_source_requests_total{source="src-a",operation="full",outcome="success"} 6
 `;
 
 // What each call that left the page asked for, so a test can check a write
