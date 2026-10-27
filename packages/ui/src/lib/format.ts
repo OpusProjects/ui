@@ -46,6 +46,132 @@ export function countOf(n: number, one: string, many = `${one}s`): string {
   return `${formatCount(n)} ${n === 1 ? one : many}`;
 }
 
+// A cron expression (UTC, with an optional seconds field first) in words,
+// as an interval reads: "every 2h", "daily at 04:15 UTC", "Mon–Fri at 06:00
+// UTC". Null when it is too irregular to say plainly; the caller then shows
+// the expression itself.
+export function formatSchedule(expression: string): string | null {
+  const MACROS: Record<string, string> = {
+    "@yearly": "0 0 1 1 *",
+    "@annually": "0 0 1 1 *",
+    "@monthly": "0 0 1 * *",
+    "@weekly": "0 0 * * 0",
+    "@daily": "0 0 * * *",
+    "@midnight": "0 0 * * *",
+    "@hourly": "0 * * * *",
+  };
+  const trimmed = expression.trim();
+  const parts = (MACROS[trimmed.toLowerCase()] ?? trimmed).split(/\s+/);
+  if (parts.length !== 5 && parts.length !== 6) return null;
+  const [sec, min, hour, dom, month, dow] =
+    parts.length === 6 ? parts : ["0", ...parts];
+  const any = (f: string) => f === "*" || f === "?";
+  const step = (f: string) => /^\*\/(\d+)$/.exec(f)?.[1];
+  const nums = (f: string, names: string[] = []) => {
+    const out: number[] = [];
+    for (const item of f.split(",")) {
+      const value = (v: string) => {
+        const named = names.findIndex((n) => n === v.slice(0, 3).toLowerCase());
+        return named >= 0 ? named : /^\d+$/.test(v) ? Number(v) : NaN;
+      };
+      const range = /^(\w+)-(\w+)$/.exec(item);
+      if (range) {
+        const [a, b] = [value(range[1]), value(range[2])];
+        if (Number.isNaN(a) || Number.isNaN(b) || b < a) return null;
+        for (let n = a; n <= b; n++) out.push(n);
+      } else {
+        const n = value(item);
+        if (Number.isNaN(n)) return null;
+        out.push(n);
+      }
+    }
+    return out;
+  };
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const and = (items: string[]) =>
+    items.length === 1
+      ? items[0]
+      : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+
+  const seconds = sec === "0" ? 0 : null;
+  // Every N seconds, minutes or hours: an interval, said as one.
+  if (any(dom) && any(month) && any(dow)) {
+    const s = step(sec);
+    if (s && any(min) && any(hour)) return formatEvery(Number(s));
+    if (seconds === 0 && any(hour)) {
+      const m = step(min);
+      if (m) return formatEvery(Number(m) * 60);
+      if (any(min)) return formatEvery(60);
+    }
+    const h = step(hour);
+    const at = nums(min);
+    if (seconds === 0 && (h || any(hour)) && at?.length === 1) {
+      const every = formatEvery((h ? Number(h) : 1) * 3600);
+      return at[0] === 0 ? every : `${every}, at :${pad(at[0])}`;
+    }
+  }
+
+  // At fixed times of day.
+  const minutes = nums(min);
+  const hours = nums(hour);
+  if (seconds !== 0 || !minutes || !hours || minutes.length !== 1) return null;
+  const times = `${and(hours.map((h) => `${pad(h)}:${pad(minutes[0])}`))} UTC`;
+  const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MONTHS = [
+    "",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
+  ];
+  const MONTH_NAMES = [
+    "",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const ordinal = (n: number) =>
+    `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
+
+  if (any(dom) && any(month)) {
+    if (any(dow)) return `daily at ${times}`;
+    const days = nums(dow, DAYS)?.map((d) => d % 7);
+    if (!days) return null;
+    const runs =
+      days.length > 2 && days.every((d, i) => i === 0 || d === days[i - 1] + 1)
+        ? `${DAY_NAMES[days[0]]}–${DAY_NAMES[days[days.length - 1]]}`
+        : days.length === 1
+          ? `every ${DAY_NAMES[days[0]]}`
+          : and(days.map((d) => DAY_NAMES[d]));
+    return `${runs} at ${times}`;
+  }
+  if (!any(dow)) return null;
+  const dates = nums(dom);
+  if (!dates || dates.length !== 1) return null;
+  if (any(month)) return `monthly on the ${ordinal(dates[0])} at ${times}`;
+  const months = nums(month, MONTHS);
+  if (!months || months.length !== 1 || !MONTH_NAMES[months[0]]) return null;
+  return `yearly on ${dates[0]} ${MONTH_NAMES[months[0]]} at ${times}`;
+}
+
 // 1024-based, one decimal while under 10 of a unit (2.4 MB, 37 MB).
 export function formatBytes(value: number): string {
   const units = ["B", "KB", "MB", "GB", "TB"];

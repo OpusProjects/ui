@@ -19,6 +19,7 @@ import { RunAllButton } from "./RunAllButton";
 import { RunButton } from "./RunButton";
 import { LiveAge } from "./LiveAge";
 import { formatEvery, formatSpan } from "../lib/format";
+import { Schedule } from "./Detail";
 import styles from "./Common.module.css";
 
 // What every unified-* app's git projects have in common. How one is named,
@@ -29,6 +30,8 @@ export interface ProjectLike {
   revision?: string | null;
   sync_health?: SyncHealth | null;
   sync_interval_seconds?: number | null;
+  // A cron schedule (UTC), used instead of the interval.
+  schedule?: string | null;
 }
 
 export interface ProjectView {
@@ -193,10 +196,16 @@ export function ProjectsPage<T extends ProjectLike>({
                 seconds={project.sync_health?.last_success_age_seconds}
               />
             </Fact>
-            {project.sync_interval_seconds != null && (
+            {project.schedule ? (
               <Fact label="Pulls">
-                {formatEvery(project.sync_interval_seconds)}
+                <Schedule cron={project.schedule} />
               </Fact>
+            ) : (
+              project.sync_interval_seconds != null && (
+                <Fact label="Pulls">
+                  {formatEvery(project.sync_interval_seconds)}
+                </Fact>
+              )
             )}
           </ResourceCard>
         );
@@ -219,7 +228,7 @@ const HINTS = {
   "Last attempt":
     "When this project was last pulled, whether it worked or not.",
   Schedule:
-    "schedule. A cron expression (UTC) for when the project is pulled, used instead of an interval.",
+    "schedule. When the project is pulled, from a cron expression (UTC, shown on hover), used instead of an interval.",
   "Pull on start":
     "sync_on_boot. Whether this instance pulls the project when it starts.",
   Timeout:
@@ -313,7 +322,7 @@ export function ProjectOverview({
 
         {project.schedule ? (
           <Fact label="Schedule" hint={HINTS.Schedule}>
-            <code className={detail.mono}>{project.schedule}</code>
+            <Schedule cron={project.schedule} />
           </Fact>
         ) : (
           <Fact label="Pull interval" hint={hints.pullInterval}>

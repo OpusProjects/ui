@@ -1,16 +1,17 @@
 import {
+  PageHeader,
   CardGrid,
   countOf,
-  EmptyState,
   Fact,
   formatCount,
   formatEvery,
   FreshnessMeter,
   HealthSummary,
   LiveAge,
+  EmptyState,
   Notice,
-  PageHeader,
   ResourceCard,
+  Schedule,
   SkeletonGrid,
   SkeletonSummary,
   useRememberedCount,
@@ -136,7 +137,7 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
   const failures = health?.consecutive_failures ?? 0;
 
   const schedule = gathering?.schedule ? (
-    <code className={styles.mono}>{gathering.schedule}</code>
+    <Schedule cron={gathering.schedule} />
   ) : (
     formatEvery(gathering?.sync_interval_seconds)
   );

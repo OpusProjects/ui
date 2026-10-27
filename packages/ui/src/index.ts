@@ -45,6 +45,7 @@ export {
   formatBytes,
   formatCount,
   formatEvery,
+  formatSchedule,
   formatSpan,
 } from "./lib/format";
 export { LiveAge, useLiveSeconds, useNow } from "./components/LiveAge";
@@ -74,10 +75,11 @@ export {
 } from "./components/CodeView";
 export {
   Clip,
-  DetailTitle,
-  ValueList,
   detailStyles,
+  DetailTitle,
   onOff,
+  Schedule,
+  ValueList,
 } from "./components/Detail";
 export { pageStyles } from "./components/Common";
 export { ListToolbar } from "./components/ListToolbar";

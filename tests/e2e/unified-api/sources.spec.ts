@@ -421,3 +421,53 @@ test.describe("in a Spanish browser", () => {
     ).toBeVisible();
   });
 });
+
+// A cron schedule reads in words, as an interval does ("every 10m"), the
+// expression itself on hover: on a source's card and page, and a project's.
+test("cron schedules read in words", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources, projects } = await import("./fixtures/api");
+  const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+  const scheduled = detail(alpha);
+  scheduled.gathering = {
+    ...scheduled.gathering!,
+    schedule: "15 4 * * *",
+    sync_interval_seconds: null,
+  };
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: scheduled })
+      : route.fallback(),
+  );
+  const pulled = projects.map((p) =>
+    p.project_id === "prj-inventory"
+      ? { ...p, schedule: "0 */4 * * *", sync_interval_seconds: null }
+      : p,
+  );
+  await page.route(/\/api\/v1\/projects(\?.*)?$/, (route) =>
+    route.fulfill({ json: pulled }),
+  );
+  await page.route(/\/api\/v1\/projects\/prj-inventory$/, (route) =>
+    route.fulfill({ json: pulled[0] }),
+  );
+
+  await page.goto("/sources");
+  const card = page.locator("article", {
+    has: page.getByRole("heading", { name: "src-alpha" }),
+  });
+  const words = card.getByText("daily at 04:15 UTC");
+  await expect(words).toBeVisible();
+  await expect(words).toHaveAttribute("title", "cron (UTC): 15 4 * * *");
+  await expect(card).not.toContainText("15 4 * * *");
+
+  await page.goto("/sources/src-alpha");
+  await expect(page.getByText("daily at 04:15 UTC")).toBeVisible();
+
+  await page.goto("/projects");
+  await expect(page.getByText("every 4h").first()).toBeVisible();
+  await page.goto("/projects/prj-inventory");
+  await expect(page.getByText("every 4h").first()).toHaveAttribute(
+    "title",
+    "cron (UTC): 0 */4 * * *",
+  );
+});

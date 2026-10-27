@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import {
+  PageHeader,
+  Pagination,
+  Panel,
   CodeView,
   CopyButton,
   countOf,
-  EmptyState,
   Fact,
   formatBytes,
   formatCount,
@@ -15,10 +17,9 @@ import {
   HealthPill,
   LinesView,
   LiveAge,
+  EmptyState,
   Notice,
-  PageHeader,
-  Pagination,
-  Panel,
+  Schedule,
   SearchField,
   SegmentedSwitch,
   serialize,
@@ -121,7 +122,7 @@ const HINTS: Record<string, string> = {
     "How old the cached data is; the bar fills as it nears its TTL. For a remote source this is the age at its origin: copying data does not make it newer.",
   TTL: "ttl_seconds. How long the data counts as fresh. Past it the source reads as stale, but its data is still served until a sync replaces it. Also the threshold for an on-demand refresh.",
   Schedule:
-    "schedule. A cron expression (UTC) for when this source syncs, used instead of an interval.",
+    "schedule. When this source syncs, from a cron expression (UTC, shown on hover), used instead of an interval.",
   "Sync interval":
     "sync_interval_seconds. How often this source syncs. After a failure it backs off: the next attempts come 1, 2, 4, then at most 8 intervals apart, until one succeeds.",
   "Sync mode":
@@ -248,7 +249,7 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
           <>
             {gathering.schedule ? (
               <Fact label="Schedule" hint={HINTS["Schedule"]}>
-                <code className={common.mono}>{gathering.schedule}</code>
+                <Schedule cron={gathering.schedule} />
               </Fact>
             ) : (
               <Fact label="Sync interval" hint={HINTS["Sync interval"]}>
