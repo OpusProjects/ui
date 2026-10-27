@@ -75,7 +75,7 @@ export function SourceDetailPage() {
       )}
       {detail.isSuccess && (
         <>
-          <Overview detail={detail.data} />
+          <Overview detail={detail.data} at={detail.dataUpdatedAt} />
           {detail.data.cached ? (
             // Keyed by the source, so its search, page and selection start
             // afresh on another source instead of filtering it with the last
@@ -146,7 +146,8 @@ const HINTS: Record<string, string> = {
     "The sources this view reads from, by declared ownership of groups and hosts.",
 };
 
-function Overview({ detail }: { detail: Detail }) {
+// `at`: when the detail was fetched, what its ages count on from.
+function Overview({ detail, at }: { detail: Detail; at: number }) {
   const state = cachedHealth(
     detail.cached,
     detail.is_fresh,
@@ -189,12 +190,13 @@ function Overview({ detail }: { detail: Detail }) {
           {detail.age_seconds != null ? (
             <>
               <span>
-                <LiveAge seconds={detail.age_seconds} />
+                <LiveAge seconds={detail.age_seconds} at={at} />
               </span>
               <FreshnessMeter
                 ageSeconds={detail.age_seconds}
                 ttlSeconds={detail.ttl_seconds}
                 state={state}
+                at={at}
               />
             </>
           ) : (
@@ -205,7 +207,10 @@ function Overview({ detail }: { detail: Detail }) {
         {detail.kind === "source" && (
           <>
             <Fact label="Last attempt" hint={HINTS["Last attempt"]}>
-              <LiveAge seconds={detail.sync_health?.last_attempt_age_seconds} />
+              <LiveAge
+                seconds={detail.sync_health?.last_attempt_age_seconds}
+                at={at}
+              />
             </Fact>
             {/* Not the same as "Data from": a remote source passes on its
                 origin's age, so old data with a recent success means the

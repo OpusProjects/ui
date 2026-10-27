@@ -77,6 +77,31 @@ test("Sync shows Syncing… until the new data is in", async ({ page }) => {
   ).toBeEnabled();
 });
 
+// After a Sync, Data from and its meter start again from the age the server
+// gives, even when that age is the same number as before (30s in the
+// fixture, before and after): each answer is counted from when it came.
+test("a Sync resets Data from and its meter", async ({ page }) => {
+  await page.clock.install();
+  await mockApi(page);
+  await page.goto("/sources/src-alpha");
+  await page.waitForLoadState("networkidle");
+  const dataFrom = page
+    .locator("section", { hasText: "Overview" })
+    .locator("dl > div", { has: page.locator("dt", { hasText: "Data from" }) })
+    .first();
+  await expect(dataFrom).toContainText("30s ago");
+  const meter = dataFrom.getByRole("meter");
+  const before = Number(await meter.getAttribute("aria-valuenow"));
+  // Less than a poll: only the live clock moves it.
+  await page.clock.runFor(10_000);
+  await expect(dataFrom).toContainText("40s ago");
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect(dataFrom).toContainText("30s ago");
+  await expect
+    .poll(async () => Number(await meter.getAttribute("aria-valuenow")))
+    .toBe(before);
+});
+
 test("a token in a project's git address is never shown", async ({ page }) => {
   await mockApi(page);
   for (const path of ["/projects", "/projects/prj-inventory"]) {

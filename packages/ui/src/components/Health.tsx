@@ -8,6 +8,7 @@ import {
 import { linkify } from "./AutoLink";
 import { InfoHint } from "./InfoHint";
 import { lift } from "./Lift";
+import { useLiveSeconds } from "./LiveAge";
 import styles from "./Health.module.css";
 
 type Labels = Partial<Record<HealthState, string>>;
@@ -292,6 +293,9 @@ interface FreshnessMeterProps {
   ageSeconds: number;
   ttlSeconds: number;
   state: HealthState;
+  // When the age was measured (a query's dataUpdatedAt): the meter fills on
+  // from there, every second, as the LiveAge beside it counts.
+  at?: number;
 }
 
 // How far through its freshness window the data is: full means it is about to
@@ -300,8 +304,10 @@ export function FreshnessMeter({
   ageSeconds,
   ttlSeconds,
   state,
+  at,
 }: FreshnessMeterProps) {
-  const ratio = ttlSeconds > 0 ? Math.min(ageSeconds / ttlSeconds, 1) : 1;
+  const age = useLiveSeconds(ageSeconds, at) ?? ageSeconds;
+  const ratio = ttlSeconds > 0 ? Math.min(age / ttlSeconds, 1) : 1;
   return (
     <span
       className={styles.meter}
