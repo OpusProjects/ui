@@ -20,6 +20,11 @@ test("the list shows each webhook, what it sends and how its last send went", as
     failures.getByText("HTTP 503: Service Unavailable"),
   ).toBeVisible();
   await expect(failures.getByText("Every application")).toBeVisible();
+  // Every application, or several: plural; one named: singular.
+  await expect(
+    failures.getByText("Applications", { exact: true }),
+  ).toBeVisible();
+  await expect(drift.getByText("Application", { exact: true })).toBeVisible();
   // Send test is on a webhook's own page, not on its card.
   await expect(failures.getByRole("button", { name: "Send test" })).toHaveCount(
     0,
@@ -109,10 +114,11 @@ test("a webhook on a project lists the project and its applications", async ({
   await mockApi(page);
   await page.goto("/webhooks");
   const repo = page.locator("article", { hasText: "wh-repo" });
-  await expect(repo.getByText("Projects", { exact: true })).toBeVisible();
+  // One project: the label is singular.
+  await expect(repo.getByText("Project", { exact: true })).toBeVisible();
   await expect(repo.getByText("prj-state", { exact: true })).toBeVisible();
   // Naming only a project, it has no Applications line of its own.
-  await expect(repo.getByText("Applications", { exact: true })).toHaveCount(0);
+  await expect(repo.getByText(/^Applications?$/)).toHaveCount(0);
   await expect(repo.getByText("Working", { exact: true })).toBeVisible();
 
   await page.goto("/webhooks/wh-repo");
@@ -121,9 +127,9 @@ test("a webhook on a project lists the project and its applications", async ({
     overview.getByRole("link", { name: "prj-state" }),
   ).toHaveAttribute("href", "/projects/prj-state");
   await expect(
-    overview.locator("dt", { hasText: /^Applications/ }),
+    overview.locator("dt", { hasText: /^Applications?/ }),
   ).toHaveCount(0);
-  await expect(overview.locator("dt", { hasText: /^Projects/ })).toHaveCount(1);
+  await expect(overview.locator("dt", { hasText: /^Project/ })).toHaveCount(1);
 
   // Every application reading from the project.
   const apps = page.locator("section", {

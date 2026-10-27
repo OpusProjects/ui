@@ -17,6 +17,7 @@ unified-ui version it builds into its image.
 
 - unified-gitops Overview: the Webhooks card is always there, saying None when no webhook is configured, as the other areas do.
 - The menu's search box is 175px wide (was 170px), in both apps.
+- A webhook's Applications and Projects say Application and Project when it names exactly one, on its card and its page.
 
 ## [0.3.0] - 2026-10-26
 
