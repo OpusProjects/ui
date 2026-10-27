@@ -91,9 +91,6 @@ test("a connector's page shows its facts and the sources using it", async ({
   await expect(overview.getByText("connectors/inventory.py")).toBeVisible();
   await expect(overview.getByText("--format json")).toBeVisible();
   await expect(overview.getByText("--host", { exact: true })).toBeVisible();
-  await expect(
-    overview.getByText("Ansible inventory", { exact: true }),
-  ).toBeVisible();
   await expect(overview.getByText("5m", { exact: true })).toBeVisible();
 
   const usedBy = page.locator("section", {
@@ -279,9 +276,9 @@ test("an ssh connector shows where its path is", async ({ page }) => {
   ).toContainText("hostname");
 });
 
-// Every connector's Overview ends on full rows of three: nine facts for a
-// script connector (with Location, Prints and Sources), six for ssh (no
-// host args, which it refuses, and no inventory of its own to print).
+// Every connector's Overview ends on full rows of three: six facts for a
+// script connector and for ssh alike, what can be set and varies. A script
+// connector's location is always here, so its host args take that place.
 test("connector overviews end on full rows", async ({ page }) => {
   await mockApi(page);
   const facts = () =>
@@ -290,15 +287,18 @@ test("connector overviews end on full rows", async ({ page }) => {
       .first()
       .locator("dl > div");
   await page.goto("/connectors/inventory");
-  await expect(facts()).toHaveCount(9);
-  await expect(
-    facts().filter({ hasText: "Sources" }).filter({ hasText: "2, 1 failing" }),
-  ).toHaveCount(1);
-  await expect(
-    facts()
-      .filter({ hasText: "Prints" })
-      .filter({ hasText: "Ansible inventory" }),
-  ).toHaveCount(1);
+  await expect(facts()).toHaveCount(6);
+  const labels = (await facts().locator("dt").allInnerTexts()).map((t) =>
+    t.trim(),
+  );
+  expect(labels).toEqual([
+    "Type",
+    "Project",
+    "Path",
+    "Script args",
+    "Host args",
+    "Timeout",
+  ]);
   await page.goto("/connectors/remote");
   await expect(facts()).toHaveCount(3);
 });

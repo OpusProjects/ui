@@ -46,17 +46,13 @@ const HINTS: Record<string, string> = {
   Path: "path. The script a sync runs, relative to the project's checkout when it has one.",
   Script:
     "script. The script written in the connector, streamed to each host and run there as a file from here would be (shown in full below).",
-  Sources:
-    "The sources that name this connector, and how many of them failed their last sync. Each is listed below.",
   Location:
-    "location. Where what it runs is. A script connector: on this instance. An ssh connector: on this instance (a script, read at each sync and streamed to each host), on each host (files run if executable, read as facts otherwise), or written in the connector (its own script).",
+    "location. Where what it runs is: on this instance (a script, read at each sync and streamed to each host), on each host (files run if executable, read as facts otherwise), or written in the connector (its own script).",
   "On each host":
     "path. On each host: a pattern reads every matching file as a fact (an executable is run, anything else read as JSON or INI, named after its file); a single path is a program run there.",
   "Script args": "script_args. Arguments passed to the script on every run.",
   "Host args":
     "host_args. Arguments added when a sync asks for named hosts only (an on-demand refresh).",
-  Prints:
-    "What the script prints: Ansible inventory JSON, as an Ansible dynamic inventory script's --list does (host variables under _meta.hostvars, each group a top-level key). It is the one format read.",
   Timeout:
     "timeout_seconds. How long one sync may run. A source may set its own; the table below shows the one each source syncs under.",
 };
@@ -189,15 +185,16 @@ function ItemFacts({ connector }: { connector: Connector }) {
           </em>
         )}
       </Fact>
-      {/* Every item connector says where it runs, so the Overview ends on
-          full rows: nine facts for a script connector, six for ssh, which
-          has no host args (refused on it) and prints no inventory of its
-          own: it builds one from what each host answers. */}
-      <Fact label="Location" hint={HINTS["Location"]}>
-        {/* In italic, as Project's "Local file" or "On the host": a
-            place, not a name to follow. */}
-        <em className={common.soft}>{LOCATION_WORDS[pathKind(connector)]}</em>
-      </Fact>
+      {/* Six facts, two full rows, for both kinds: what can be set and
+          varies. ssh says where its path is; a script connector's is always
+          here, so it shows its host args in that place instead. */}
+      {connector.connector_type === "ssh" && (
+        <Fact label="Location" hint={HINTS["Location"]}>
+          {/* In italic, as Project's "Local file" or "On the host": a
+              place, not a name to follow. */}
+          <em className={common.soft}>{LOCATION_WORDS[pathKind(connector)]}</em>
+        </Fact>
+      )}
       {pathKind(connector) === "inline" ? (
         <Fact label="Script" hint={HINTS["Script"]}>
           <code
@@ -231,35 +228,16 @@ function ItemFacts({ connector }: { connector: Connector }) {
         {args(connector.script_args)}
       </Fact>
       {connector.connector_type !== "ssh" && (
-        <>
-          <Fact label="Host args" hint={HINTS["Host args"]}>
-            {args(connector.host_args)}
-          </Fact>
-          {/* Not a setting: the one format there is, in italic like the
-              other facts that describe rather than name. */}
-          <Fact label="Prints" hint={HINTS["Prints"]}>
-            <em className={common.soft}>Ansible inventory</em>
-          </Fact>
-        </>
+        <Fact label="Host args" hint={HINTS["Host args"]}>
+          {args(connector.host_args)}
+        </Fact>
       )}
 
       <Fact label="Timeout" hint={HINTS["Timeout"]}>
         {formatSpan(connector.timeout_seconds ?? 300)}
       </Fact>
-      {connector.connector_type !== "ssh" && (
-        <Fact label="Sources" hint={HINTS["Sources"]}>
-          {sourcesText(connector)}
-        </Fact>
-      )}
     </>
   );
-}
-
-// "2, 1 failing": how many sources use it, and how many of those fail.
-function sourcesText(connector: Connector): string {
-  const { sources, failing } = connector.health;
-  if (sources === 0) return "None";
-  return failing > 0 ? `${sources}, ${failing} failing` : String(sources);
 }
 
 // A source's state as the connector reports it: enough for this table,
