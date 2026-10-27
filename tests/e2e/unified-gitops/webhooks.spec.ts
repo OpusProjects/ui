@@ -103,6 +103,46 @@ test("a webhook's page shows its overview, last send and applications", async ({
   ).toBeVisible();
 });
 
+test("a webhook on a project lists the project and its applications", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/webhooks");
+  const repo = page.locator("article", { hasText: "wh-repo" });
+  await expect(repo.getByText("Projects", { exact: true })).toBeVisible();
+  await expect(repo.getByText("prj-state", { exact: true })).toBeVisible();
+  // Naming only a project, it has no Applications line of its own.
+  await expect(repo.getByText("Applications", { exact: true })).toHaveCount(0);
+  await expect(repo.getByText("Working", { exact: true })).toBeVisible();
+
+  await page.goto("/webhooks/wh-repo");
+  const overview = page.locator("section", { hasText: "Overview" });
+  await expect(
+    overview.getByRole("link", { name: "prj-state" }),
+  ).toHaveAttribute("href", "/projects/prj-state");
+  await expect(
+    overview.locator("dt", { hasText: /^Applications/ }),
+  ).toHaveCount(0);
+  await expect(overview.locator("dt", { hasText: /^Projects/ })).toHaveCount(1);
+
+  // Every application reading from the project.
+  const apps = page.locator("section", {
+    has: page.getByRole("heading", { name: /^Applications/ }),
+  });
+  await expect(apps.locator("tbody tr")).toHaveCount(3);
+
+  // A project's send names the project.
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const first = history.locator("tbody tr").nth(0);
+  await expect(first).toContainText("Commit pulled");
+  await expect(first.getByRole("link", { name: "prj-state" })).toHaveAttribute(
+    "href",
+    "/projects/prj-state",
+  );
+});
+
 test("a webhook's page says how it sends, never with a value", async ({
   page,
 }) => {
@@ -175,6 +215,19 @@ test("the overview names a webhook that could not send", async ({ page }) => {
     page.getByText(
       "Webhook wh-failures could not send: HTTP 503: Service Unavailable",
     ),
+  ).toBeVisible();
+});
+
+test("the overview shows the webhooks card even with none", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.route("**/api/v1/webhooks", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.goto("/");
+  await expect(
+    page.getByRole("link", { name: "Webhooks None", exact: true }),
   ).toBeVisible();
 });
 

@@ -650,6 +650,7 @@ export interface components {
       error?: string | null;
       event: string;
       ok: boolean;
+      project?: string | null;
       /** Format: int32 */
       status?: number | null;
     };
@@ -668,7 +669,10 @@ export interface components {
       | "out_of_sync"
       | "sync_succeeded"
       | "sync_failed"
-      | "back_in_sync";
+      | "back_in_sync"
+      | "commit_pulled"
+      | "pull_failed"
+      | "pull_recovered";
     FileKeyInfo: {
       name: string;
       path: string;
@@ -996,6 +1000,8 @@ export interface components {
     WebhookSummary: {
       /** @description Every application, present and future (`applications: all`) */
       all_applications: boolean;
+      /** @description Every project, present and future (`projects: all`) */
+      all_projects: boolean;
       /**
        * @description The applications it listens to, when it names them; empty with
        *     all_applications false = none
@@ -1017,6 +1023,13 @@ export interface components {
       last?: components["schemas"]["Delivery"] | null;
       /** @description The item's identity, as in the configuration */
       name: string;
+      /** @description The applications its projects reach right now, sorted */
+      project_applications: string[];
+      /**
+       * @description The projects it listens to, when it names them: their own events, and
+       *     those of every application reading from them
+       */
+      projects: string[];
       request?: components["schemas"]["RequestInfo"] | null;
       /** Format: int32 */
       retries: number;
@@ -1982,7 +1995,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Every webhook: its events, applications and destination, and its last send */
+      /** @description Every webhook: its events, applications, projects and destination, and its last send */
       200: {
         headers: {
           [name: string]: unknown;

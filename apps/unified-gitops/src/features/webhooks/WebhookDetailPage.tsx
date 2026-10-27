@@ -27,6 +27,8 @@ import { ICONS } from "../../sections";
 import { applicationColumns } from "../applications/columns";
 import {
   webhookLabels,
+  selectsApplications,
+  selectsProjects,
   TYPE_WORDS,
   eventWords,
   webhookState,
@@ -45,7 +47,11 @@ type Delivery = Schemas["Delivery"];
 const HINTS: Record<string, string> = {
   Type: "type. webhook sends to any HTTP receiver; ascender and awx start a job template.",
   Events:
-    "events. What makes it send: drift found, a new commit waiting, a sync that applied or failed, back in sync. One message per run at most.",
+    "events. What makes it send. From an application: drift found, a new commit waiting, a sync that applied or failed, back in sync; one message per run at most. From a project: commits pulled, a pull that fails, pulls working again.",
+  Projects:
+    "projects. The repositories it listens to: their own events, and those of every application reading from them, including applications added later. projects: all for every one.",
+  Applications:
+    "applications. Applications it listens to by name, wherever they read from; applications: all for every one. Left out, with no projects either, it listens to nothing.",
   "Sends to":
     "The receiver's address, without its path or query, which can carry a secret. The full URL is in the configuration.",
   Starts: "job_template or workflow_job_template. The template it starts.",
@@ -131,7 +137,7 @@ export function WebhookDetailPage() {
           <Overview webhook={webhook} />
           <Panel
             title="Applications"
-            hint="The applications whose events it reports: applications: all for every one, or their names. Left out or empty, none."
+            hint="The applications whose events it reports: those it names, and every application reading from the projects it names. Left out or empty, none."
           >
             <Listens webhook={webhook} />
           </Panel>
@@ -156,6 +162,44 @@ function Overview({ webhook: n }: { webhook: Webhook }) {
         <Fact label="Events" hint={HINTS["Events"]}>
           <ValueList values={eventWords(n.events)} />
         </Fact>
+        {selectsProjects(n) && (
+          <Fact label="Projects" hint={HINTS["Projects"]}>
+            {n.all_projects ? (
+              "Every project"
+            ) : (
+              <ValueList
+                values={n.projects.map((p) => (
+                  <Link
+                    key={p}
+                    className={common.link}
+                    to={`/projects/${encodeURIComponent(p)}`}
+                  >
+                    {p}
+                  </Link>
+                ))}
+              />
+            )}
+          </Fact>
+        )}
+        {(selectsApplications(n) || !selectsProjects(n)) && (
+          <Fact label="Applications" hint={HINTS["Applications"]}>
+            {n.all_applications ? (
+              "Every application"
+            ) : (
+              <ValueList
+                values={n.applications.map((a) => (
+                  <Link
+                    key={a}
+                    className={common.link}
+                    to={`/applications/${encodeURIComponent(a)}`}
+                  >
+                    {a}
+                  </Link>
+                ))}
+              />
+            )}
+          </Fact>
+        )}
         <Fact label="Sends to" hint={HINTS["Sends to"]}>
           {n.destination}
         </Fact>
@@ -249,8 +293,10 @@ const historyColumns: ListColumn<Delivery>[] = [
     render: (d) => <LiveAge since={d.at} />,
   },
   {
-    key: "application",
-    label: "Application",
+    // An application's event names the application; a project's, the
+    // project; a test, neither.
+    key: "about",
+    label: "About",
     render: (d) =>
       d.application ? (
         <Link
@@ -258,6 +304,13 @@ const historyColumns: ListColumn<Delivery>[] = [
           to={`/applications/${encodeURIComponent(d.application)}`}
         >
           {d.application}
+        </Link>
+      ) : d.project ? (
+        <Link
+          className={common.link}
+          to={`/projects/${encodeURIComponent(d.project)}`}
+        >
+          {d.project}
         </Link>
       ) : (
         <ListSoft>None (a test)</ListSoft>
@@ -295,8 +348,8 @@ function History({ history }: { history: Delivery[] }) {
     >
       {history.length === 0 ? (
         <ListSoft>
-          Nothing sent yet: no application has had one of its events since the
-          service started. Send a test to check the receiver.
+          Nothing sent yet: nothing it listens to has had one of its events
+          since the service started. Send a test to check the receiver.
         </ListSoft>
       ) : (
         <ListTable
@@ -322,14 +375,18 @@ function Listens({ webhook: n }: { webhook: Webhook }) {
     );
   const rows = n.all_applications
     ? applications.data
-    : applications.data.filter((a) => n.applications.includes(a.name));
+    : applications.data.filter(
+        (a) =>
+          n.applications.includes(a.name) ||
+          n.project_applications.includes(a.name),
+      );
 
   return (
     <ListTable
       columns={applicationColumns("connector")}
       rows={rows.map((app) => ({ name: app.name, app }))}
       rowKey={(r) => r.name}
-      empty="It listens to no application: name some under applications: in the configuration, or write all."
+      empty="It listens to no application: name some under applications: or projects: in the configuration, or write all."
       noun="applications"
     />
   );

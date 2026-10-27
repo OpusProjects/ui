@@ -229,8 +229,8 @@ const credentials: Schemas["CredentialInfo"][] = [
   },
 ];
 
-// One that last sent fine, one whose receiver is failing, and one that
-// names no application, so it has never sent.
+// One that last sent fine, one whose receiver is failing, one that names
+// no application, so it has never sent, and one that listens to a project.
 const webhooks = (): Schemas["WebhookSummary"][] => [
   {
     name: "wh-ascender-drift",
@@ -239,6 +239,9 @@ const webhooks = (): Schemas["WebhookSummary"][] => [
     events: ["drift_detected"],
     all_applications: false,
     applications: ["drifted"],
+    all_projects: false,
+    projects: [],
+    project_applications: [],
     destination: "https://ascender.example.com",
     job_template: 12,
     workflow_job_template: null,
@@ -263,6 +266,9 @@ const webhooks = (): Schemas["WebhookSummary"][] => [
     events: ["sync_failed", "back_in_sync"],
     all_applications: true,
     applications: [],
+    all_projects: false,
+    projects: [],
+    project_applications: [],
     destination: "https://alerts.example.com",
     job_template: null,
     workflow_job_template: null,
@@ -294,6 +300,9 @@ const webhooks = (): Schemas["WebhookSummary"][] => [
     events: ["drift_detected"],
     all_applications: false,
     applications: [],
+    all_projects: false,
+    projects: [],
+    project_applications: [],
     destination: "https://hooks.example.com",
     job_template: null,
     workflow_job_template: null,
@@ -309,6 +318,41 @@ const webhooks = (): Schemas["WebhookSummary"][] => [
       signature_header: null,
     },
     last: null,
+  },
+  {
+    name: "wh-repo",
+    description: "Commits to the state repository",
+    type: "webhook",
+    events: ["commit_pulled", "pull_failed", "sync_failed"],
+    all_applications: false,
+    applications: [],
+    all_projects: false,
+    projects: ["prj-state"],
+    project_applications: ["broken", "drifted", "synced"],
+    destination: "https://hooks.example.com",
+    job_template: null,
+    workflow_job_template: null,
+    credentials: [],
+    timeout_seconds: 30,
+    retries: 3,
+    request: {
+      method: "POST",
+      auth: "none",
+      auth_header: null,
+      headers: [],
+      templated: false,
+      signature_header: null,
+    },
+    last: {
+      event: "commit_pulled",
+      application: null,
+      project: "prj-state",
+      at: now() - 120,
+      ok: true,
+      attempts: 1,
+      status: 200,
+      error: null,
+    },
   },
 ];
 

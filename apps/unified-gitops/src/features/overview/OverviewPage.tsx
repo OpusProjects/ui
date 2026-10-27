@@ -197,7 +197,7 @@ export function OverviewPage() {
             goodWord="Working"
           />
         )}
-        {webhooks.isSuccess && webhooks.data.length > 0 && (
+        {webhooks.isSuccess && (
           <AreaCard
             to="/webhooks"
             link={link}
