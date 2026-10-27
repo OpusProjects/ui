@@ -121,3 +121,29 @@ test("a Pull restarts Last attempt and Last success", async ({ page }) => {
   await expect(fact("Last success")).toContainText("20s ago");
   await expect(fact("Last attempt")).toContainText("20s ago");
 });
+
+// Pull all does what each card's Pull does, for every project shown: the
+// same route, the same refresh, so each card's Last pull starts over.
+test("Pull all pulls every project and restarts their Last pull", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const calls = await mockApi(page);
+  await page.goto("/projects");
+  await page.waitForLoadState("networkidle");
+  const lastPull = page
+    .locator("article", {
+      has: page.getByRole("heading", { name: "prj-state" }),
+    })
+    .locator("dl > div", { has: page.locator("dt", { hasText: "Last pull" }) });
+  await expect(lastPull).toContainText("20s ago");
+  await page.clock.runFor(10_000);
+  await expect(lastPull).toContainText("30s ago");
+
+  await page.getByRole("button", { name: "Pull all" }).click();
+  await expect(page.getByRole("status").first()).toContainText("1 project");
+  expect(calls.writes.map((w) => w.path)).toEqual([
+    "/api/v1/projects/prj-state/sync",
+  ]);
+  await expect(lastPull).toContainText("20s ago");
+});
