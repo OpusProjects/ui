@@ -252,12 +252,38 @@ test("an ssh connector shows where its path is", async ({ page }) => {
   await expect(card("ssh-inline")).toBeVisible();
   await expect(card("ssh-facts")).toHaveCount(0);
 
-  // Its page: the whole script, and no warning: inline is a choice.
+  // Its page: six facts, the whole script, and no warning: inline is a
+  // choice.
   await page.goto("/connectors/ssh-inline");
+  await expect(
+    page
+      .locator("section", { hasText: "Overview" })
+      .first()
+      .locator("dl > div"),
+  ).toHaveCount(6);
   await expect(page.getByText("Written inline")).toHaveCount(0);
   await expect(
     page
       .getByRole("region", { name: /command run on each host/i })
       .or(page.getByLabel("Script run on each host")),
   ).toContainText("hostname");
+});
+
+// Every connector's Overview ends on full rows of three: nine facts for a
+// script connector (with Location and Sources), six for ssh (no host args
+// or output format, which it refuses).
+test("connector overviews end on full rows", async ({ page }) => {
+  await mockApi(page);
+  const facts = () =>
+    page
+      .locator("section", { hasText: "Overview" })
+      .first()
+      .locator("dl > div");
+  await page.goto("/connectors/inventory");
+  await expect(facts()).toHaveCount(9);
+  await expect(
+    facts().filter({ hasText: "Sources" }).filter({ hasText: "2, 1 failing" }),
+  ).toHaveCount(1);
+  await page.goto("/connectors/remote");
+  await expect(facts()).toHaveCount(3);
 });
