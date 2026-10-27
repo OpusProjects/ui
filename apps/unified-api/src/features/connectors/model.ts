@@ -62,15 +62,19 @@ export function describe(connector: Connector): string | null {
 //   instance, streamed to each host)
 // - host: on each host, run there (location: host), whether one program or
 //   a pattern of facts files
-// - inline: the old ssh form, the command itself written in the item
+// - inline: an ssh connector's own script, written in the item
 export type PathKind = "file" | "host" | "inline";
 
 export function pathKind(connector: Connector): PathKind {
   if (connector.connector_type !== "ssh") return "file";
+  if (connector.script != null) return "inline";
   if (connector.location === "host") return "host";
-  if (connector.location === "instance") return "file";
-  return "inline";
+  return "file";
 }
+
+// What it runs, as text: its file's path, or its own script.
+export const runs = (connector: Connector) =>
+  connector.script ?? connector.path ?? "";
 
 // Its path as a fact: the label, and the value in a few words (the whole
 // path is on hover and on the connector's page).
@@ -83,7 +87,7 @@ export function pathFact(connector: Connector): {
     case "host":
       return { label: "Runs", value: path };
     case "inline":
-      return { label: "Runs", value: commandSummary(path) };
+      return { label: "Runs", value: commandSummary(connector.script) };
     case "file":
       return { label: "File", value: path.split("/").at(-1) || "None" };
   }
@@ -93,7 +97,7 @@ export function pathFact(connector: Connector): {
 export const LOCATION_WORDS: Record<PathKind, string> = {
   file: "On this instance",
   host: "On the host",
-  inline: "Written in the configuration",
+  inline: "Written in the connector",
 };
 
 // What Project says when there is none: where the path is instead, in the
@@ -110,8 +114,8 @@ export function noProject(connector: Connector): {
       };
     case "inline":
       return {
-        text: "In the configuration",
-        why: "Its command is written in the item itself.",
+        text: "Inline script",
+        why: "Its script is written in the connector itself, not in a project.",
       };
     case "file":
       return {

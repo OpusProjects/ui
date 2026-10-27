@@ -26,6 +26,7 @@ import {
   describe,
   noProject,
   pathFact,
+  runs,
   stateDetail,
 } from "./model";
 
@@ -163,7 +164,7 @@ function ConnectorCard({ connector }: { connector: Connector }) {
                 connector's page. */}
             <code
               className={`${styles.mono} ${styles.clipText}`}
-              title={connector.path ?? undefined}
+              title={runs(connector)}
             >
               {pathFact(connector).value}
             </code>

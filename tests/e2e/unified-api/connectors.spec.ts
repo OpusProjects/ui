@@ -166,17 +166,18 @@ test("a project's page lists the connectors using it", async ({ page }) => {
   ).toHaveAttribute("href", "/connectors/inventory");
 });
 
-// An ssh connector says where its path is: on the host (Runs, *On the
-// host*), a script here (File, its project), or the old inline form (its
-// command in a few words, never a fragment cut at its last "/").
+// An ssh connector says what it runs: files on the host (Runs, *On the
+// host*), a script here (File, its project), or its own inline script (in a
+// few words, never a fragment cut at its last "/").
 test("an ssh connector shows where its path is", async ({ page }) => {
   await mockApi(page);
   const { connectors } = await import("./fixtures/api");
   const ssh = (
     connector_id: string,
     location: string | null,
-    path: string,
+    path: string | null,
     project_id: string | null = null,
+    script: string | null = null,
   ) => ({
     ...connectors[0],
     connector_id,
@@ -185,6 +186,7 @@ test("an ssh connector shows where its path is", async ({ page }) => {
     location,
     path,
     project_id,
+    script,
     script_args: [],
     host_args: [],
     output_format: null,
@@ -197,6 +199,8 @@ test("an ssh connector shows where its path is", async ({ page }) => {
     ssh("ssh-osinfo", "instance", "ssh/osinfo.sh", "prj-inventory"),
     ssh(
       "ssh-inline",
+      null,
+      null,
       null,
       "j(){ printf '%s' \"$1\" | tr -d '\"\\\\'; }\nuname -r\nhostname",
     ),
@@ -230,12 +234,12 @@ test("an ssh connector shows where its path is", async ({ page }) => {
     inline.getByText("Shell script, 3 lines", { exact: true }),
   ).toBeVisible();
   await expect(
-    inline.getByText("In the configuration", { exact: true }),
+    inline.getByText("Inline script", { exact: true }),
   ).toBeVisible();
 
-  // Its page: the notice, and the whole script.
+  // Its page: the whole script, and no warning: inline is a choice.
   await page.goto("/connectors/ssh-inline");
-  await expect(page.getByText("Written inline")).toBeVisible();
+  await expect(page.getByText("Written inline")).toHaveCount(0);
   await expect(
     page
       .getByRole("region", { name: /command run on each host/i })

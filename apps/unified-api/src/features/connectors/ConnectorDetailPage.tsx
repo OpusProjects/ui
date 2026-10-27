@@ -45,9 +45,9 @@ const HINTS: Record<string, string> = {
     "project. The git project whose checkout holds the script. None: path is a file on this instance's own disk (in the image, or mounted).",
   Path: "path. The script a sync runs, relative to the project's checkout when it has one.",
   Command:
-    "path. The inline form: the command run on each host, written in the item itself (shown in full below when it is a script).",
+    "script. The script written in the connector, streamed to each host and run there as a file from here would be (shown in full below).",
   Location:
-    "location. Where path is: on this instance (a script, read from its project at each sync and streamed to each host over ssh) or on each host (facts files to read, or a program to run there).",
+    "location. Where path is: on this instance (a script, read at each sync and streamed to each host over ssh) or on each host (files run if executable, read as facts otherwise). A connector with a script has none: it is written in the connector.",
   "On each host":
     "path. On each host: a pattern reads every matching file as a fact (an executable is run, anything else read as JSON or INI, named after its file); a single path is a program run there.",
   "Script args": "script_args. Arguments passed to the script on every run.",
@@ -95,23 +95,15 @@ export function ConnectorDetailPage() {
       {connector && (
         <>
           <Overview connector={connector} />
-          {pathKind(connector) === "inline" && (
-            <Notice title="Written inline" tone="stale">
-              This connector&apos;s command is part of its item. Put it in a
-              script file and set project (or location: instance), or, to read
-              facts files on the hosts, set location: host with their path. The
-              inline form still works and will be removed.
-            </Notice>
-          )}
           {pathKind(connector) === "inline" &&
-            connector.path &&
-            commandLines(connector.path).length > 1 && (
+            connector.script &&
+            commandLines(connector.script).length > 1 && (
               <Panel
                 title="Command"
-                hint="path. The shell script this connector runs on each host, as written in its configuration."
+                hint="script. The script this connector streams to each host and runs there, as written in it."
               >
                 <LinesView
-                  lines={connector.path.split("\n")}
+                  lines={connector.script.split("\n")}
                   label="Command run on each host"
                 />
               </Panel>
@@ -204,9 +196,9 @@ function ItemFacts({ connector }: { connector: Connector }) {
         <Fact label="Command" hint={HINTS["Command"]}>
           <code
             className={`${common.mono} ${common.clipText}`}
-            title={connector.path ?? undefined}
+            title={connector.script ?? undefined}
           >
-            {commandSummary(connector.path)}
+            {commandSummary(connector.script)}
           </code>
         </Fact>
       ) : pathKind(connector) === "host" ? (

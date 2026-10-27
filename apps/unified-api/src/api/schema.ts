@@ -740,17 +740,20 @@ export interface components {
       health: components["schemas"]["ConnectorHealth"];
       host_args: string[];
       /**
-       * @description ssh only: where `path` is. "host": on each host (a pattern of facts
-       *     files, or one program); "instance": a script here, streamed to each
-       *     host. Null for the inline form, where `path` is the command itself,
-       *     and for every other connector
+       * @description ssh only: where `path` is. "host": on each host, a file or a
+       *     pattern of files, each run if executable or read if not, as facts;
+       *     "instance": a script here, streamed to each host. Null for a
+       *     connector that writes its `script` inline, and for every other kind
        */
       location?: string | null;
       /** @description Its description, or the identity when it has none */
       name: string;
       /** @description "native" or "ansible" for a script connector; null otherwise */
       output_format?: string | null;
-      /** @description Null for the built-ins */
+      /**
+       * @description The file it runs or reads. Null for the built-ins and for a
+       *     connector with an inline `script`
+       */
       path?: string | null;
       /**
        * @description The project whose checkout holds the script. Null for a script on
@@ -758,6 +761,11 @@ export interface components {
        *     built-ins (a static_inventory source names its own project)
        */
       project_id?: string | null;
+      /**
+       * @description ssh only: the script written in the item, streamed to each host and
+       *     run there; null when it names a `path`
+       */
+      script?: string | null;
       script_args: string[];
       /**
        * Format: int64
