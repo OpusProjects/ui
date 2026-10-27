@@ -4,20 +4,17 @@ import {
   Fact,
   HealthPill,
   LinesView,
-  ListName,
-  ListTable,
   Notice,
   PageHeader,
   Panel,
   SkeletonSummary,
   formatSpan,
-  type ListColumn,
 } from "@opusprojects/unified-ui";
-import type { HealthState } from "@opusprojects/unified-client";
 import type { Schemas } from "../../api/client";
 import { useConnector } from "../../api/queries";
 import { DetailTitle, detailStyles as common } from "@opusprojects/unified-ui";
 import { ICONS } from "../../sections";
+import { SourceTable } from "../../shared/SourceTable";
 import {
   BUILT_IN,
   connectorLabels,
@@ -32,7 +29,6 @@ import {
 } from "./model";
 
 type Connector = Schemas["ConnectorInfo"];
-type User = Connector["used_by"][number];
 
 // What each fact means, behind its label, starting with its key in the
 // connector's YAML, which is where it is changed.
@@ -54,7 +50,7 @@ const HINTS: Record<string, string> = {
   "Host args":
     "host_args. Arguments added when a sync asks for named hosts only (an on-demand refresh).",
   Timeout:
-    "timeout_seconds. How long one sync may run. A source may set its own; the table below shows the one each source syncs under.",
+    "timeout_seconds. How long one sync may run. A source may set its own, which its page shows.",
 };
 
 export function ConnectorDetailPage() {
@@ -108,7 +104,7 @@ export function ConnectorDetailPage() {
             )}
           <Panel
             title="Sources"
-            hint="The sources using this connector: their connector names it. Each syncs under its own timeout when it sets one, the connector's otherwise."
+            hint="The sources using this connector: their connector names it."
           >
             <UsedBy connector={connector} />
           </Panel>
@@ -240,56 +236,12 @@ function ItemFacts({ connector }: { connector: Connector }) {
   );
 }
 
-// A source's state as the connector reports it: enough for this table,
-// whose rows link to the source's page for the full story.
-const userState = (user: User): HealthState =>
-  user.failing ? "failing" : user.synced ? "fresh" : "pending";
-
-const USER_LABELS = { pending: "Not synced yet" };
-
+// The sources using it, as every other page lists sources.
 function UsedBy({ connector }: { connector: Connector }) {
-  const columns: ListColumn<User>[] = [
-    {
-      key: "source",
-      label: "Source",
-      role: "name",
-      title: (u) => u.source_id,
-      render: (u) => (
-        <ListName
-          name={u.name}
-          link={(className, children) => (
-            <Link
-              className={className}
-              to={`/sources/${encodeURIComponent(u.source_id)}`}
-            >
-              {children}
-            </Link>
-          )}
-          id={u.source_id}
-        />
-      ),
-    },
-    {
-      key: "timeout",
-      label: "Timeout",
-      render: (u) => formatSpan(u.timeout_seconds),
-    },
-    {
-      key: "state",
-      label: "State",
-      role: "state",
-      render: (u) => <HealthPill state={userState(u)} labels={USER_LABELS} />,
-    },
-  ];
   return (
-    <ListTable
-      columns={columns}
-      rows={[...connector.used_by].sort((a, b) =>
-        a.source_id.localeCompare(b.source_id),
-      )}
-      rowKey={(u) => u.source_id}
+    <SourceTable
+      ids={connector.used_by.map((u) => u.source_id)}
       empty="No source uses this connector."
-      noun="sources"
     />
   );
 }

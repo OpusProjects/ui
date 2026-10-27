@@ -9,6 +9,10 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Changed
+
+- unified-api connector page: its Sources table is the one every other page lists sources with (Source, Hosts, Groups, Data from, State), in place of its own (Source, Timeout, State). A source's own timeout shows on its page.
+
 ### Fixed
 
 - Tables size each column from its content's real width, rounded up, and again when that content or the fonts change: a state pill ("Not synced yet" on a connector's sources) could overhang its column by a fraction of a pixel and give the table a horizontal scrollbar on a screen with classic scrollbars.
