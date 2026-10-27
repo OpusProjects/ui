@@ -90,7 +90,10 @@ export function SourceTable({
       label: "Data from",
       render: ({ row }) =>
         row?.summary?.age_seconds != null ? (
-          <LiveAge seconds={row.summary.age_seconds} />
+          <LiveAge
+            seconds={row.summary.age_seconds}
+            at={sources.dataUpdatedAt}
+          />
         ) : (
           "–"
         ),

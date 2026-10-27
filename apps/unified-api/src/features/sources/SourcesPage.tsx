@@ -16,7 +16,7 @@ import {
 import { cachedHealth } from "@opusprojects/unified-client";
 import { Link } from "react-router";
 import { ExternalLink } from "lucide-react";
-import { api, unwrap } from "../../api/client";
+import { syncNow, syncSource } from "./sync";
 import { useSources, type SourceRow } from "../../api/queries";
 import { ListToolbar } from "@opusprojects/unified-ui";
 import { RunAllButton } from "@opusprojects/unified-ui";
@@ -82,13 +82,7 @@ export function SourcesPage() {
                 noun: ["source", "sources"],
               }}
               invalidate={[["sources"], ["source"]]}
-              run={async (id) =>
-                unwrap(
-                  await api.POST("/api/v1/sources/{id}/sync", {
-                    params: { path: { id } },
-                  }),
-                ).success
-              }
+              run={async (id) => (await syncSource(id)).success}
             />
           </ListToolbar>
           {filter.visible.length === 0 ? (
@@ -106,7 +100,11 @@ export function SourcesPage() {
           ) : (
             <CardGrid>
               {filter.visible.map((row) => (
-                <SourceCard key={row.summary.source_id} row={row} />
+                <SourceCard
+                  key={row.summary.source_id}
+                  row={row}
+                  at={sources.dataUpdatedAt}
+                />
               ))}
             </CardGrid>
           )}
@@ -116,7 +114,9 @@ export function SourcesPage() {
   );
 }
 
-function SourceCard({ row }: { row: SourceRow }) {
+// `at`: when the list was fetched, so every age on the card counts on from
+// its own answer, and a Sync that brings the same age back still resets it.
+function SourceCard({ row, at }: { row: SourceRow; at: number }) {
   const { summary, detail } = row;
   const state = stateOf(row);
   const health = summary.sync_health;
@@ -164,16 +164,7 @@ function SourceCard({ row }: { row: SourceRow }) {
               label="Sync"
               busyLabel="Syncing…"
               invalidate={[["sources"], ["source", summary.source_id]]}
-              run={async () => {
-                const result = unwrap(
-                  await api.POST("/api/v1/sources/{id}/sync", {
-                    params: { path: { id: summary.source_id } },
-                  }),
-                );
-                return result.success
-                  ? { ok: true, message: `Synced ${result.total_hosts} hosts` }
-                  : { ok: false, message: "Sync failed" };
-              }}
+              run={() => syncNow(summary.source_id)}
             />
           )}
         </>
@@ -197,18 +188,19 @@ function SourceCard({ row }: { row: SourceRow }) {
         {summary.age_seconds != null && detail ? (
           <>
             <span>
-              <LiveAge seconds={summary.age_seconds} />
+              <LiveAge seconds={summary.age_seconds} at={at} />
             </span>
             <FreshnessMeter
               ageSeconds={summary.age_seconds}
               ttlSeconds={detail.ttl_seconds}
               state={state}
+              at={at}
             />
           </>
         ) : (
           <span className={styles.soft}>
             {summary.cached ? (
-              <LiveAge seconds={summary.age_seconds} />
+              <LiveAge seconds={summary.age_seconds} at={at} />
             ) : (
               "No data yet"
             )}
@@ -220,7 +212,7 @@ function SourceCard({ row }: { row: SourceRow }) {
       ) : (
         <>
           <Fact label="Last attempt">
-            <LiveAge seconds={health?.last_attempt_age_seconds} />
+            <LiveAge seconds={health?.last_attempt_age_seconds} at={at} />
           </Fact>
           {schedule && <Fact label="Syncs">{schedule}</Fact>}
           {gathering && (
