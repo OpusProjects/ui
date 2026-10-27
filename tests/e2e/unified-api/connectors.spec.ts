@@ -261,6 +261,15 @@ test("an ssh connector shows where its path is", async ({ page }) => {
       .first()
       .locator("dl > div"),
   ).toHaveCount(6);
+  await expect
+    .poll(() =>
+      page
+        .locator("section", { hasText: "Overview" })
+        .first()
+        .locator("dl > div")
+        .allInnerTexts(),
+    )
+    .toEqual(expect.arrayContaining(["Location\nInline script"]));
   await expect(page.getByText("Written inline")).toHaveCount(0);
   await expect(
     page

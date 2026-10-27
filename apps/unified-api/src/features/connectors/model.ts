@@ -97,7 +97,7 @@ export function pathFact(connector: Connector): {
 export const LOCATION_WORDS: Record<PathKind, string> = {
   file: "On this instance",
   host: "On the host",
-  inline: "Written in the connector",
+  inline: "Inline script",
 };
 
 // What Project says when there is none: where the path is instead, in the

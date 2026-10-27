@@ -193,7 +193,12 @@ function ItemFacts({ connector }: { connector: Connector }) {
           full rows: nine facts for a script connector, six for ssh, which
           has no host args or output format (refused on it). */}
       <Fact label="Location" hint={HINTS["Location"]}>
-        {LOCATION_WORDS[pathKind(connector)]}
+        {pathKind(connector) === "inline" ? (
+          // As Project says it: the script has no place but the connector.
+          <em className={common.soft}>Inline script</em>
+        ) : (
+          LOCATION_WORDS[pathKind(connector)]
+        )}
       </Fact>
       {pathKind(connector) === "inline" ? (
         <Fact label="Script" hint={HINTS["Script"]}>
