@@ -2,21 +2,25 @@ import { Link, useParams } from "react-router";
 import {
   EmptyState,
   HealthPill,
+  ListName,
+  ListSoft,
+  ListTable,
+  LiveAge,
   Notice,
   PageHeader,
   Panel,
   SkeletonSummary,
+  type ListColumn,
 } from "@opusprojects/unified-ui";
+import type { Schemas } from "../../api/client";
 import { useCredentials, useProjects } from "../../api/queries";
-import {
-  CredentialOverview,
-  DetailTitle,
-  detailStyles as common,
-} from "@opusprojects/unified-ui";
+import { CredentialOverview, DetailTitle } from "@opusprojects/unified-ui";
 import { SourceTable } from "../../shared/SourceTable";
 import { credentialUsers, usedBy } from "./model";
 import { PROJECT_LABELS, projectState } from "../projects/model";
 import { ICONS } from "../../sections";
+
+type Project = Schemas["ProjectInfo"];
 
 // The overview's hints that are this app's own: what receives the secrets,
 // and what can name a credential.
@@ -84,7 +88,7 @@ export function CredentialDetailPage() {
               title="Projects"
               hint="The projects using this credential: their credential names it, and they clone and pull their repository with it."
             >
-              <ProjectList ids={credential.used_by.projects} />
+              <ProjectTable ids={credential.used_by.projects} />
             </Panel>
           )}
         </>
@@ -93,33 +97,69 @@ export function CredentialDetailPage() {
   );
 }
 
-// Projects by name, each with its state and a link to its page.
-function ProjectList({ ids }: { ids: string[] }) {
+// The projects using it, as unified-gitops lists a credential's projects:
+// each linked by name, with its last pull and its state.
+function ProjectTable({ ids }: { ids: string[] }) {
   const projects = useProjects();
-  if (ids.length === 0) return null;
   const byId = new Map((projects.data ?? []).map((p) => [p.project_id, p]));
-  return (
-    <ul className={common.itemList}>
-      {[...ids].sort().map((id) => {
-        const project = byId.get(id);
-        return (
-          <li key={id}>
+  type Row = { id: string; project?: Project };
+  const rows: Row[] = [...ids]
+    .sort()
+    .map((id) => ({ id, project: byId.get(id) }));
+  const none = <ListSoft>–</ListSoft>;
+  const columns: ListColumn<Row>[] = [
+    {
+      key: "name",
+      label: "Project",
+      role: "name",
+      title: (r) => r.id,
+      render: (r) => (
+        <ListName
+          name={r.project?.name ?? r.id}
+          link={(className, children) => (
             <Link
-              to={`/projects/${encodeURIComponent(id)}`}
-              className={common.itemName}
+              to={`/projects/${encodeURIComponent(r.id)}`}
+              className={className}
             >
-              {project?.name ?? id}
+              {children}
             </Link>
-            <code className={common.itemId}>{id}</code>
-            {project && (
-              <HealthPill
-                state={projectState(project)}
-                labels={PROJECT_LABELS}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
+          )}
+          id={r.id}
+        />
+      ),
+    },
+    {
+      key: "pulled",
+      label: "Last pull",
+      render: (r) =>
+        r.project ? (
+          <LiveAge
+            seconds={r.project.sync_health?.last_success_age_seconds}
+            at={projects.dataUpdatedAt}
+          />
+        ) : (
+          none
+        ),
+    },
+    {
+      key: "state",
+      label: "State",
+      role: "state",
+      render: (r) =>
+        r.project ? (
+          <HealthPill state={projectState(r.project)} labels={PROJECT_LABELS} />
+        ) : (
+          none
+        ),
+    },
+  ];
+  return (
+    <ListTable
+      columns={columns}
+      rows={rows}
+      rowKey={(r) => r.id}
+      empty="No project uses this credential."
+      noun="projects"
+    />
   );
 }

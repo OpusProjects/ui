@@ -16,6 +16,7 @@ unified-ui version it builds into its image.
 
 ### Changed
 
+- unified-api credential page: its Projects are a table (Project, Last pull, State), as its Sources above them and a credential's projects in unified-gitops, in place of a list of links.
 - Cron schedules read in words, as intervals do: "daily at 04:15 UTC", "every 4h", "every 2h, at :15", "Mon–Fri at 06:00 UTC", "yearly on 1 Jan at 00:00 UTC", the expression on hover (`formatSchedule` and `Schedule` in `@opusprojects/unified-ui`); on a source's card and page and a project's, where a project on a schedule showed nothing on its card. One too irregular to say plainly is shown as written.
 - unified-api connector page: its Sources table is the one every other page lists sources with (Source, Hosts, Groups, Data from, State), in place of its own (Source, Timeout, State). A source's own timeout shows on its page.
 

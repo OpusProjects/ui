@@ -592,3 +592,38 @@ for (const cached of [true, false]) {
     expect(gap).toBeGreaterThanOrEqual(16);
   });
 }
+
+// A credential's projects are a table, as its sources are (and as
+// unified-gitops lists a credential's projects): linked by name, with the
+// last pull and the state.
+test("a credential's projects are a table like its sources", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { credentials } = await import("./fixtures/api");
+  const cred = credentials.find((c) => c.credential_id === "cred-inventory")!;
+  const used = {
+    ...cred,
+    used_by: { ...cred.used_by, projects: ["prj-inventory"] },
+  };
+  await page.route(/\/api\/v1\/credentials(\?.*)?$/, (route) =>
+    route.fulfill({
+      json: credentials.map((c) =>
+        c.credential_id === "cred-inventory" ? used : c,
+      ),
+    }),
+  );
+  await page.goto("/credentials/cred-inventory");
+  const panel = page.locator("section", {
+    has: page.getByRole("heading", { name: /^Projects/ }),
+  });
+  await expect(panel.locator("thead")).toContainText(
+    /Project.*Last pull.*State/,
+  );
+  const row = panel.locator("tbody tr");
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText("Inventory scripts");
+  await expect(row).toContainText("Synced");
+  await row.getByRole("link").first().click();
+  await expect(page).toHaveURL("/projects/prj-inventory");
+});
