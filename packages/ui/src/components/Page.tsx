@@ -9,6 +9,7 @@ import {
 import { Search } from "lucide-react";
 import { InfoHint } from "./InfoHint";
 import styles from "./Page.module.css";
+import { formatCount } from "../lib/format";
 
 interface PageHeaderProps {
   // Text, or a trail ("Sources › Device42") on a page under another.
@@ -335,7 +336,9 @@ export function ChipList({
               {item}
             </code>
           ))}
-          <span className={styles.chipToggle}>+{items.length} more</span>
+          <span className={styles.chipToggle}>
+            +{formatCount(items.length)} more
+          </span>
         </span>
       )}
       {shown.map(chip)}
@@ -346,7 +349,7 @@ export function ChipList({
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
-          {open ? "Show less" : `+${items.length - keep} more`}
+          {open ? "Show less" : `+${formatCount(items.length - keep)} more`}
         </button>
       )}
     </span>

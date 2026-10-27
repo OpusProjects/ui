@@ -1,5 +1,6 @@
 import type { HealthState } from "@opusprojects/unified-client";
 import type { Schemas } from "../../api/client";
+import { formatCount } from "@opusprojects/unified-ui";
 
 // How connectors are judged and described, shared by their list, their own
 // page and a project's page, so a card and the page it opens never disagree.
@@ -33,7 +34,7 @@ export function connectorState(connector: Connector): HealthState {
 // "1 of 3" beside a failing pill: how much of what it serves is affected.
 export const stateDetail = (connector: Connector) =>
   connector.health.failing > 0
-    ? `${connector.health.failing} of ${connector.health.sources}`
+    ? `${formatCount(connector.health.failing)} of ${formatCount(connector.health.sources)}`
     : undefined;
 
 // What the two built-ins are, in this app's words: they have no script to

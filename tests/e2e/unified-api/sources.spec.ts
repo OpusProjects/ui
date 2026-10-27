@@ -125,6 +125,7 @@ test("Sync shows Syncing… until the new data is in", async ({ page }) => {
 // gives, even when that age is the same number as before (30s in the
 // fixture, before and after): each answer is counted from when it came.
 test("a Sync resets Data from and its meter", async ({ page }) => {
+  // The clock runs between steps: allow a second or two of drift.
   await page.clock.install();
   await mockApi(page);
   await page.goto("/sources/src-alpha");
@@ -133,14 +134,14 @@ test("a Sync resets Data from and its meter", async ({ page }) => {
     .locator("section", { hasText: "Overview" })
     .locator("dl > div", { has: page.locator("dt", { hasText: "Data from" }) })
     .first();
-  await expect(dataFrom).toContainText("30s ago");
+  await expect(dataFrom).toContainText(/\b3[0-2]s ago/);
   const meter = dataFrom.getByRole("meter");
   const before = Number(await meter.getAttribute("aria-valuenow"));
   // Less than a poll: only the live clock moves it.
   await page.clock.runFor(10_000);
-  await expect(dataFrom).toContainText("40s ago");
+  await expect(dataFrom).toContainText(/\b4[0-2]s ago/);
   await page.getByRole("button", { name: "Sync", exact: true }).click();
-  await expect(dataFrom).toContainText("30s ago");
+  await expect(dataFrom).toContainText(/\b3[0-2]s ago/);
   await expect
     .poll(async () => Number(await meter.getAttribute("aria-valuenow")))
     .toBe(before);
@@ -230,7 +231,7 @@ test("a source's groups show their own variables", async ({ page }) => {
   await page.getByRole("button", { name: "Groups", exact: true }).click();
   await expect(page).toHaveURL(/list=groups/);
   await expect(page.getByRole("heading", { name: "Groups" })).toBeVisible();
-  await expect(page.getByText("2 groups")).toBeVisible();
+  await expect(page.getByText("2 groups", { exact: true })).toBeVisible();
   await page.getByRole("option", { name: "all" }).click();
   await expect(page).toHaveURL(/group=all/);
   const vars = page.getByRole("heading", { name: "all", exact: true });
@@ -378,3 +379,332 @@ test("a source page fits a 1024px window", async ({ page }) => {
   );
   expect(overflow).toBe(0);
 });
+
+// Counts group thousands with a comma whatever the browser's language: in
+// Spanish, toLocaleString() wrote 1023 with no separator at all.
+test.describe("in a Spanish browser", () => {
+  test.use({ locale: "es-ES" });
+
+  test("a count of thousands reads 1,023", async ({ page }) => {
+    await mockApi(page);
+    const { detail, sources } = await import("./fixtures/api");
+    const listed = sources.map((s) =>
+      s.source_id === "src-alpha" ? { ...s, total_hosts: 1023 } : s,
+    );
+    const alpha = listed.find((s) => s.source_id === "src-alpha")!;
+    await page.route(/\/api\/v1\/sources(\?.*)?$/, (route) =>
+      route.request().method() === "GET"
+        ? route.fulfill({ json: listed })
+        : route.fallback(),
+    );
+    await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+      route.request().method() === "GET"
+        ? route.fulfill({
+            json: { ...detail(alpha), total_hosts: 1023, total_groups: 12000 },
+          })
+        : route.fallback(),
+    );
+
+    await page.goto("/sources");
+    const card = page.locator("article", {
+      has: page.getByRole("heading", { name: "src-alpha" }),
+    });
+    await expect(card).toContainText("1,023");
+    await expect(card).toContainText("12,000 groups");
+    await expect(card).not.toContainText("1023");
+
+    await page.goto("/sources/src-alpha");
+    await expect(
+      page.getByText("1,023", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText("12,000", { exact: true }).first(),
+    ).toBeVisible();
+  });
+});
+
+// A cron schedule reads in words, as an interval does ("every 10m"), the
+// expression itself on hover: on a source's card and page, and a project's.
+test("cron schedules read in words", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources, projects } = await import("./fixtures/api");
+  const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+  const scheduled = detail(alpha);
+  scheduled.gathering = {
+    ...scheduled.gathering!,
+    schedule: "15 4 * * *",
+    sync_interval_seconds: null,
+  };
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: scheduled })
+      : route.fallback(),
+  );
+  const pulled = projects.map((p) =>
+    p.project_id === "prj-inventory"
+      ? { ...p, schedule: "0 */4 * * *", sync_interval_seconds: null }
+      : p,
+  );
+  await page.route(/\/api\/v1\/projects(\?.*)?$/, (route) =>
+    route.fulfill({ json: pulled }),
+  );
+  await page.route(/\/api\/v1\/projects\/prj-inventory$/, (route) =>
+    route.fulfill({ json: pulled[0] }),
+  );
+
+  await page.goto("/sources");
+  const card = page.locator("article", {
+    has: page.getByRole("heading", { name: "src-alpha" }),
+  });
+  const words = card.getByText("daily at 04:15 UTC");
+  await expect(words).toBeVisible();
+  await expect(words).toHaveAttribute("title", "cron (UTC): 15 4 * * *");
+  await expect(card).not.toContainText("15 4 * * *");
+
+  await page.goto("/sources/src-alpha");
+  await expect(page.getByText("daily at 04:15 UTC")).toBeVisible();
+
+  await page.goto("/projects");
+  await expect(page.getByText("every 4h").first()).toBeVisible();
+  await page.goto("/projects/prj-inventory");
+  await expect(page.getByText("every 4h").first()).toHaveAttribute(
+    "title",
+    "cron (UTC): 0 */4 * * *",
+  );
+});
+
+// Order: a menu after the toolbar's buttons. Worst first by default (the
+// health order, in the page's own words), A to Z and the rest on a click,
+// remembered for the list.
+test("the order menu reorders the cards and remembers it", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources");
+  const titles = () => page.locator("article h2, article h3").allInnerTexts();
+  const order = page.getByRole("button", { name: "Order" });
+  await expect(order).toHaveAttribute("aria-expanded", "false");
+
+  // src-beta is stale: worst first, it leads.
+  await expect.poll(titles).toEqual(["src-beta", "src-alpha"]);
+  await order.click();
+  const menu = page.getByRole("menu", { name: "Order" });
+  await expect(menu.getByRole("menuitemradio")).toHaveText([
+    "A to Z",
+    "Z to A",
+    "Fresh to Stale",
+    "Stale to Fresh",
+  ]);
+  await expect(
+    menu.getByRole("menuitemradio", { name: "Stale to Fresh" }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  await menu.getByRole("menuitemradio", { name: "A to Z" }).click();
+  await expect(menu).toHaveCount(0);
+  await expect.poll(titles).toEqual(["src-alpha", "src-beta"]);
+
+  // Remembered for this list.
+  await page.reload();
+  await expect.poll(titles).toEqual(["src-alpha", "src-beta"]);
+
+  // The keyboard: arrows move, Enter picks, Escape closes back on the button.
+  await order.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(
+    menu.getByRole("menuitemradio", { name: "A to Z" }),
+  ).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect.poll(titles).toEqual(["src-alpha", "src-beta"]);
+  await order.click();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(order).toBeFocused();
+});
+
+test("other lists order by name only, A to Z first", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/credentials");
+  await page.getByRole("button", { name: "Order" }).click();
+  const items = page
+    .getByRole("menu", { name: "Order" })
+    .getByRole("menuitemradio");
+  await expect(items).toHaveText(["A to Z", "Z to A"]);
+  await expect(items.first()).toHaveAttribute("aria-checked", "true");
+});
+
+// A source's last syncs, newest first: why and by whom, what each covered
+// and brought, or why it failed.
+test("a source's page lists its last syncs", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/sources/src-alpha");
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const rows = history.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("Manual by key-ops");
+  await expect(rows.nth(0)).toContainText("Full");
+  await expect(rows.nth(0)).toContainText("1,234 hosts, 12 groups");
+  await expect(rows.nth(0)).toContainText("4.2s");
+  await expect(rows.nth(0)).toContainText("Synced");
+  await expect(rows.nth(1)).toContainText("Scheduled");
+  await expect(rows.nth(1)).toContainText("sync timed out after 300s");
+  await expect(rows.nth(1)).toContainText("Failed");
+});
+
+test("a project's page lists its last pulls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/projects/prj-inventory");
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const rows = history.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("Manual by key-ops");
+  await expect(rows.nth(0)).toContainText("1111111 → 2222222");
+  await expect(rows.nth(0)).toContainText("Pulled");
+  await expect(rows.nth(1)).toContainText("1111111 no change");
+});
+
+// The History panel keeps the space panels keep between them, after the
+// hosts as after "No data yet".
+for (const cached of [true, false]) {
+  test(`History keeps its space from what is above it${cached ? "" : ", no data yet"}`, async ({
+    page,
+  }) => {
+    await mockApi(page);
+    if (!cached) {
+      const { detail, sources } = await import("./fixtures/api");
+      const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+      await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+        route.fulfill({ json: { ...detail(alpha), cached: false } }),
+      );
+    }
+    await page.goto("/sources/src-alpha");
+    const history = page.locator("section", {
+      has: page.getByRole("heading", { name: /^History/ }),
+    });
+    await history.waitFor();
+    const gap = await history.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top -
+        el.previousElementSibling!.getBoundingClientRect().bottom,
+    );
+    expect(gap).toBeGreaterThanOrEqual(16);
+  });
+}
+
+// A credential's projects are a table, as its sources are (and as
+// unified-gitops lists a credential's projects): linked by name, with the
+// last pull and the state.
+test("a credential's projects are a table like its sources", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { credentials } = await import("./fixtures/api");
+  const cred = credentials.find((c) => c.credential_id === "cred-inventory")!;
+  const used = {
+    ...cred,
+    used_by: { ...cred.used_by, projects: ["prj-inventory"] },
+  };
+  await page.route(/\/api\/v1\/credentials(\?.*)?$/, (route) =>
+    route.fulfill({
+      json: credentials.map((c) =>
+        c.credential_id === "cred-inventory" ? used : c,
+      ),
+    }),
+  );
+  await page.goto("/credentials/cred-inventory");
+  const panel = page.locator("section", {
+    has: page.getByRole("heading", { name: /^Projects/ }),
+  });
+  await expect(panel.locator("thead")).toContainText(
+    /Project.*Last pull.*State/,
+  );
+  const row = panel.locator("tbody tr");
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText("Inventory scripts");
+  await expect(row).toContainText("Synced");
+  await row.getByRole("link").first().click();
+  await expect(page).toHaveURL("/projects/prj-inventory");
+});
+
+// What reads a source, on its page: the endpoints whose output it is part of
+// (marked where it limits the hosts) and the views it is a member of.
+test("a source's page lists the endpoints and views reading it", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { detail, sources, endpoints } = await import("./fixtures/api");
+  const view = {
+    ...sources[0],
+    source_id: "vw-all",
+    url: "/api/v1/sources/vw-all",
+    kind: "view",
+  };
+  await page.route(/\/api\/v1\/sources(\?.*)?$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: [...sources, view] })
+      : route.fallback(),
+  );
+  await page.route(/\/api\/v1\/sources\/vw-all$/, (route) =>
+    route.fulfill({
+      json: {
+        ...detail(view),
+        kind: "view",
+        members: [
+          {
+            source_id: "src-alpha",
+            cached: true,
+            is_fresh: true,
+            ownership_cached: true,
+            ownership_mode: "declared",
+            total_hosts: 3,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(/\/api\/v1\/endpoints(\?.*)?$/, (route) =>
+    route.fulfill({
+      json: endpoints.map((e) =>
+        e.endpoint_id === "ep-all"
+          ? {
+              ...e,
+              transform: { ...e.transform!, limit_hosts_from: "src-alpha" },
+            }
+          : e,
+      ),
+    }),
+  );
+  await page.goto("/sources/src-alpha");
+  const panel = (name: RegExp) =>
+    page.locator("section", { has: page.getByRole("heading", { name }) });
+  const endpointRow = panel(/^Endpoints/).locator("tbody tr");
+  await expect(endpointRow).toHaveCount(1);
+  await expect(endpointRow).toContainText("Everything");
+  await expect(endpointRow).toContainText("limits hosts");
+  await expect(endpointRow).toContainText("2 of 2");
+  await expect(panel(/^Views/).locator("tbody tr")).toContainText("vw-all");
+
+  // src-beta limits nothing and is in no view.
+  await page.goto("/sources/src-beta");
+  await expect(panel(/^Endpoints/).locator("tbody tr")).not.toContainText(
+    "limits hosts",
+  );
+  await expect(panel(/^Views/)).toHaveCount(0);
+});
+
+// History is the last table on every page that has one.
+for (const path of ["/sources/src-alpha", "/projects/prj-inventory"]) {
+  test(`History is the last table on ${path}`, async ({ page }) => {
+    await mockApi(page);
+    await page.goto(path);
+    await page.getByRole("heading", { name: /^History/ }).waitFor();
+    const last = await page
+      .locator("main section h2, main section h3")
+      .last()
+      .evaluate((h) => h.firstChild?.textContent ?? h.textContent);
+    expect(last).toBe("History");
+  });
+}

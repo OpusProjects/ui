@@ -12,7 +12,7 @@ import {
 import { compact, DataTable, LineChart, type Column } from "./Charts";
 import { Notice, PageHeader, Panel } from "./Page";
 import { SkeletonSummary } from "./Skeleton";
-import { formatBytes, formatSpan } from "../lib/format";
+import { formatBytes, formatCount, formatSpan } from "../lib/format";
 import common from "./Common.module.css";
 
 // The parts of a unified-* Metrics page that every app has: the process
@@ -304,18 +304,19 @@ export function RouteTable({
       key: "route",
       label: "Route",
       render: (r) => <code className={common.mono}>{r.route}</code>,
+      title: (r) => r.route,
     },
     {
       key: "requests",
       label: "Requests",
       numeric: true,
-      render: (r) => r.requests.toLocaleString(),
+      render: (r) => formatCount(r.requests),
     },
     {
       key: "errors",
       label: "5xx",
       numeric: true,
-      render: (r) => r.errors.toLocaleString(),
+      render: (r) => formatCount(r.errors),
     },
     {
       key: "mean",

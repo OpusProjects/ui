@@ -150,3 +150,30 @@ test("the metrics tiles are hosts, requests, response time and sync time", async
   for (const gone of ["Sources", "Endpoints", "Projects"])
     await expect(tile(gone)).toHaveCount(0);
 });
+
+// While its list loads, each Overview card is a placeholder of its size: the
+// row keeps its five places instead of filling in card by card.
+test("the overview holds a place for each card while it loads", async ({
+  page,
+}) => {
+  await mockApi(page);
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/v1\/projects$/, async (route) => {
+    await held;
+    await route.fallback();
+  });
+  await page.goto("/");
+  const row = page.locator("[aria-busy=true]");
+  await expect(row.locator("> div")).toHaveCount(1);
+  await expect(row.locator("> *")).toHaveCount(5);
+  const placeholder = await row.locator("> div").boundingBox();
+  const card = await row.locator("> a").first().boundingBox();
+  expect(placeholder?.height).toBe(card?.height);
+  release();
+  await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+  await expect(row.locator("> a")).toHaveCount(0);
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /^Projects/ }),
+  ).toBeVisible();
+});

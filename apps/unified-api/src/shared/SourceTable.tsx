@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import {
+  formatCount,
   HealthPill,
   ListName,
   ListSoft,
@@ -34,7 +35,7 @@ export function SourceTable({
   // hosts the output holds at all, so it is marked and listed first.
   limitedBy?: string | null;
 }) {
-  const sources = useSources();
+  const sources = useSources((s) => ids.includes(s.source_id));
   const byId = new Map(sources.rows.map((row) => [row.summary.source_id, row]));
   const ordered = [...ids].sort((a, b) =>
     a === limitedBy ? -1 : b === limitedBy ? 1 : a.localeCompare(b),
@@ -76,14 +77,20 @@ export function SourceTable({
       key: "hosts",
       label: "Hosts",
       numeric: true,
-      render: ({ row }) => row?.summary?.total_hosts?.toLocaleString() ?? "–",
+      render: ({ row }) =>
+        row?.summary?.total_hosts != null
+          ? formatCount(row.summary.total_hosts)
+          : "–",
     },
     // From the source's detail: the list does not count groups.
     {
       key: "groups",
       label: "Groups",
       numeric: true,
-      render: ({ row }) => row?.detail?.total_groups?.toLocaleString() ?? "–",
+      render: ({ row }) =>
+        row?.detail?.total_groups != null
+          ? formatCount(row.detail.total_groups)
+          : "–",
     },
     {
       key: "age",

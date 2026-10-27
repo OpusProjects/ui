@@ -64,6 +64,7 @@ export function CredentialsPage<T extends CredentialLike>({
         const v = view(c);
         return `${v.id} ${v.title} ${v.description ?? ""} ${c.env_vars.join(" ")} ${c.vault_path ?? ""}`;
       }}
+      name={(c) => view(c).title}
       placeholder={placeholder}
       empty={empty}
       card={(credential) => {

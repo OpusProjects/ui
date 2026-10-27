@@ -39,7 +39,15 @@ export {
 } from "./components/Health";
 export { lift } from "./components/Lift";
 export { ThemeSwitch } from "./components/ThemeSwitch";
-export { formatAge, formatBytes, formatEvery, formatSpan } from "./lib/format";
+export {
+  countOf,
+  formatAge,
+  formatBytes,
+  formatCount,
+  formatEvery,
+  formatSchedule,
+  formatSpan,
+} from "./lib/format";
 export { LiveAge, useLiveSeconds, useNow } from "./components/LiveAge";
 export { linkify } from "./components/AutoLink";
 export {
@@ -67,13 +75,16 @@ export {
 } from "./components/CodeView";
 export {
   Clip,
-  DetailTitle,
-  ValueList,
   detailStyles,
+  DetailTitle,
   onOff,
+  Schedule,
+  ValueList,
 } from "./components/Detail";
 export { pageStyles } from "./components/Common";
 export { ListToolbar } from "./components/ListToolbar";
+export { orderOptions, type OrderOption } from "./components/OrderMenu";
+export { RunHistory, type RunLike } from "./components/RunHistory";
 export { ListPage, type ListPageProps } from "./components/ListPage";
 export {
   Commit,
@@ -121,6 +132,7 @@ export {
 export { RunAllButton } from "./components/RunAllButton";
 export {
   AreaCard,
+  AreaCardSkeleton,
   AreaGrid,
   InstancePanel,
   NeedsAttention,

@@ -24,7 +24,7 @@ export {
   storedTheme,
   type Theme,
 } from "./theme";
-export { useListFilter } from "./listFilter";
+export { useListFilter, type ListOrder } from "./listFilter";
 export {
   PROJECT_LABELS,
   commitPage,

@@ -1,8 +1,10 @@
 import { Link, useParams } from "react-router";
 import {
+  detailStyles as common,
   DetailTitle,
   EmptyState,
   HealthPill,
+  type ListColumn,
   ListName,
   ListSoft,
   ListTable,
@@ -11,13 +13,18 @@ import {
   Panel,
   ProjectOverview,
   RunButton,
+  RunHistory,
   SkeletonSummary,
-  detailStyles as common,
-  type ListColumn,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
-import { useApplications, useConnectors, useProjects } from "../../api/queries";
+import {
+  useApplications,
+  useConnectors,
+  useProjects,
+  useWebhooks,
+} from "../../api/queries";
 import { ICONS } from "../../sections";
+import { WebhookTable } from "../../shared/WebhookTable";
 import { applicationColumns } from "../applications/columns";
 import { connectorLabels, useConnectorState } from "../connectors/model";
 import { pull } from "./model";
@@ -32,6 +39,23 @@ const HINTS = {
   pullInterval:
     "sync_interval_seconds. How often the project is pulled, besides before every check. None means only at start-up (with sync_on_boot), before checks or on demand.",
 };
+
+// The webhooks hearing this project, when there are any: they name it, or
+// all projects.
+function Webhooks({ project }: { project: string }) {
+  const webhooks = useWebhooks();
+  const hears = (n: { all_projects: boolean; projects: string[] }) =>
+    n.all_projects || n.projects.includes(project);
+  if (!(webhooks.data ?? []).some(hears)) return null;
+  return (
+    <Panel
+      title="Webhooks"
+      hint="The webhooks hearing this project: they name it, or all projects, and report its events (a commit pulled, a pull failing or recovering) and its applications'."
+    >
+      <WebhookTable hears={hears} empty="No webhook hears this project." />
+    </Panel>
+  );
+}
 
 export function ProjectDetailPage() {
   const { name = "" } = useParams();
@@ -90,8 +114,23 @@ export function ProjectDetailPage() {
             project={project}
             credential={project.credential}
             hints={HINTS}
+            at={projects.dataUpdatedAt}
           />
           <UsedBy project={project} />
+          <Webhooks project={project.name} />
+          {/* An instance older than the history has none to show. */}
+          {project.history && (
+            <Panel
+              title="History"
+              hint="The last pulls of this project, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, and the commit it moved the checkout from and to. A pull before a check is listed only when it moved the commit or failed."
+            >
+              <RunHistory
+                runs={project.history}
+                kind="pull"
+                gitUrl={project.git_url}
+              />
+            </Panel>
+          )}
         </>
       )}
     </>
@@ -181,7 +220,7 @@ function UsedBy({ project }: { project: Project }) {
           hint="The applications using this project: their desired state is a folder in its checkout, pulled before every check."
         >
           <ListTable
-            columns={applicationColumns("folder")}
+            columns={applicationColumns("folder", applications.dataUpdatedAt)}
             rows={used_by.applications.map((name) => ({
               name,
               app: apps.get(name),

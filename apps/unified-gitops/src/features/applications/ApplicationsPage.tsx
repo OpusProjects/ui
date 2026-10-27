@@ -2,20 +2,23 @@ import { Link } from "react-router";
 import { ArrowUpFromLine, SearchCheck } from "lucide-react";
 import {
   CardGrid,
+  countOf,
   EmptyState,
   Fact,
+  formatCount,
+  formatEvery,
   HealthSummary,
   ListToolbar,
   LiveAge,
   Notice,
+  orderOptions,
   PageHeader,
+  pageStyles as styles,
   ResourceCard,
   RunAllButton,
   RunButton,
   SkeletonGrid,
   SkeletonSummary,
-  formatEvery,
-  pageStyles as styles,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { useListFilter } from "@opusprojects/unified-client";
@@ -50,7 +53,11 @@ function mode(app: App) {
 export function ApplicationsPage() {
   const applications = useApplications();
   const items = applications.data ?? [];
-  const filter = useListFilter(items, appState, searchText);
+  const filter = useListFilter(items, appState, searchText, {
+    name: (app) => app.name,
+    key: "applications",
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     "applications",
     applications.isSuccess ? applications.data?.length : undefined,
@@ -86,6 +93,7 @@ export function ApplicationsPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions()}
             label="Search applications"
             placeholder="Search by name, description, path or connector"
           >
@@ -115,10 +123,10 @@ export function ApplicationsPage() {
               icon={<ArrowUpFromLine />}
               // Writes to every system shown: one explicit yes first.
               confirm={(count) => ({
-                title: `Push ${count} ${count === 1 ? "application" : "applications"}?`,
+                title: `Push ${countOf(count, "application")}?`,
                 message:
                   "What each one's check finds is applied to its system now. Applications with nothing to apply are left as they are.",
-                confirmLabel: `Push ${count}`,
+                confirmLabel: `Push ${formatCount(count)}`,
               })}
               invalidate={[["applications"], ["application"]]}
               run={async (id) =>
@@ -226,7 +234,10 @@ export function ApplicationsPage() {
                     </span>
                   </Fact>
                   <Fact label="Last check">
-                    <LiveAge seconds={app.last_checked_age_seconds} />
+                    <LiveAge
+                      seconds={app.last_checked_age_seconds}
+                      at={applications.dataUpdatedAt}
+                    />
                   </Fact>
                   <Fact label="Runs">
                     {formatEvery(app.sync_interval_seconds)}, {mode(app)}

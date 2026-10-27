@@ -9,6 +9,29 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Added
+
+- What reads an item, as tables: on a unified-api source's page the endpoints whose output it is part of (marked where it limits the hosts) and the views it is a member of; on a unified-gitops project's page the webhooks hearing it; on a unified-gitops webhook's page the projects it hears, beside its applications. History stays the last table on every page that has one.
+- A History panel on a unified-api source's page (its last syncs: why and by whom, what each covered, the hosts and groups it brought or why it failed, how long it took) and on a project's page in both apps (its last pulls: why and by whom, the commit each moved the checkout from and to, with links), from the new `history` fields: unified-api 0.37.0 and unified-gitops 0.4.0; an older instance shows none. One `RunHistory` table in `@opusprojects/unified-ui`.
+- An Order menu ends every list page's toolbar (both apps): A to Z and Z to A, A to Z the default; on Sources also Fresh to Stale and Stale to Fresh, with worst first (Stale to Fresh) staying its default. The choice is remembered per list in the browser; arrow keys, Enter and Escape work, and on a narrow screen it opens leftwards when it would not fit. `useListFilter` takes the card's name, the orders offered and a key, `ListPage` a `name`, and `ListToolbar` its `orders` (`orderOptions()`, or `orderOptions([good, bad])` for the health ones).
+
+### Changed
+
+- unified-api project page: its Endpoints are a table (Endpoint, Output, Sources ready, State), like its Sources and Connectors, in place of a list of links.
+- unified-api credential page: its Projects are a table (Project, Last pull, State), as its Sources above them and a credential's projects in unified-gitops, in place of a list of links.
+- Cron schedules read in words, as intervals do: "daily at 04:15 UTC", "every 4h", "every 2h, at :15", "Mon–Fri at 06:00 UTC", "yearly on 1 Jan at 00:00 UTC", the expression on hover (`formatSchedule` and `Schedule` in `@opusprojects/unified-ui`); on a source's card and page and a project's, where a project on a schedule showed nothing on its card. One too irregular to say plainly is shown as written.
+- unified-api connector page: its Sources table is the one every other page lists sources with (Source, Hosts, Groups, Data from, State), in place of its own (Source, Timeout, State). A source's own timeout shows on its page.
+
+### Fixed
+
+- unified-api Topology: every card takes one width. Side by side they were matched to the widest only when that fit, and otherwise kept their own widths (one edge narrower than the rest); now the room is shared evenly instead, while each share is at least a card's 360px, what a card holds adapting (fewer chips before "+N more"). Stacked, they stretched to what each level's indent left; now they are one width too.
+- A project's Last attempt and Last success (its page and card, both apps) restart when it is pulled, as Data from does after a Sync: they were counted on from the first answer whenever the next one reported the same age, so a Pull seemed not to reset them. The same for an application's Last check (card and tables), the projects on a credential's page, a source's Last success and the last cache save on Configuration.
+- Tables size each column from its content's real width, rounded up, and again when that content or the fonts change: a state pill ("Not synced yet" on a connector's sources) could overhang its column by a fraction of a pixel and give the table a horizontal scrollbar on a screen with classic scrollbars.
+- unified-api source page: between about 860 and 980px wide the hosts list kept its full width and squeezed the selected host beside it to a sliver, its search and switches overflowing the card. The two now stack until both have room (measured against the page's column, not the window), and side by side the hosts give way first.
+- Metrics: the API routes table scrolled sideways at 1280px when a route was long. A table too narrow for its columns now cuts its widest text column short with an ellipsis, the whole value on hover.
+- Overview (both apps): its first row of cards filled in one by one as each list arrived, the row reflowing each time. Each card now holds its place as a placeholder of its size while its list loads (`AreaCardSkeleton`); a restricted key gets none for the lists it may not read.
+- Counts group thousands with a comma everywhere in both apps, 1,023 rather than 1023: cards, facts, tables, health summaries, the overview, pagination, "+N more", run and sync messages. They followed the browser's language, which in Spanish wrote 1023 and 10.000; one `formatCount` (and `countOf`, "1,023 hosts") in `@opusprojects/unified-ui` now formats them all the same way.
+
 ## [0.5.0] - 2026-10-27
 
 ### Added

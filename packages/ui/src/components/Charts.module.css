@@ -295,6 +295,12 @@
   white-space: nowrap;
 }
 
+/* The text column that gave way to the others: cut short, whole on hover. */
+.fit[data-clip] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Measured widths are exact, and the gaps between columns are in them: no
    padding between cells, only outside the first and last. */
 .table[data-fitted] {

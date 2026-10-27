@@ -18,7 +18,8 @@ import { ListPage } from "./ListPage";
 import { RunAllButton } from "./RunAllButton";
 import { RunButton } from "./RunButton";
 import { LiveAge } from "./LiveAge";
-import { formatEvery, formatSpan } from "../lib/format";
+import { formatCount, formatEvery, formatSpan } from "../lib/format";
+import { Schedule } from "./Detail";
 import styles from "./Common.module.css";
 
 // What every unified-* app's git projects have in common. How one is named,
@@ -29,6 +30,8 @@ export interface ProjectLike {
   revision?: string | null;
   sync_health?: SyncHealth | null;
   sync_interval_seconds?: number | null;
+  // A cron schedule (UTC), used instead of the interval.
+  schedule?: string | null;
 }
 
 export interface ProjectView {
@@ -114,6 +117,7 @@ export function ProjectsPage<T extends ProjectLike>({
         const v = view(p);
         return `${v.id} ${v.title} ${v.description ?? ""} ${withoutCredentials(p.git_url)}`;
       }}
+      name={(p) => view(p).title}
       placeholder={placeholder}
       actions={(filter, items) => (
         <RunAllButton
@@ -191,12 +195,19 @@ export function ProjectsPage<T extends ProjectLike>({
             <Fact label="Last pull">
               <LiveAge
                 seconds={project.sync_health?.last_success_age_seconds}
+                at={query.dataUpdatedAt}
               />
             </Fact>
-            {project.sync_interval_seconds != null && (
+            {project.schedule ? (
               <Fact label="Pulls">
-                {formatEvery(project.sync_interval_seconds)}
+                <Schedule cron={project.schedule} />
               </Fact>
+            ) : (
+              project.sync_interval_seconds != null && (
+                <Fact label="Pulls">
+                  {formatEvery(project.sync_interval_seconds)}
+                </Fact>
+              )
             )}
           </ResourceCard>
         );
@@ -219,7 +230,7 @@ const HINTS = {
   "Last attempt":
     "When this project was last pulled, whether it worked or not.",
   Schedule:
-    "schedule. A cron expression (UTC) for when the project is pulled, used instead of an interval.",
+    "schedule. When the project is pulled, from a cron expression (UTC, shown on hover), used instead of an interval.",
   "Pull on start":
     "sync_on_boot. Whether this instance pulls the project when it starts.",
   Timeout:
@@ -240,10 +251,15 @@ export function ProjectOverview({
   project,
   credential,
   hints,
+  at,
 }: {
   project: ProjectDetailLike;
   credential?: string | null;
   hints: { lastSuccess: string; pullInterval: string };
+  // When the project was fetched (the query's dataUpdatedAt): its ages
+  // restart on every answer, so a pull resets them even when the age it
+  // reports is the same as the last one (0 after a pull, 0 after the next).
+  at?: number;
 }) {
   const health = project.sync_health;
   const failures = health?.consecutive_failures ?? 0;
@@ -259,7 +275,9 @@ export function ProjectOverview({
         <HealthPill
           state={projectState(project)}
           labels={PROJECT_LABELS}
-          detail={failures > 1 ? `${failures} in a row` : undefined}
+          detail={
+            failures > 1 ? `${formatCount(failures)} in a row` : undefined
+          }
         />
       }
     >
@@ -301,11 +319,11 @@ export function ProjectOverview({
         </Fact>
 
         <Fact label="Last attempt" hint={HINTS["Last attempt"]}>
-          <LiveAge seconds={health?.last_attempt_age_seconds} />
+          <LiveAge seconds={health?.last_attempt_age_seconds} at={at} />
         </Fact>
         <Fact label="Last success" hint={hints.lastSuccess}>
           {health?.last_success_age_seconds != null ? (
-            <LiveAge seconds={health.last_success_age_seconds} />
+            <LiveAge seconds={health.last_success_age_seconds} at={at} />
           ) : (
             "Never"
           )}
@@ -313,7 +331,7 @@ export function ProjectOverview({
 
         {project.schedule ? (
           <Fact label="Schedule" hint={HINTS.Schedule}>
-            <code className={detail.mono}>{project.schedule}</code>
+            <Schedule cron={project.schedule} />
           </Fact>
         ) : (
           <Fact label="Pull interval" hint={hints.pullInterval}>

@@ -1,4 +1,5 @@
 import { api, unwrap } from "../../api/client";
+import { countOf } from "@opusprojects/unified-ui";
 
 // What every Sync button asks: fresh data, now. A federated source (the
 // remote connector; the list and the detail say `federated`, to every key)
@@ -23,6 +24,6 @@ export async function syncSource(id: string, federated: boolean) {
 export async function syncNow(id: string, federated: boolean) {
   const result = await syncSource(id, federated);
   return result.success
-    ? { ok: true, message: `Synced ${result.total_hosts} hosts` }
+    ? { ok: true, message: `Synced ${countOf(result.total_hosts, "host")}` }
     : { ok: false, message: "Sync failed" };
 }

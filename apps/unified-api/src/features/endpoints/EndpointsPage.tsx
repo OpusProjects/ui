@@ -2,8 +2,10 @@ import {
   CardGrid,
   EmptyState,
   Fact,
+  formatCount,
   HealthSummary,
   Notice,
+  orderOptions,
   PageHeader,
   ResourceCard,
   SkeletonGrid,
@@ -28,7 +30,11 @@ const searchText = (endpoint: Endpoint) =>
 export function EndpointsPage() {
   const endpoints = useEndpoints();
   const items = endpoints.data ?? [];
-  const filter = useListFilter(items, endpointState, searchText);
+  const filter = useListFilter(items, endpointState, searchText, {
+    name: (e) => e.endpoint_id,
+    key: "endpoints",
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     "endpoints",
     endpoints.isSuccess ? endpoints.data?.length : undefined,
@@ -64,6 +70,7 @@ export function EndpointsPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions()}
             label="Search endpoints"
             placeholder="Search by name or id"
           />
@@ -119,7 +126,8 @@ export function EndpointsPage() {
                         as separate items, wider than a word gap. */}
                     <span>
                       <strong>
-                        {endpoint.sources_ready} of {endpoint.source_ids.length}
+                        {formatCount(endpoint.sources_ready)} of{" "}
+                        {formatCount(endpoint.source_ids.length)}
                       </strong>{" "}
                       <span className={styles.soft}>ready</span>
                     </span>

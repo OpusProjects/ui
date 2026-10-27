@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RunButton } from "./RunButton";
 import { useConfirm, type ConfirmRequest } from "./Modal";
+import { countOf, formatCount } from "../lib/format";
 
 // How many run at once: enough to finish a page of items quickly, few
 // enough that one click does not start every connector (SSH sweeps
@@ -48,7 +49,9 @@ export function RunAllButton({
   return (
     <RunButton
       label={
-        filtered ? `${words.verb} ${ids.length} shown` : `${words.verb} all`
+        filtered
+          ? `${words.verb} ${formatCount(ids.length)} shown`
+          : `${words.verb} all`
       }
       busyLabel={words.busy}
       outcomeSide="end"
@@ -74,8 +77,11 @@ export function RunAllButton({
         const failed = ids.length - ok;
         const capital = words.done[0].toUpperCase() + words.done.slice(1);
         return failed === 0
-          ? { ok: true, message: `${capital} ${ok} ${ok === 1 ? one : many}` }
-          : { ok: false, message: `${ok} ${words.done}, ${failed} failed` };
+          ? { ok: true, message: `${capital} ${countOf(ok, one, many)}` }
+          : {
+              ok: false,
+              message: `${formatCount(ok)} ${words.done}, ${formatCount(failed)} failed`,
+            };
       }}
     />
   );

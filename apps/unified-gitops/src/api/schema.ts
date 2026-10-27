@@ -765,6 +765,12 @@ export interface components {
       credential?: string | null;
       description?: string | null;
       git_url: string;
+      /**
+       * @description Its last pulls, newest first (up to 50, kept in memory since this
+       *     process started): when, why and by whom, and the commit each moved
+       *     the checkout from and to.
+       */
+      history: components["schemas"]["RunInfo"][];
       /** @description The item's identity, as in the configuration */
       name: string;
       /**
@@ -864,6 +870,28 @@ export interface components {
     RollbackRequest: {
       /** @description The commit to roll back to: its id, full or abbreviated (4+ hex characters) */
       revision: string;
+    };
+    RunInfo: {
+      /** @description Who asked, for a manual pull: the API key's name or the signed-in user */
+      by?: string | null;
+      /** Format: int64 */
+      duration_ms: number;
+      /** @description Why it failed; absent when it worked */
+      error?: string | null;
+      revision?: string | null;
+      /** @description The commit the pull found the checkout at, and left it at */
+      revision_before?: string | null;
+      /**
+       * Format: int64
+       * @description When it started, unix seconds
+       */
+      started_at: number;
+      /**
+       * @description "scheduled", "manual" (Pull, the API), "check" (before an
+       *     application's check or sync) or "startup" (the clones at boot, a
+       *     project added by a reload)
+       */
+      trigger: string;
     };
     /** @enum {string} */
     RunMode: "plan" | "apply";

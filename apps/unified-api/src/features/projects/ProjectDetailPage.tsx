@@ -1,8 +1,10 @@
 import { Link, useParams } from "react-router";
 import {
+  detailStyles as common,
   DetailTitle,
   EmptyState,
   HealthPill,
+  type ListColumn,
   ListName,
   ListSoft,
   ListTable,
@@ -11,14 +13,13 @@ import {
   Panel,
   ProjectOverview,
   RunButton,
+  RunHistory,
   SkeletonSummary,
-  detailStyles as common,
-  type ListColumn,
 } from "@opusprojects/unified-ui";
 import { api, unwrap, type Schemas } from "../../api/client";
-import { useConnectors, useEndpoints, useProjects } from "../../api/queries";
+import { useConnectors, useProjects } from "../../api/queries";
 import { SourceTable } from "../../shared/SourceTable";
-import { ENDPOINT_LABELS, endpointState } from "../endpoints/model";
+import { EndpointTable } from "../../shared/EndpointTable";
 import {
   connectorLabels,
   connectorPath,
@@ -94,6 +95,7 @@ export function ProjectDetailPage() {
             project={project}
             credential={project.credential_id}
             hints={HINTS}
+            at={projects.dataUpdatedAt}
           />
           <Panel
             title="Sources"
@@ -117,7 +119,23 @@ export function ProjectDetailPage() {
               title="Endpoints"
               hint="The endpoints using this project: their project names it, and their transformer script is read from its checkout."
             >
-              <EndpointList ids={project.used_by.endpoints} />
+              <EndpointTable
+                ids={project.used_by.endpoints}
+                empty="No endpoint uses this project."
+              />
+            </Panel>
+          )}
+          {/* An instance older than the history has none to show. */}
+          {project.history && (
+            <Panel
+              title="History"
+              hint="The last pulls of this project, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, and the commit it moved the checkout from and to."
+            >
+              <RunHistory
+                runs={project.history}
+                kind="pull"
+                gitUrl={project.git_url}
+              />
             </Panel>
           )}
         </>
@@ -207,36 +225,5 @@ function ConnectorTable({ ids }: { ids: string[] }) {
       empty="No connector uses this project."
       noun="connectors"
     />
-  );
-}
-
-// Endpoints by name, each with its state and a link to its page.
-function EndpointList({ ids }: { ids: string[] }) {
-  const endpoints = useEndpoints();
-  if (ids.length === 0) return null;
-  const byId = new Map((endpoints.data ?? []).map((e) => [e.endpoint_id, e]));
-  return (
-    <ul className={common.itemList}>
-      {[...ids].sort().map((id) => {
-        const endpoint = byId.get(id);
-        return (
-          <li key={id}>
-            <Link
-              to={`/endpoints/${encodeURIComponent(id)}`}
-              className={common.itemName}
-            >
-              {endpoint?.name ?? id}
-            </Link>
-            <code className={common.itemId}>{id}</code>
-            {endpoint && (
-              <HealthPill
-                state={endpointState(endpoint)}
-                labels={ENDPOINT_LABELS}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
   );
 }

@@ -31,11 +31,19 @@ export function useSourceList() {
   });
 }
 
-export function useSources() {
+// Every source, each with its detail. `only`, when given, fetches the
+// details of those sources alone (the others' rows carry none): a page
+// listing three sources need not poll every source's detail, each with its
+// history, every 15 seconds. The cache keys are the detail pages', so they
+// share what is fetched.
+export function useSources(
+  only?: (summary: { source_id: string; kind: string }) => boolean,
+) {
   const list = useSourceList();
+  const wanted = (list.data ?? []).filter((s) => !only || only(s));
 
   const details = useQueries({
-    queries: (list.data ?? []).map((source) => ({
+    queries: wanted.map((source) => ({
       queryKey: ["source", source.source_id],
       queryFn: async () =>
         unwrap(
@@ -47,9 +55,12 @@ export function useSources() {
     })),
   });
 
-  const rows: SourceRow[] = (list.data ?? []).map((summary, index) => ({
+  const byId = new Map(
+    wanted.map((source, index) => [source.source_id, details[index]?.data]),
+  );
+  const rows: SourceRow[] = (list.data ?? []).map((summary) => ({
     summary,
-    detail: details[index]?.data,
+    detail: byId.get(summary.source_id),
   }));
 
   return { ...list, rows };

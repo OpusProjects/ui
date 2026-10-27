@@ -1155,6 +1155,12 @@ export interface components {
       /** @description The credential it pulls with, when the repository needs one */
       credential_id?: string | null;
       git_url: string;
+      /**
+       * @description Its last pulls, newest first (up to 50, kept in memory since this
+       *     process started): when, why and by whom, and the commit each moved
+       *     the checkout from and to.
+       */
+      history: components["schemas"]["RunInfo"][];
       name: string;
       project_id: string;
       /** @description The commit the checkout is at (full id); null without a checkout */
@@ -1226,6 +1232,35 @@ export interface components {
       restart_required?: string[];
       sources: components["schemas"]["DeltaInfo"];
       views: components["schemas"]["DeltaInfo"];
+    };
+    RunInfo: {
+      /**
+       * @description Who asked, for a manual run: the API key's name or the signed-in user.
+       *     Admin keys only.
+       */
+      by?: string | null;
+      /** Format: int64 */
+      duration_ms: number;
+      /** @description Why it failed; absent when it worked */
+      error?: string | null;
+      groups?: number | null;
+      /** @description What a sync that worked brought */
+      hosts?: number | null;
+      revision?: string | null;
+      /** @description The commit a pull found the checkout at, and left it at */
+      revision_before?: string | null;
+      /** @description What a sync covered: "full", "host:a,b" or "group:x" */
+      scope?: string | null;
+      /**
+       * Format: int64
+       * @description When it started, unix seconds
+       */
+      started_at: number;
+      /**
+       * @description "scheduled", "manual" (Sync, Pull, the API), "refresh" (an on-demand
+       *     read) or "startup" (the clones at boot, a project added by a reload)
+       */
+      trigger: string;
     };
     ScopeInfo: {
       /**
@@ -1327,6 +1362,12 @@ export interface components {
        */
       federated: boolean;
       gathering?: components["schemas"]["Gathering"] | null;
+      /**
+       * @description Its last syncs, newest first (up to 50, kept in memory since this
+       *     process started): when, why, what each covered and how it ended.
+       *     Empty for a view, which syncs nothing.
+       */
+      history: components["schemas"]["RunInfo"][];
       is_fresh: boolean;
       /** @description "source" or "view" */
       kind: string;

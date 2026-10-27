@@ -1,16 +1,20 @@
 import {
   CardGrid,
+  countOf,
   EmptyState,
   Fact,
+  formatCount,
+  formatEvery,
   FreshnessMeter,
   HealthSummary,
   LiveAge,
   Notice,
+  orderOptions,
   PageHeader,
   ResourceCard,
+  Schedule,
   SkeletonGrid,
   SkeletonSummary,
-  formatEvery,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
@@ -33,7 +37,10 @@ const searchText = ({ summary, detail }: SourceRow) =>
 
 export function SourcesPage() {
   const sources = useSources();
-  const filter = useListFilter(sources.rows, stateOf, searchText);
+  const filter = useListFilter(sources.rows, stateOf, searchText, {
+    name: (row) => row.summary.source_id,
+    key: "sources",
+  });
   const remembered = useRememberedCount(
     "sources",
     sources.isSuccess ? sources.rows.length : undefined,
@@ -66,6 +73,7 @@ export function SourcesPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions(["Fresh", "Stale"])}
             label="Search sources"
             placeholder="Search by name or id"
           >
@@ -134,7 +142,7 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
   const failures = health?.consecutive_failures ?? 0;
 
   const schedule = gathering?.schedule ? (
-    <code className={styles.mono}>{gathering.schedule}</code>
+    <Schedule cron={gathering.schedule} />
   ) : (
     formatEvery(gathering?.sync_interval_seconds)
   );
@@ -157,7 +165,9 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
       )}
       tag={isView ? "view" : undefined}
       state={state}
-      stateDetail={failures > 1 ? `${failures} in a row` : undefined}
+      stateDetail={
+        failures > 1 ? `${formatCount(failures)} in a row` : undefined
+      }
       error={health?.last_error}
       footer={
         <>
@@ -186,12 +196,16 @@ function SourceCard({ row, at }: { row: SourceRow; at: number }) {
       <Fact label="Hosts">
         {/* One phrase, one element: a word gap, not the fact's item gap. */}
         <span>
-          <strong>{summary.total_hosts ?? "None yet"}</strong>
+          <strong>
+            {summary.total_hosts != null
+              ? formatCount(summary.total_hosts)
+              : "None yet"}
+          </strong>
           {detail?.total_groups != null && (
             <>
               {" "}
               <span className={styles.soft}>
-                in {detail.total_groups} groups
+                in {countOf(detail.total_groups, "group")}
               </span>
             </>
           )}

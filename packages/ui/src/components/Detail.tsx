@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { linkify } from "./AutoLink";
+import { formatSchedule } from "../lib/format";
 import styles from "./Detail.module.css";
 
 // The classes detail pages share (facts grid, links, the error box), so every
@@ -34,6 +35,19 @@ export function DetailTitle({
       />
       <span>{children}</span>
     </span>
+  );
+}
+
+// A cron schedule in words ("daily at 04:15 UTC"), the expression itself on
+// hover; one too irregular to put in words is shown as written.
+export function Schedule({ cron }: { cron: string }) {
+  const words = formatSchedule(cron);
+  return words ? (
+    <span title={`cron (UTC): ${cron}`}>{words}</span>
+  ) : (
+    <code className={styles.mono} title="cron (UTC)">
+      {cron}
+    </code>
   );
 }
 

@@ -10,8 +10,9 @@ import { compact, LineChart, type Series } from "./Charts";
 import { lift } from "./Lift";
 import { useNow } from "./LiveAge";
 import { Panel } from "./Page";
-import { formatSpan } from "../lib/format";
+import { formatCount, formatSpan } from "../lib/format";
 import styles from "./Overview.module.css";
+import skeleton from "./Skeleton.module.css";
 
 // The pieces of a unified-* front page: one card per area with how many of
 // its items are healthy, the list of what needs a person, and the traffic
@@ -35,8 +36,19 @@ export function countStates<T>(
   return counts;
 }
 
-export function AreaGrid({ children }: { children: ReactNode }) {
-  return <div className={styles.areas}>{children}</div>;
+// `loading`: some card is still a placeholder, said once for the row.
+export function AreaGrid({
+  children,
+  loading,
+}: {
+  children: ReactNode;
+  loading?: boolean;
+}) {
+  return (
+    <div className={styles.areas} aria-busy={loading || undefined}>
+      {children}
+    </div>
+  );
 }
 
 // One area: how many of its items are healthy, a bar of all of their
@@ -80,8 +92,8 @@ export function AreaCard({
       ) : (
         <>
           <span className={styles.areaCount}>
-            {counts.fresh}
-            <span className={styles.areaOf}> of {total}</span>
+            {formatCount(counts.fresh)}
+            <span className={styles.areaOf}> of {formatCount(total)}</span>
           </span>
           <span className={styles.areaLabel}>{good}</span>
           <span className={styles.bar} aria-hidden>
@@ -97,6 +109,40 @@ export function AreaCard({
       )}
     </>,
     lift(styles.area),
+  );
+}
+
+// An area card while its list loads: the same box, with bones where its
+// title, count, label and bar will be, so the row keeps its five places
+// instead of filling in card by card and reflowing as each one lands.
+export function AreaCardSkeleton() {
+  // A bone the height of the line it stands in for, so the card is as tall
+  // as the one replacing it. The text inside is invisible, only sizing it.
+  const bone = (width: number | string, className?: string) => (
+    <span className={className}>
+      <span
+        className={skeleton.bone}
+        style={{ display: "inline-block", width, color: "transparent" }}
+      >
+        &nbsp;
+      </span>
+    </span>
+  );
+  return (
+    <div className={styles.area} aria-hidden>
+      <span className={styles.areaTitle}>
+        <span
+          className={`${styles.areaIcon} ${skeleton.bone}`}
+          style={{ borderRadius: 4 }}
+        />
+        {bone(88)}
+      </span>
+      {bone("45%", styles.areaCount)}
+      {bone(64, styles.areaLabel)}
+      <span className={styles.bar}>
+        <span className={skeleton.bone} style={{ flexGrow: 1 }} />
+      </span>
+    </div>
   );
 }
 

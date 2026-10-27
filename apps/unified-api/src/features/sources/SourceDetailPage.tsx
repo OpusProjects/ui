@@ -1,42 +1,50 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import {
+  CodeView,
+  CopyButton,
+  countOf,
   EmptyState,
   Fact,
+  formatBytes,
+  formatCount,
+  formatEvery,
+  formatSpan,
+  FormatSwitch,
   FreshnessMeter,
   HealthPill,
+  LinesView,
   LiveAge,
   Notice,
   PageHeader,
   Pagination,
   Panel,
+  RunHistory,
+  Schedule,
   SearchField,
-  SkeletonSummary,
-  formatBytes,
-  formatEvery,
-  formatSpan,
-  usePagination,
-  CodeView,
-  LinesView,
-  CopyButton,
-  FormatSwitch,
   SegmentedSwitch,
   serialize,
+  SkeletonSummary,
   useFormat,
+  usePagination,
 } from "@opusprojects/unified-ui";
 import { ValueList } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
 import { syncNow } from "./sync";
 import {
+  useEndpoints,
   useHostVars,
   useSourceDetail,
-  useSourceGroups,
   useSourceGroup,
+  useSourceGroups,
   useSourceHosts,
+  useSources,
 } from "../../api/queries";
 import { DetailTitle, detailStyles as common } from "@opusprojects/unified-ui";
 import { RunButton } from "@opusprojects/unified-ui";
 import { instanceName } from "../../shared/instances";
+import { EndpointTable } from "../../shared/EndpointTable";
+import { SourceTable } from "../../shared/SourceTable";
 import { ICONS } from "../../sections";
 import styles from "./SourceDetailPage.module.css";
 
@@ -91,6 +99,16 @@ export function SourceDetailPage() {
               the first successful one.
             </EmptyState>
           )}
+          <UsedBy id={id} />
+          {/* A view syncs nothing: its members' pages have the histories. */}
+          {detail.data.kind === "source" && detail.data.history && (
+            <Panel
+              title="History"
+              hint="The last syncs of this source, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, what it covered and brought, and how long it took."
+            >
+              <RunHistory runs={detail.data.history} kind="sync" />
+            </Panel>
+          )}
         </>
       )}
     </>
@@ -119,7 +137,7 @@ const HINTS: Record<string, string> = {
     "How old the cached data is; the bar fills as it nears its TTL. For a remote source this is the age at its origin: copying data does not make it newer.",
   TTL: "ttl_seconds. How long the data counts as fresh. Past it the source reads as stale, but its data is still served until a sync replaces it. Also the threshold for an on-demand refresh.",
   Schedule:
-    "schedule. A cron expression (UTC) for when this source syncs, used instead of an interval.",
+    "schedule. When this source syncs, from a cron expression (UTC, shown on hover), used instead of an interval.",
   "Sync interval":
     "sync_interval_seconds. How often this source syncs. After a failure it backs off: the next attempts come 1, 2, 4, then at most 8 intervals apart, until one succeeds.",
   "Sync mode":
@@ -155,6 +173,50 @@ const HINTS: Record<string, string> = {
 };
 
 // `at`: when the detail was fetched, what its ages count on from.
+// What reads this source: the endpoints whose output it is part of (marked
+// where it decides which hosts that output holds) and the views it is a
+// member of. What goes stale or breaks with it, before it is changed or
+// removed. Each panel only when there is something in it.
+function UsedBy({ id }: { id: string }) {
+  const endpoints = useEndpoints();
+  // Only the views' details: they name their members.
+  const sources = useSources((s) => s.kind === "view");
+  const reading = (endpoints.data ?? [])
+    .filter((e) => e.source_ids.includes(id))
+    .map((e) => e.endpoint_id);
+  const views = sources.rows
+    .filter(
+      (r) =>
+        r.summary.kind === "view" &&
+        r.detail?.members?.some((m) => m.source_id === id),
+    )
+    .map((r) => r.summary.source_id);
+  return (
+    <>
+      {reading.length > 0 && (
+        <Panel
+          title="Endpoints"
+          hint="The endpoints reading this source: it is one of their sources, so its data is part of their output. Where it limits hosts, it decides which hosts the output holds."
+        >
+          <EndpointTable
+            ids={reading}
+            limitedBy={id}
+            empty="No endpoint reads this source."
+          />
+        </Panel>
+      )}
+      {views.length > 0 && (
+        <Panel
+          title="Views"
+          hint="The views this source is a member of: they serve its hosts, merged with their other members'."
+        >
+          <SourceTable ids={views} empty="This source is in no view." />
+        </Panel>
+      )}
+    </>
+  );
+}
+
 function Overview({ detail, at }: { detail: Detail; at: number }) {
   const state = cachedHealth(
     detail.cached,
@@ -171,7 +233,9 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
       aside={
         <HealthPill
           state={state}
-          detail={failures > 1 ? `${failures} in a row` : undefined}
+          detail={
+            failures > 1 ? `${formatCount(failures)} in a row` : undefined
+          }
         />
       }
     >
@@ -181,10 +245,14 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
           change. Restricted callers get no settings beyond the TTL. */}
       <dl className={common.facts}>
         <Fact label="Hosts" hint={HINTS["Hosts"]}>
-          {detail.total_hosts?.toLocaleString() ?? "None yet"}
+          {detail.total_hosts != null
+            ? formatCount(detail.total_hosts)
+            : "None yet"}
         </Fact>
         <Fact label="Groups" hint={HINTS["Groups"]}>
-          {detail.total_groups?.toLocaleString() ?? "None yet"}
+          {detail.total_groups != null
+            ? formatCount(detail.total_groups)
+            : "None yet"}
         </Fact>
         <Fact label="Dataset size" hint={HINTS["Dataset size"]}>
           {detail.dataset_bytes != null
@@ -227,6 +295,7 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
               {detail.sync_health?.last_success_age_seconds != null ? (
                 <LiveAge
                   seconds={detail.sync_health.last_success_age_seconds}
+                  at={at}
                 />
               ) : (
                 "Never"
@@ -242,7 +311,7 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
           <>
             {gathering.schedule ? (
               <Fact label="Schedule" hint={HINTS["Schedule"]}>
-                <code className={common.mono}>{gathering.schedule}</code>
+                <Schedule cron={gathering.schedule} />
               </Fact>
             ) : (
               <Fact label="Sync interval" hint={HINTS["Sync interval"]}>
@@ -353,7 +422,7 @@ function Overview({ detail, at }: { detail: Detail; at: number }) {
         )}
         {detail.members && (
           <Fact label="Members" hint={HINTS["Members"]}>
-            {detail.members.length} sources
+            {countOf(detail.members.length, "source")}
           </Fact>
         )}
       </dl>
@@ -494,137 +563,135 @@ function HostBrowser({ id }: { id: string }) {
     });
 
   return (
-    <div className={styles.browser}>
-      <Panel className={styles.hostCard}>
-        <div>
-          {/* Each column opens with its own heading, on one line: "Hosts" on
+    <div className={styles.browserFrame}>
+      <div className={styles.browser}>
+        <Panel className={styles.hostCard}>
+          <div>
+            {/* Each column opens with its own heading, on one line: "Hosts" on
               the left, the selected host on the right. */}
-          <div className={styles.columnHead}>
-            <h2 className={styles.columnTitle}>
-              {mode === "hosts" ? "Hosts" : "Groups"}
-            </h2>
-            {loading.isSuccess && (
-              <span className={styles.varCount}>
-                {needle
-                  ? `${matching.length.toLocaleString()} of ${count(names.length, noun)}`
-                  : count(names.length, noun)}
-              </span>
-            )}
-          </div>
-          {/* From the search down: what stays in view while the variables
-              scroll; the heading above scrolls away with the page. */}
-          <div className={styles.hostSticky}>
-            <div className={styles.toolbar}>
-              <SearchField
-                label={`Search ${mode}`}
-                placeholder={`Search ${mode}`}
-                value={query}
-                onChange={setQuery}
-                size="compact"
-              />
-              <SegmentedSwitch
-                label="Show"
-                value={mode}
-                onChange={setMode}
-                options={[
-                  { value: "hosts", label: "Hosts" },
-                  { value: "groups", label: "Groups" },
-                ]}
-              />
+            <div className={styles.columnHead}>
+              <h2 className={styles.columnTitle}>
+                {mode === "hosts" ? "Hosts" : "Groups"}
+              </h2>
+              {loading.isSuccess && (
+                <span className={styles.varCount}>
+                  {needle
+                    ? `${formatCount(matching.length)} of ${countOf(names.length, noun)}`
+                    : countOf(names.length, noun)}
+                </span>
+              )}
             </div>
-            {loading.isPending && (
-              <p className={common.soft}>Loading {mode}…</p>
-            )}
-            {loading.isError && (
-              <p className={common.soft}>{loading.error.message}</p>
-            )}
-            {/* Only a search can fail to match; an empty source or group
+            {/* From the search down: what stays in view while the variables
+              scroll; the heading above scrolls away with the page. */}
+            <div className={styles.hostSticky}>
+              <div className={styles.toolbar}>
+                <SearchField
+                  label={`Search ${mode}`}
+                  placeholder={`Search ${mode}`}
+                  value={query}
+                  onChange={setQuery}
+                  size="compact"
+                />
+                <SegmentedSwitch
+                  label="Show"
+                  value={mode}
+                  onChange={setMode}
+                  options={[
+                    { value: "hosts", label: "Hosts" },
+                    { value: "groups", label: "Groups" },
+                  ]}
+                />
+              </div>
+              {loading.isPending && (
+                <p className={common.soft}>Loading {mode}…</p>
+              )}
+              {loading.isError && (
+                <p className={common.soft}>{loading.error.message}</p>
+              )}
+              {/* Only a search can fail to match; an empty source or group
                 has nothing to match against, and says so. */}
-            {loading.isSuccess && matching.length === 0 && (
-              <p className={common.soft}>
-                {needle
-                  ? `No ${noun} matches the search.`
-                  : `No ${mode} right now.`}
-              </p>
-            )}
-            {/* A listbox, framed like the fields above it: one focus stop,
+              {loading.isSuccess && matching.length === 0 && (
+                <p className={common.soft}>
+                  {needle
+                    ? `No ${noun} matches the search.`
+                    : `No ${mode} right now.`}
+                </p>
+              )}
+              {/* A listbox, framed like the fields above it: one focus stop,
                 arrow keys move the selection, every row is an option. */}
-            {shown.length > 0 && (
-              <ul
-                ref={list}
-                className={styles.hostList}
-                role="listbox"
-                aria-label={mode === "hosts" ? "Hosts" : "Groups"}
-                aria-activedescendant={
-                  selected && shown.includes(selected)
-                    ? optionId(mode, selected)
-                    : undefined
-                }
-                tabIndex={shown.length > 0 ? 0 : -1}
-                onKeyDown={(e) => {
-                  const at = selected ? shown.indexOf(selected) : -1;
-                  const next =
-                    e.key === "ArrowDown"
-                      ? Math.min(shown.length - 1, at + 1)
-                      : e.key === "ArrowUp"
-                        ? Math.max(0, at - 1)
-                        : e.key === "Home"
-                          ? 0
-                          : e.key === "End"
-                            ? shown.length - 1
-                            : null;
-                  if (next === null || shown.length === 0) return;
-                  e.preventDefault();
-                  select(shown[next]);
-                }}
-              >
-                {shown.map((name) => (
-                  <li
-                    key={name}
-                    id={optionId(mode, name)}
-                    role="option"
-                    aria-selected={name === selected}
-                    className={styles.hostOption}
-                    onClick={() => select(name)}
-                    title={name}
-                  >
-                    {name}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Pagination {...pager} noun={mode} />
+              {shown.length > 0 && (
+                <ul
+                  ref={list}
+                  className={styles.hostList}
+                  role="listbox"
+                  aria-label={mode === "hosts" ? "Hosts" : "Groups"}
+                  aria-activedescendant={
+                    selected && shown.includes(selected)
+                      ? optionId(mode, selected)
+                      : undefined
+                  }
+                  tabIndex={shown.length > 0 ? 0 : -1}
+                  onKeyDown={(e) => {
+                    const at = selected ? shown.indexOf(selected) : -1;
+                    const next =
+                      e.key === "ArrowDown"
+                        ? Math.min(shown.length - 1, at + 1)
+                        : e.key === "ArrowUp"
+                          ? Math.max(0, at - 1)
+                          : e.key === "Home"
+                            ? 0
+                            : e.key === "End"
+                              ? shown.length - 1
+                              : null;
+                    if (next === null || shown.length === 0) return;
+                    e.preventDefault();
+                    select(shown[next]);
+                  }}
+                >
+                  {shown.map((name) => (
+                    <li
+                      key={name}
+                      id={optionId(mode, name)}
+                      role="option"
+                      aria-selected={name === selected}
+                      className={styles.hostOption}
+                      onClick={() => select(name)}
+                      title={name}
+                    >
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Pagination {...pager} noun={mode} />
+            </div>
           </div>
-        </div>
-      </Panel>
-      <Panel className={styles.varsCard}>
-        <div ref={varsTop} />
-        {selected ? (
-          mode === "hosts" ? (
-            <HostVars id={id} host={selected} />
+        </Panel>
+        <Panel className={styles.varsCard}>
+          <div ref={varsTop} />
+          {selected ? (
+            mode === "hosts" ? (
+              <HostVars id={id} host={selected} />
+            ) : (
+              <GroupVars id={id} group={selected} />
+            )
+          ) : loading.isSuccess && names.length === 0 ? (
+            // Nothing to pick: say why there is nothing, not "pick one".
+            <EmptyState title={`No ${mode} to show`}>
+              {mode === "hosts"
+                ? "This source holds no hosts right now. They appear here after a sync that brings some."
+                : "This source has no groups right now."}
+            </EmptyState>
           ) : (
-            <GroupVars id={id} group={selected} />
-          )
-        ) : loading.isSuccess && names.length === 0 ? (
-          // Nothing to pick: say why there is nothing, not "pick one".
-          <EmptyState title={`No ${mode} to show`}>
-            {mode === "hosts"
-              ? "This source holds no hosts right now. They appear here after a sync that brings some."
-              : "This source has no groups right now."}
-          </EmptyState>
-        ) : (
-          <EmptyState title={`No ${noun} selected`}>
-            Pick one on the left.
-          </EmptyState>
-        )}
-      </Panel>
+            <EmptyState title={`No ${noun} selected`}>
+              Pick one on the left.
+            </EmptyState>
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }
-
-// "1 variable", "47 variables": the noun agrees with the number.
-const count = (n: number, noun: string) =>
-  `${n.toLocaleString()} ${n === 1 ? noun : `${noun}s`}`;
 
 // Host names hold dots, which an id may, but nothing else odd: kept as is
 // behind a prefix so a listbox option can be pointed at.
@@ -654,7 +721,7 @@ function GroupVars({ id, group }: { id: string; group: string }) {
       vars={detail.data?.vars as Record<string, unknown> | undefined}
       loading={detail.isPending}
       error={detail.isError ? detail.error.message : null}
-      extra={detail.data ? count(detail.data.host_count, "host") : undefined}
+      extra={detail.data ? countOf(detail.data.host_count, "host") : undefined}
       none="This group has no variables of its own."
       hosts={{
         names: hosts.data?.hosts,
@@ -734,8 +801,8 @@ function VarsPanel({
         {vars && (
           <span className={styles.varCount}>
             {needle
-              ? `${shownCount} of ${count(Object.keys(vars).length, "variable")}`
-              : count(Object.keys(vars).length, "variable")}
+              ? `${formatCount(shownCount)} of ${countOf(Object.keys(vars).length, "variable")}`
+              : countOf(Object.keys(vars).length, "variable")}
             {extra && `, ${extra}`}
           </span>
         )}

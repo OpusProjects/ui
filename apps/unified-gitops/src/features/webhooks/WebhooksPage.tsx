@@ -7,11 +7,12 @@ import {
   ListToolbar,
   LiveAge,
   Notice,
+  orderOptions,
   PageHeader,
+  pageStyles as styles,
   ResourceCard,
   SkeletonGrid,
   SkeletonSummary,
-  pageStyles as styles,
   useRememberedCount,
 } from "@opusprojects/unified-ui";
 import { useListFilter } from "@opusprojects/unified-client";
@@ -37,7 +38,11 @@ import {
 export function WebhooksPage() {
   const webhooks = useWebhooks();
   const items = webhooks.data ?? [];
-  const filter = useListFilter(items, webhookState, searchText);
+  const filter = useListFilter(items, webhookState, searchText, {
+    name: (n) => n.name,
+    key: "webhooks",
+    orders: ["az", "za"],
+  });
   const remembered = useRememberedCount(
     "webhooks",
     webhooks.isSuccess ? webhooks.data?.length : undefined,
@@ -74,6 +79,7 @@ export function WebhooksPage() {
           />
           <ListToolbar
             filter={filter}
+            orders={orderOptions()}
             label="Search webhooks"
             placeholder="Search by name, description, destination, application, project or event"
           />

@@ -93,3 +93,115 @@ test("a restricted key is refused the project page, with the reason", async ({
     "Could not load this project",
   );
 });
+
+// A pull restarts the project's ages from the new answer, even when it
+// reports the same age as the last one did: without when the answer came,
+// two equal ages look like one and the count ran on from the first.
+test("a Pull restarts Last attempt and Last success", async ({ page }) => {
+  await page.clock.install();
+  await mockApi(page);
+  await page.goto("/projects/prj-state");
+  await page.waitForLoadState("networkidle");
+  const fact = (label: string) =>
+    page
+      .locator("section", { hasText: "Overview" })
+      .locator("dl > div", { has: page.locator("dt", { hasText: label }) })
+      .first();
+  await expect(fact("Last success")).toContainText("20s ago");
+  // Less than a poll: only the live clock moves them.
+  await page.clock.runFor(10_000);
+  await expect(fact("Last success")).toContainText("30s ago");
+  await expect(fact("Last attempt")).toContainText("30s ago");
+  await page
+    .locator("main > header, main header")
+    .first()
+    .getByRole("button", { name: "Pull", exact: true })
+    .click();
+  // The fixture answers 20 again: the count starts over from it.
+  await expect(fact("Last success")).toContainText("20s ago");
+  await expect(fact("Last attempt")).toContainText("20s ago");
+});
+
+// Pull all does what each card's Pull does, for every project shown: the
+// same route, the same refresh, so each card's Last pull starts over.
+test("Pull all pulls every project and restarts their Last pull", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const calls = await mockApi(page);
+  await page.goto("/projects");
+  await page.waitForLoadState("networkidle");
+  const lastPull = page
+    .locator("article", {
+      has: page.getByRole("heading", { name: "prj-state" }),
+    })
+    .locator("dl > div", { has: page.locator("dt", { hasText: "Last pull" }) });
+  await expect(lastPull).toContainText("20s ago");
+  await page.clock.runFor(10_000);
+  await expect(lastPull).toContainText("30s ago");
+
+  await page.getByRole("button", { name: "Pull all" }).click();
+  await expect(page.getByRole("status").first()).toContainText("1 project");
+  expect(calls.writes.map((w) => w.path)).toEqual([
+    "/api/v1/projects/prj-state/sync",
+  ]);
+  await expect(lastPull).toContainText("20s ago");
+});
+
+// A project's last pulls in unified-gitops too, the pull before a check
+// among them.
+test("a project's page lists its last pulls", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/projects/prj-state");
+  const history = page.locator("section", {
+    has: page.getByRole("heading", { name: /^History/ }),
+  });
+  const rows = history.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("Before a check");
+  await expect(rows.nth(0)).toContainText("aaaaaaa → bbbbbbb");
+  await expect(rows.nth(1)).toContainText("could not resolve host");
+  await expect(rows.nth(1)).toContainText("Failed");
+});
+
+// A project lists the webhooks hearing it, and a webhook the projects it
+// hears, both as tables; History stays the last table on each.
+test("a project's webhooks and a webhook's projects are tables", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { webhooks } = await import("./fixtures/api");
+  const hearing = webhooks().map((n) =>
+    n.name === "wh-ascender-drift" ? { ...n, projects: ["prj-state"] } : n,
+  );
+  await page.route(/\/api\/v1\/webhooks(\?.*)?$/, (route) =>
+    route.fulfill({ json: hearing }),
+  );
+  await page.route(/\/api\/v1\/webhooks\/wh-ascender-drift$/, (route) =>
+    route.fulfill({
+      json: {
+        ...hearing.find((n) => n.name === "wh-ascender-drift"),
+        history: [],
+      },
+    }),
+  );
+  const panel = (name: RegExp) =>
+    page.locator("section", { has: page.getByRole("heading", { name }) });
+  const lastHeading = () =>
+    page
+      .locator("main section h2, main section h3")
+      .last()
+      .evaluate((h) => h.firstChild?.textContent ?? h.textContent);
+
+  await page.goto("/projects/prj-state");
+  // It, and any webhook hearing all projects.
+  const hooks = panel(/^Webhooks/).locator("tbody tr");
+  await expect(hooks.filter({ hasText: "wh-ascender-drift" })).toHaveCount(1);
+  await expect.poll(lastHeading).toBe("History");
+
+  await page.goto("/webhooks/wh-ascender-drift");
+  const projects = panel(/^Projects/).locator("tbody tr");
+  await expect(projects).toHaveCount(1);
+  await expect(projects).toContainText("prj-state");
+  await expect.poll(lastHeading).toBe("History");
+});

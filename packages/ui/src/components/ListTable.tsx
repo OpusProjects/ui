@@ -67,6 +67,25 @@ function widths<T>(columns: ListColumn<T>[]): string[] {
   );
 }
 
+// The width a cell's content can take: its column, less its padding.
+const room = (cell: Element) => {
+  const column = cell.parentElement;
+  if (!column) return Infinity;
+  const style = getComputedStyle(column);
+  return (
+    column.getBoundingClientRect().width -
+    parseFloat(style.paddingLeft) -
+    parseFloat(style.paddingRight)
+  );
+};
+
+// A cell's children that keep their own width (a pill, a link), not the
+// blocks that take the column's.
+const inline = (cell: Element) =>
+  [...cell.children].filter((c) =>
+    getComputedStyle(c).display.startsWith("inline"),
+  );
+
 export function ListTable<T>({
   columns,
   rows,
@@ -104,10 +123,30 @@ export function ListTable<T>({
       const content = columns.map(() => 0);
       el.querySelectorAll<HTMLElement>("[data-col]").forEach((cell) => {
         const i = Number(cell.dataset.col);
-        content[i] = Math.max(content[i], cell.scrollWidth);
+        // Rounded up, from the fractional width: scrollWidth is a whole
+        // number that can round down, so a 121.4px pill got a 121px column,
+        // the table grew by the difference and a sub-pixel horizontal
+        // scrollbar appeared wherever scrollbars take space (Windows). Only
+        // widths that do not depend on the column count, or each pass would
+        // widen it a little more: a cell's own width while it leaves room in
+        // its column (one that fills it is capped, or stretches to it); else
+        // its scrollWidth, as before; and an inline child that overflows the
+        // cell (a pill whose text widened after the measure), which stops
+        // counting once the column holds it.
+        const own = cell.getBoundingClientRect().width;
+        const natural = Math.max(
+          cell.scrollWidth,
+          own < room(cell) - 0.5 ? own : 0,
+          ...inline(cell)
+            .map((c) => c.getBoundingClientRect().width)
+            .filter((w) => w > own),
+        );
+        content[i] = Math.max(content[i], Math.ceil(natural));
       });
       const nameAt = columns.findIndex((c) => c.role === "name");
-      const next = fitted(content, nameAt, box.clientWidth);
+      // And the table's width rounded down, for the same reason.
+      const total = Math.floor(box.getBoundingClientRect().width);
+      const next = fitted(content, nameAt, total);
       setMeasured((prev) =>
         JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
       );
@@ -115,7 +154,20 @@ export function ListTable<T>({
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
-    return () => observer.disconnect();
+    // What the cells hold too: text that widens after the first measure (a
+    // pill whose label changed) does not resize the box, and a cell is capped
+    // at its column, so its content is what grows.
+    el.querySelectorAll("[data-col]").forEach((cell) => {
+      observer.observe(cell);
+      for (const child of inline(cell)) observer.observe(child);
+    });
+    // And a font arriving late, which widens every cell at once.
+    const fonts = document.fonts;
+    fonts?.addEventListener("loadingdone", measure);
+    return () => {
+      observer.disconnect();
+      fonts?.removeEventListener("loadingdone", measure);
+    };
   });
 
   if (rows.length === 0) return <p className={styles.empty}>{empty}</p>;

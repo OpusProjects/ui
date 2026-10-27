@@ -394,20 +394,29 @@ test("the summary never counts this instance as unreachable", async ({
   await expect(summary).toContainText(/1\s*Connected/);
 });
 
-// Side by side is checked at the cards' own widths: matching them to the
-// widest first stacked trees that fit (a 1280px laptop did).
-test("a tree that fits at its cards' own widths stays side by side", async ({
-  page,
-}) => {
-  await mockApi(page);
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/topology");
-  const tree = page.getByRole("list", { name: /federation/i });
-  await expect(tree).toContainText("edge");
-  await expect(tree).not.toHaveAttribute("data-stacked", "");
-  const overflow = await tree.evaluate((t) => t.scrollWidth - t.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
-});
+// Every card takes one width. Where the widest card's does not fit side by
+// side, the room is shared evenly rather than stacking a tree that fits (a
+// 1280px laptop), and stacked on a phone the cards are one width too.
+for (const width of [1280, 1920, 390]) {
+  test(`every card takes one width, ${width}px wide`, async ({ page }) => {
+    await mockApi(page);
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/topology");
+    const tree = page.getByRole("list", { name: /federation/i });
+    await expect(tree).toContainText("edge");
+    if (width >= 1280)
+      await expect(tree).not.toHaveAttribute("data-stacked", "");
+    else await expect(tree).toHaveAttribute("data-stacked", "");
+    const widths = await tree.evaluate((t) =>
+      [...t.querySelectorAll("[data-tree-node]")].map((n) =>
+        Math.round(n.getBoundingClientRect().width),
+      ),
+    );
+    expect(new Set(widths).size, `card widths ${widths}`).toBe(1);
+    const overflow = await tree.evaluate((t) => t.scrollWidth - t.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+}
 
 // On a map pushed from above, the root is that instance: counted as its own
 // card judges it, unreachable once its pushes stop.

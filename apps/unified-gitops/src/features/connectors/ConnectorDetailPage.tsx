@@ -137,7 +137,7 @@ function UsedBy({ connector }: { connector: Connector }) {
 
   return (
     <ListTable
-      columns={applicationColumns("folder")}
+      columns={applicationColumns("folder", applications.dataUpdatedAt)}
       rows={rows.map((app) => ({ name: app.name, app }))}
       rowKey={(r) => r.name}
       empty="No application uses this connector."

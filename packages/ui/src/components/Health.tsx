@@ -10,6 +10,7 @@ import { InfoHint } from "./InfoHint";
 import { lift } from "./Lift";
 import { useLiveSeconds } from "./LiveAge";
 import styles from "./Health.module.css";
+import { countOf, formatCount } from "../lib/format";
 
 type Labels = Partial<Record<HealthState, string>>;
 
@@ -73,13 +74,13 @@ export function HealthSummary({
 
   const [one, many] = noun;
   const of = (count: number) =>
-    `${count} of ${total} ${total === 1 ? one : many}`;
+    `${formatCount(count)} of ${countOf(total, one, many)}`;
   let headline: string;
   if (attention === 0 && counts.pending === 0)
     headline =
       total === 1
         ? `The ${one} is ${good}`
-        : `All ${total} ${many} are ${good}`;
+        : `All ${countOf(total, one, many)} are ${good}`;
   else if (attention === 0)
     // In the page's own word when it has one ("1 of 4 credentials is
     // unused"): "has not run yet" fits a task, not a credential.
@@ -131,7 +132,9 @@ export function HealthSummary({
                 data-static
               >
                 <span className={styles.dot} aria-hidden />
-                <span className={styles.count}>{counts[state]}</span>
+                <span className={styles.count}>
+                  {formatCount(counts[state])}
+                </span>
                 {labelFor(state, labels)}
               </span>
             );
@@ -145,7 +148,7 @@ export function HealthSummary({
               onClick={() => onSelect(active ? null : state)}
             >
               <span className={styles.dot} aria-hidden />
-              <span className={styles.count}>{counts[state]}</span>
+              <span className={styles.count}>{formatCount(counts[state])}</span>
               {labelFor(state, labels)}
             </button>
           );

@@ -21,23 +21,24 @@ import {
   detailStyles as common,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
-import { useApplications, useWebhook } from "../../api/queries";
+import { useApplications, useProjects, useWebhook } from "../../api/queries";
 import { ApiError } from "@opusprojects/unified-client";
 import { ICONS } from "../../sections";
+import { ProjectTable } from "../../shared/ProjectTable";
 import { applicationColumns } from "../applications/columns";
 import {
-  webhookLabels,
   applicationsLabel,
+  eventWords,
+  payloadVariable,
   projectsLabel,
   selectsApplications,
   selectsProjects,
-  TYPE_WORDS,
-  eventWords,
-  webhookState,
   sentEvent,
   templatePage,
   templateText,
-  payloadVariable,
+  TYPE_WORDS,
+  webhookLabels,
+  webhookState,
 } from "./model";
 import { sendTest } from "./test";
 
@@ -143,10 +144,28 @@ export function WebhookDetailPage() {
           >
             <Listens webhook={webhook} />
           </Panel>
+          {selectsProjects(webhook) && <HearsProjects webhook={webhook} />}
           <History history={webhook.history} />
         </>
       )}
     </>
+  );
+}
+
+// The projects whose events it reports, as a table like its applications':
+// those it names, or every project for `projects: all`.
+function HearsProjects({ webhook: n }: { webhook: Webhook }) {
+  const projects = useProjects();
+  const names = n.all_projects
+    ? (projects.data ?? []).map((p) => p.name)
+    : n.projects;
+  return (
+    <Panel
+      title="Projects"
+      hint="The projects whose events it reports (a commit pulled, a pull failing or recovering): those it names, or every project for all."
+    >
+      <ProjectTable names={names} empty="No project is configured." />
+    </Panel>
   );
 }
 
@@ -385,7 +404,7 @@ function Listens({ webhook: n }: { webhook: Webhook }) {
 
   return (
     <ListTable
-      columns={applicationColumns("connector")}
+      columns={applicationColumns("connector", applications.dataUpdatedAt)}
       rows={rows.map((app) => ({ name: app.name, app }))}
       rowKey={(r) => r.name}
       empty="It listens to no application: name some under applications: or projects: in the configuration, or write all."

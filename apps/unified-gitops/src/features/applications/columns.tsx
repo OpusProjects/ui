@@ -26,8 +26,11 @@ export type ApplicationContext = "folder" | "connector";
 // Every table of applications, alike: Application · context · To apply ·
 // Last check · Status. What is waiting and how recently it was looked at
 // are the questions on any page; only the context column changes.
+// `at`: when the applications were fetched (the query's dataUpdatedAt), so
+// a Last check restarts on every answer, the same age twice included.
 export function applicationColumns(
   context?: ApplicationContext,
+  at?: number,
 ): ListColumn<ApplicationRow>[] {
   const none = <ListSoft>–</ListSoft>;
   const columns: ListColumn<ApplicationRow>[] = [
@@ -85,7 +88,11 @@ export function applicationColumns(
       key: "checked",
       label: "Last check",
       render: (r) =>
-        r.app ? <LiveAge seconds={r.app.last_checked_age_seconds} /> : none,
+        r.app ? (
+          <LiveAge seconds={r.app.last_checked_age_seconds} at={at} />
+        ) : (
+          none
+        ),
     },
     {
       key: "status",
