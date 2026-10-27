@@ -27,6 +27,8 @@ import { ICONS } from "../../sections";
 import { applicationColumns } from "../applications/columns";
 import {
   webhookLabels,
+  applicationsLabel,
+  projectsLabel,
   selectsApplications,
   selectsProjects,
   TYPE_WORDS,
@@ -163,7 +165,7 @@ function Overview({ webhook: n }: { webhook: Webhook }) {
           <ValueList values={eventWords(n.events)} />
         </Fact>
         {selectsProjects(n) && (
-          <Fact label="Projects" hint={HINTS["Projects"]}>
+          <Fact label={projectsLabel(n)} hint={HINTS["Projects"]}>
             {n.all_projects ? (
               "Every project"
             ) : (
@@ -182,7 +184,7 @@ function Overview({ webhook: n }: { webhook: Webhook }) {
           </Fact>
         )}
         {(selectsApplications(n) || !selectsProjects(n)) && (
-          <Fact label="Applications" hint={HINTS["Applications"]}>
+          <Fact label={applicationsLabel(n)} hint={HINTS["Applications"]}>
             {n.all_applications ? (
               "Every application"
             ) : (

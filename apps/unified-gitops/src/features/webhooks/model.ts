@@ -114,6 +114,14 @@ export const applicationsText = (n: Webhook) =>
       ? "None"
       : n.applications.join(", ");
 
+// The fact's label: singular for one named, plural for all, several or none.
+export const applicationsLabel = (n: Webhook) =>
+  !n.all_applications && n.applications.length === 1
+    ? "Application"
+    : "Applications";
+export const projectsLabel = (n: Webhook) =>
+  !n.all_projects && n.projects.length === 1 ? "Project" : "Projects";
+
 // projects: the same, for repositories.
 export const projectsText = (n: Webhook) =>
   n.all_projects

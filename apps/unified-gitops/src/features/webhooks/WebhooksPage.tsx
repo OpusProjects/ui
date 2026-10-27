@@ -22,7 +22,9 @@ import {
   webhookLabels,
   TYPE_WORDS,
   applicationsText,
+  applicationsLabel,
   projectsText,
+  projectsLabel,
   selectsApplications,
   selectsProjects,
   hostOf,
@@ -108,10 +110,12 @@ export function WebhooksPage() {
                 >
                   <Fact label="Type">{TYPE_WORDS[n.type]}</Fact>
                   {selectsProjects(n) && (
-                    <Fact label="Projects">{projectsText(n)}</Fact>
+                    <Fact label={projectsLabel(n)}>{projectsText(n)}</Fact>
                   )}
                   {(selectsApplications(n) || !selectsProjects(n)) && (
-                    <Fact label="Applications">{applicationsText(n)}</Fact>
+                    <Fact label={applicationsLabel(n)}>
+                      {applicationsText(n)}
+                    </Fact>
                   )}
                   {templateText(n) ? (
                     <Fact label="Starts">{templateText(n)}</Fact>
