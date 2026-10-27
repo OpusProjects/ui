@@ -258,6 +258,6 @@ test("an ssh connector shows where its path is", async ({ page }) => {
   await expect(
     page
       .getByRole("region", { name: /command run on each host/i })
-      .or(page.getByLabel("Command run on each host")),
+      .or(page.getByLabel("Script run on each host")),
   ).toContainText("hostname");
 });

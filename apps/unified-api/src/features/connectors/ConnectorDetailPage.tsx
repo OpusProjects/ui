@@ -44,7 +44,7 @@ const HINTS: Record<string, string> = {
   Project:
     "project. The git project whose checkout holds the script. None: path is a file on this instance's own disk (in the image, or mounted).",
   Path: "path. The script a sync runs, relative to the project's checkout when it has one.",
-  Command:
+  Script:
     "script. The script written in the connector, streamed to each host and run there as a file from here would be (shown in full below).",
   Location:
     "location. Where path is: on this instance (a script, read at each sync and streamed to each host over ssh) or on each host (files run if executable, read as facts otherwise). A connector with a script has none: it is written in the connector.",
@@ -99,12 +99,12 @@ export function ConnectorDetailPage() {
             connector.script &&
             commandLines(connector.script).length > 1 && (
               <Panel
-                title="Command"
+                title="Script"
                 hint="script. The script this connector streams to each host and runs there, as written in it."
               >
                 <LinesView
                   lines={connector.script.split("\n")}
-                  label="Command run on each host"
+                  label="Script run on each host"
                 />
               </Panel>
             )}
@@ -193,7 +193,7 @@ function ItemFacts({ connector }: { connector: Connector }) {
         </Fact>
       )}
       {pathKind(connector) === "inline" ? (
-        <Fact label="Command" hint={HINTS["Command"]}>
+        <Fact label="Script" hint={HINTS["Script"]}>
           <code
             className={`${common.mono} ${common.clipText}`}
             title={connector.script ?? undefined}
