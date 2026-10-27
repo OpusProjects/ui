@@ -9,6 +9,8 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-29
+
 ### Added
 
 - What reads an item, as tables: on a unified-api source's page the endpoints whose output it is part of (marked where it limits the hosts) and the views it is a member of; on a unified-gitops project's page the webhooks hearing it; on a unified-gitops webhook's page the projects it hears, beside its applications. History stays the last table on every page that has one.
@@ -172,7 +174,8 @@ unified-ui version it builds into its image.
 - A demo image: the built UI behind nginx, forwarding to a unified-api.
 - Requires unified-api 0.34.0 or later, which also serves this UI itself.
 
-[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/OpusProjects/unified-ui/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/OpusProjects/unified-ui/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/OpusProjects/unified-ui/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/OpusProjects/unified-ui/compare/v0.2.0...v0.3.0
