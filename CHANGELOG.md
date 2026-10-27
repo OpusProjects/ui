@@ -9,6 +9,8 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-27
+
 ### Added
 
 - unified-gitops Webhooks: a webhook can listen to projects (`projects:`), so its card and page show Projects, Applications, or both, with the project linked; its Applications panel lists every application it reaches, by name or through a project; the history's About column names the project of a project event; and the new events read Commit pulled, Pull failed and Pull recovered. A webhook naming neither is Unused. Requires unified-gitops 0.3.0.
@@ -110,7 +112,8 @@ unified-ui version it builds into its image.
 - A demo image: the built UI behind nginx, forwarding to a unified-api.
 - Requires unified-api 0.34.0 or later, which also serves this UI itself.
 
-[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/OpusProjects/unified-ui/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/OpusProjects/unified-ui/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/OpusProjects/unified-ui/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/OpusProjects/unified-ui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/OpusProjects/unified-ui/releases/tag/v0.1.0
