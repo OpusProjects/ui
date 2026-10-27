@@ -6,30 +6,40 @@ type Event = Schemas["Event"];
 
 // The same words as the other sections: working when its last send went
 // through, failing when it did not, idle until it has sent anything, and
-// unused when it names no application (it can only be tested), as a
-// connector no application uses. On the overview's card, the list and a
-// webhook's page.
+// unused when it names no application and no project (it can only be
+// tested), as a connector no application uses. On the overview's card, the
+// list and a webhook's page.
 export const LABELS = {
   fresh: "Working",
   failing: "Failing",
   pending: "Idle",
 };
 
+// Whether it names anything to listen to.
+export const selectsApplications = (n: Webhook) =>
+  n.all_applications || n.applications.length > 0;
+export const selectsProjects = (n: Webhook) =>
+  n.all_projects || n.projects.length > 0;
+
 export const webhookLabels = (n: Webhook) =>
-  !n.all_applications && n.applications.length === 0
+  !selectsApplications(n) && !selectsProjects(n)
     ? { ...LABELS, pending: "Unused" }
     : LABELS;
 
 export const webhookState = (n: Webhook): HealthState =>
   !n.last ? "pending" : n.last.ok ? "fresh" : "failing";
 
-// Each event in words, in the order a reader thinks of them.
+// Each event in words, in the order a reader thinks of them: an
+// application's, then a repository's.
 export const EVENT_WORDS: Record<Event, string> = {
   drift_detected: "Drift detected",
   out_of_sync: "Out of sync",
   sync_succeeded: "Sync applied",
   sync_failed: "Sync failed",
   back_in_sync: "Back in sync",
+  commit_pulled: "Commit pulled",
+  pull_failed: "Pull failed",
+  pull_recovered: "Pull recovered",
 };
 
 const EVENT_ORDER: Event[] = [
@@ -38,6 +48,9 @@ const EVENT_ORDER: Event[] = [
   "sync_succeeded",
   "sync_failed",
   "back_in_sync",
+  "commit_pulled",
+  "pull_failed",
+  "pull_recovered",
 ];
 
 // Its events in words, in that order.
@@ -101,5 +114,13 @@ export const applicationsText = (n: Webhook) =>
       ? "None"
       : n.applications.join(", ");
 
+// projects: the same, for repositories.
+export const projectsText = (n: Webhook) =>
+  n.all_projects
+    ? "Every project"
+    : n.projects.length === 0
+      ? "None"
+      : n.projects.join(", ");
+
 export const searchText = (n: Webhook) =>
-  `${n.name} ${n.description ?? ""} ${n.type} ${n.destination} ${n.applications.join(" ")} ${n.events.join(" ")}`;
+  `${n.name} ${n.description ?? ""} ${n.type} ${n.destination} ${n.applications.join(" ")} ${n.projects.join(" ")} ${n.events.join(" ")}`;

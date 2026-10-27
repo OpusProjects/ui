@@ -22,6 +22,9 @@ import {
   webhookLabels,
   TYPE_WORDS,
   applicationsText,
+  projectsText,
+  selectsApplications,
+  selectsProjects,
   hostOf,
   webhookState,
   searchText,
@@ -43,7 +46,7 @@ export function WebhooksPage() {
       <PageHeader
         icon={ICONS.webhooks}
         title="Webhooks"
-        description="When an application changes, drifts or fails, a webhook can send what changed to an endpoint."
+        description="When an application or its repository changes, drifts or fails, a webhook can send what changed to an endpoint."
       />
       {webhooks.isPending && (
         <>
@@ -70,7 +73,7 @@ export function WebhooksPage() {
           <ListToolbar
             filter={filter}
             label="Search webhooks"
-            placeholder="Search by name, description, destination, application or event"
+            placeholder="Search by name, description, destination, application, project or event"
           />
           {filter.visible.length === 0 ? (
             <EmptyState
@@ -81,7 +84,7 @@ export function WebhooksPage() {
               }
             >
               {items.length === 0
-                ? "Declare one under webhooks: in the configuration: the events to report, the applications to listen to, and a webhook or a job template to send them to."
+                ? "Declare one under webhooks: in the configuration: the events to report, the applications or projects to listen to, and a webhook or a job template to send them to."
                 : "Clear the search or the filter to see every webhook."}
             </EmptyState>
           ) : (
@@ -104,7 +107,12 @@ export function WebhooksPage() {
                   )}
                 >
                   <Fact label="Type">{TYPE_WORDS[n.type]}</Fact>
-                  <Fact label="Applications">{applicationsText(n)}</Fact>
+                  {selectsProjects(n) && (
+                    <Fact label="Projects">{projectsText(n)}</Fact>
+                  )}
+                  {(selectsApplications(n) || !selectsProjects(n)) && (
+                    <Fact label="Applications">{applicationsText(n)}</Fact>
+                  )}
                   {templateText(n) ? (
                     <Fact label="Starts">{templateText(n)}</Fact>
                   ) : (

@@ -9,6 +9,15 @@ unified-ui version it builds into its image.
 
 ## [Unreleased]
 
+### Added
+
+- unified-gitops Webhooks: a webhook can listen to projects (`projects:`), so its card and page show Projects, Applications, or both, with the project linked; its Applications panel lists every application it reaches, by name or through a project; the history's About column names the project of a project event; and the new events read Commit pulled, Pull failed and Pull recovered. A webhook naming neither is Unused. Requires unified-gitops 0.3.0.
+
+### Changed
+
+- unified-gitops Overview: the Webhooks card is always there, saying None when no webhook is configured, as the other areas do.
+- The menu's search box is 175px wide (was 170px), in both apps.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
