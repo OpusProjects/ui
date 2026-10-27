@@ -302,3 +302,57 @@ test("connector overviews end on full rows", async ({ page }) => {
   await page.goto("/connectors/remote");
   await expect(facts()).toHaveCount(3);
 });
+
+// A pill whose text lands on a fractional width (another font, 121.44px)
+// got a column of the rounded-down 121px and overhung it: on a screen with
+// classic scrollbars the sources table grew a horizontal one. Whether the
+// width is there from the start or arrives late (a font loading after the
+// first measure), the column follows it and nothing passes the table's edge.
+for (const late of [false, true]) {
+  test(`a source's state never overflows the table${late ? ", text widened late" : ""}`, async ({
+    page,
+  }) => {
+    await mockApi(page);
+    const { connectors } = await import("./fixtures/api");
+    const list = connectors.map((c) =>
+      c.connector_id === "inventory"
+        ? {
+            ...c,
+            used_by: c.used_by.map((u, i) =>
+              i === 0 ? { ...u, synced: false, failing: false } : u,
+            ),
+          }
+        : c,
+    );
+    await page.route(/\/api\/v1\/connectors(\?.*)?$/, (r) =>
+      r.fulfill({ json: list }),
+    );
+    await page.route(/\/api\/v1\/connectors\/inventory$/, (r) =>
+      r.fulfill({ json: list.find((c) => c.connector_id === "inventory") }),
+    );
+    const wider = "td * { letter-spacing: 0.031px !important; }";
+    if (!late)
+      await page.addInitScript((css) => {
+        document.addEventListener("DOMContentLoaded", () => {
+          const style = document.createElement("style");
+          style.textContent = css;
+          document.head.append(style);
+        });
+      }, wider);
+    await page.goto("/connectors/inventory");
+    await page.getByText("Not synced yet").first().waitFor();
+    if (late) await page.addStyleTag({ content: wider });
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const table = document.querySelector("table")!;
+          const edge = table.parentElement!.getBoundingClientRect().right;
+          return [...table.querySelectorAll("*")].filter(
+            (e) => e.getBoundingClientRect().right > edge + 0.01,
+          ).length;
+        }),
+      )
+      .toBe(0);
+  });
+}

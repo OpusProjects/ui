@@ -11,6 +11,7 @@ unified-ui version it builds into its image.
 
 ### Fixed
 
+- Tables size each column from its content's real width, rounded up, and again when that content or the fonts change: a state pill ("Not synced yet" on a connector's sources) could overhang its column by a fraction of a pixel and give the table a horizontal scrollbar on a screen with classic scrollbars.
 - Counts group thousands with a comma everywhere in both apps, 1,023 rather than 1023: cards, facts, tables, health summaries, the overview, pagination, "+N more", run and sync messages. They followed the browser's language, which in Spanish wrote 1023 and 10.000; one `formatCount` (and `countOf`, "1,023 hosts") in `@opusprojects/unified-ui` now formats them all the same way.
 
 ## [0.5.0] - 2026-10-27
