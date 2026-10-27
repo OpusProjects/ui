@@ -627,3 +627,83 @@ test("a credential's projects are a table like its sources", async ({
   await row.getByRole("link").first().click();
   await expect(page).toHaveURL("/projects/prj-inventory");
 });
+
+// What reads a source, on its page: the endpoints whose output it is part of
+// (marked where it limits the hosts) and the views it is a member of.
+test("a source's page lists the endpoints and views reading it", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { detail, sources, endpoints } = await import("./fixtures/api");
+  const view = {
+    ...sources[0],
+    source_id: "vw-all",
+    url: "/api/v1/sources/vw-all",
+    kind: "view",
+  };
+  await page.route(/\/api\/v1\/sources(\?.*)?$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: [...sources, view] })
+      : route.fallback(),
+  );
+  await page.route(/\/api\/v1\/sources\/vw-all$/, (route) =>
+    route.fulfill({
+      json: {
+        ...detail(view),
+        kind: "view",
+        members: [
+          {
+            source_id: "src-alpha",
+            cached: true,
+            is_fresh: true,
+            ownership_cached: true,
+            ownership_mode: "declared",
+            total_hosts: 3,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(/\/api\/v1\/endpoints(\?.*)?$/, (route) =>
+    route.fulfill({
+      json: endpoints.map((e) =>
+        e.endpoint_id === "ep-all"
+          ? {
+              ...e,
+              transform: { ...e.transform!, limit_hosts_from: "src-alpha" },
+            }
+          : e,
+      ),
+    }),
+  );
+  await page.goto("/sources/src-alpha");
+  const panel = (name: RegExp) =>
+    page.locator("section", { has: page.getByRole("heading", { name }) });
+  const endpointRow = panel(/^Endpoints/).locator("tbody tr");
+  await expect(endpointRow).toHaveCount(1);
+  await expect(endpointRow).toContainText("Everything");
+  await expect(endpointRow).toContainText("limits hosts");
+  await expect(endpointRow).toContainText("2 of 2");
+  await expect(panel(/^Views/).locator("tbody tr")).toContainText("vw-all");
+
+  // src-beta limits nothing and is in no view.
+  await page.goto("/sources/src-beta");
+  await expect(panel(/^Endpoints/).locator("tbody tr")).not.toContainText(
+    "limits hosts",
+  );
+  await expect(panel(/^Views/)).toHaveCount(0);
+});
+
+// History is the last table on every page that has one.
+for (const path of ["/sources/src-alpha", "/projects/prj-inventory"]) {
+  test(`History is the last table on ${path}`, async ({ page }) => {
+    await mockApi(page);
+    await page.goto(path);
+    await page.getByRole("heading", { name: /^History/ }).waitFor();
+    const last = await page
+      .locator("main section h2, main section h3")
+      .last()
+      .evaluate((h) => h.firstChild?.textContent ?? h.textContent);
+    expect(last).toBe("History");
+  });
+}

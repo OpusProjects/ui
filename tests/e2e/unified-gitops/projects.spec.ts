@@ -163,3 +163,45 @@ test("a project's page lists its last pulls", async ({ page }) => {
   await expect(rows.nth(1)).toContainText("could not resolve host");
   await expect(rows.nth(1)).toContainText("Failed");
 });
+
+// A project lists the webhooks hearing it, and a webhook the projects it
+// hears, both as tables; History stays the last table on each.
+test("a project's webhooks and a webhook's projects are tables", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { webhooks } = await import("./fixtures/api");
+  const hearing = webhooks().map((n) =>
+    n.name === "wh-ascender-drift" ? { ...n, projects: ["prj-state"] } : n,
+  );
+  await page.route(/\/api\/v1\/webhooks(\?.*)?$/, (route) =>
+    route.fulfill({ json: hearing }),
+  );
+  await page.route(/\/api\/v1\/webhooks\/wh-ascender-drift$/, (route) =>
+    route.fulfill({
+      json: {
+        ...hearing.find((n) => n.name === "wh-ascender-drift"),
+        history: [],
+      },
+    }),
+  );
+  const panel = (name: RegExp) =>
+    page.locator("section", { has: page.getByRole("heading", { name }) });
+  const lastHeading = () =>
+    page
+      .locator("main section h2, main section h3")
+      .last()
+      .evaluate((h) => h.firstChild?.textContent ?? h.textContent);
+
+  await page.goto("/projects/prj-state");
+  // It, and any webhook hearing all projects.
+  const hooks = panel(/^Webhooks/).locator("tbody tr");
+  await expect(hooks.filter({ hasText: "wh-ascender-drift" })).toHaveCount(1);
+  await expect.poll(lastHeading).toBe("History");
+
+  await page.goto("/webhooks/wh-ascender-drift");
+  const projects = panel(/^Projects/).locator("tbody tr");
+  await expect(projects).toHaveCount(1);
+  await expect(projects).toContainText("prj-state");
+  await expect.poll(lastHeading).toBe("History");
+});

@@ -247,7 +247,7 @@ const credentials: Schemas["CredentialInfo"][] = [
 
 // One that last sent fine, one whose receiver is failing, one that names
 // no application, so it has never sent, and one that listens to a project.
-const webhooks = (): Schemas["WebhookSummary"][] => [
+export const webhooks = (): Schemas["WebhookSummary"][] => [
   {
     name: "wh-ascender-drift",
     description: "Drift report in Ascender",

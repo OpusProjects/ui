@@ -17,8 +17,14 @@ import {
   SkeletonSummary,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
-import { useApplications, useConnectors, useProjects } from "../../api/queries";
+import {
+  useApplications,
+  useConnectors,
+  useProjects,
+  useWebhooks,
+} from "../../api/queries";
 import { ICONS } from "../../sections";
+import { WebhookTable } from "../../shared/WebhookTable";
 import { applicationColumns } from "../applications/columns";
 import { connectorLabels, useConnectorState } from "../connectors/model";
 import { pull } from "./model";
@@ -33,6 +39,23 @@ const HINTS = {
   pullInterval:
     "sync_interval_seconds. How often the project is pulled, besides before every check. None means only at start-up (with sync_on_boot), before checks or on demand.",
 };
+
+// The webhooks hearing this project, when there are any: they name it, or
+// all projects.
+function Webhooks({ project }: { project: string }) {
+  const webhooks = useWebhooks();
+  const hears = (n: { all_projects: boolean; projects: string[] }) =>
+    n.all_projects || n.projects.includes(project);
+  if (!(webhooks.data ?? []).some(hears)) return null;
+  return (
+    <Panel
+      title="Webhooks"
+      hint="The webhooks hearing this project: they name it, or all projects, and report its events (a commit pulled, a pull failing or recovering) and its applications'."
+    >
+      <WebhookTable hears={hears} empty="No webhook hears this project." />
+    </Panel>
+  );
+}
 
 export function ProjectDetailPage() {
   const { name = "" } = useParams();
@@ -94,6 +117,7 @@ export function ProjectDetailPage() {
             at={projects.dataUpdatedAt}
           />
           <UsedBy project={project} />
+          <Webhooks project={project.name} />
           <Panel
             title="History"
             hint="The last pulls of this project, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, and the commit it moved the checkout from and to."

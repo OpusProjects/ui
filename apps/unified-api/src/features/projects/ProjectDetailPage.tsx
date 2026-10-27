@@ -17,9 +17,9 @@ import {
   SkeletonSummary,
 } from "@opusprojects/unified-ui";
 import { api, unwrap, type Schemas } from "../../api/client";
-import { useConnectors, useEndpoints, useProjects } from "../../api/queries";
+import { useConnectors, useProjects } from "../../api/queries";
 import { SourceTable } from "../../shared/SourceTable";
-import { ENDPOINT_LABELS, endpointState } from "../endpoints/model";
+import { EndpointTable } from "../../shared/EndpointTable";
 import {
   connectorLabels,
   connectorPath,
@@ -119,7 +119,10 @@ export function ProjectDetailPage() {
               title="Endpoints"
               hint="The endpoints using this project: their project names it, and their transformer script is read from its checkout."
             >
-              <EndpointList ids={project.used_by.endpoints} />
+              <EndpointTable
+                ids={project.used_by.endpoints}
+                empty="No endpoint uses this project."
+              />
             </Panel>
           )}
           <Panel
@@ -219,36 +222,5 @@ function ConnectorTable({ ids }: { ids: string[] }) {
       empty="No connector uses this project."
       noun="connectors"
     />
-  );
-}
-
-// Endpoints by name, each with its state and a link to its page.
-function EndpointList({ ids }: { ids: string[] }) {
-  const endpoints = useEndpoints();
-  if (ids.length === 0) return null;
-  const byId = new Map((endpoints.data ?? []).map((e) => [e.endpoint_id, e]));
-  return (
-    <ul className={common.itemList}>
-      {[...ids].sort().map((id) => {
-        const endpoint = byId.get(id);
-        return (
-          <li key={id}>
-            <Link
-              to={`/endpoints/${encodeURIComponent(id)}`}
-              className={common.itemName}
-            >
-              {endpoint?.name ?? id}
-            </Link>
-            <code className={common.itemId}>{id}</code>
-            {endpoint && (
-              <HealthPill
-                state={endpointState(endpoint)}
-                labels={ENDPOINT_LABELS}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
   );
 }

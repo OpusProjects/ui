@@ -11,11 +11,13 @@ unified-ui version it builds into its image.
 
 ### Added
 
+- What reads an item, as tables: on a unified-api source's page the endpoints whose output it is part of (marked where it limits the hosts) and the views it is a member of; on a unified-gitops project's page the webhooks hearing it; on a unified-gitops webhook's page the projects it hears, beside its applications. History stays the last table on every page that has one.
 - A History panel on a unified-api source's page (its last syncs: why and by whom, what each covered, the hosts and groups it brought or why it failed, how long it took) and on a project's page in both apps (its last pulls: why and by whom, the commit each moved the checkout from and to, with links), from the new `history` fields: unified-api 0.37.0 and unified-gitops 0.4.0; an older instance shows none. One `RunHistory` table in `@opusprojects/unified-ui`.
 - An Order menu ends every list page's toolbar (both apps): A to Z and Z to A, A to Z the default; on Sources also Fresh to Stale and Stale to Fresh, with worst first (Stale to Fresh) staying its default. The choice is remembered per list in the browser; arrow keys, Enter and Escape work, and on a narrow screen it opens leftwards when it would not fit. `useListFilter` takes the card's name, the orders offered and a key, `ListPage` a `name`, and `ListToolbar` its `orders` (`orderOptions()`, or `orderOptions([good, bad])` for the health ones).
 
 ### Changed
 
+- unified-api project page: its Endpoints are a table (Endpoint, Output, Sources ready, State), like its Sources and Connectors, in place of a list of links.
 - unified-api credential page: its Projects are a table (Project, Last pull, State), as its Sources above them and a credential's projects in unified-gitops, in place of a list of links.
 - Cron schedules read in words, as intervals do: "daily at 04:15 UTC", "every 4h", "every 2h, at :15", "Mon–Fri at 06:00 UTC", "yearly on 1 Jan at 00:00 UTC", the expression on hover (`formatSchedule` and `Schedule` in `@opusprojects/unified-ui`); on a source's card and page and a project's, where a project on a schedule showed nothing on its card. One too irregular to say plainly is shown as written.
 - unified-api connector page: its Sources table is the one every other page lists sources with (Source, Hosts, Groups, Data from, State), in place of its own (Source, Timeout, State). A source's own timeout shows on its page.

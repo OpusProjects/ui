@@ -32,15 +32,19 @@ import { ValueList } from "@opusprojects/unified-ui";
 import { cachedHealth } from "@opusprojects/unified-client";
 import { syncNow } from "./sync";
 import {
+  useEndpoints,
   useHostVars,
   useSourceDetail,
-  useSourceGroups,
   useSourceGroup,
+  useSourceGroups,
   useSourceHosts,
+  useSources,
 } from "../../api/queries";
 import { DetailTitle, detailStyles as common } from "@opusprojects/unified-ui";
 import { RunButton } from "@opusprojects/unified-ui";
 import { instanceName } from "../../shared/instances";
+import { EndpointTable } from "../../shared/EndpointTable";
+import { SourceTable } from "../../shared/SourceTable";
 import { ICONS } from "../../sections";
 import styles from "./SourceDetailPage.module.css";
 
@@ -95,6 +99,7 @@ export function SourceDetailPage() {
               the first successful one.
             </EmptyState>
           )}
+          <UsedBy id={id} />
           {/* A view syncs nothing: its members' pages have the histories. */}
           {detail.data.kind === "source" && (
             <Panel
@@ -168,6 +173,49 @@ const HINTS: Record<string, string> = {
 };
 
 // `at`: when the detail was fetched, what its ages count on from.
+// What reads this source: the endpoints whose output it is part of (marked
+// where it decides which hosts that output holds) and the views it is a
+// member of. What goes stale or breaks with it, before it is changed or
+// removed. Each panel only when there is something in it.
+function UsedBy({ id }: { id: string }) {
+  const endpoints = useEndpoints();
+  const sources = useSources();
+  const reading = (endpoints.data ?? [])
+    .filter((e) => e.source_ids.includes(id))
+    .map((e) => e.endpoint_id);
+  const views = sources.rows
+    .filter(
+      (r) =>
+        r.summary.kind === "view" &&
+        r.detail?.members?.some((m) => m.source_id === id),
+    )
+    .map((r) => r.summary.source_id);
+  return (
+    <>
+      {reading.length > 0 && (
+        <Panel
+          title="Endpoints"
+          hint="The endpoints reading this source: it is one of their sources, so its data is part of their output. Where it limits hosts, it decides which hosts the output holds."
+        >
+          <EndpointTable
+            ids={reading}
+            limitedBy={id}
+            empty="No endpoint reads this source."
+          />
+        </Panel>
+      )}
+      {views.length > 0 && (
+        <Panel
+          title="Views"
+          hint="The views this source is a member of: they serve its hosts, merged with their other members'."
+        >
+          <SourceTable ids={views} empty="This source is in no view." />
+        </Panel>
+      )}
+    </>
+  );
+}
+
 function Overview({ detail, at }: { detail: Detail; at: number }) {
   const state = cachedHealth(
     detail.cached,

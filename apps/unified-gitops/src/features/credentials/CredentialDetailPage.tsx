@@ -1,27 +1,19 @@
 import { Link, useParams } from "react-router";
 import {
   EmptyState,
-  HealthPill,
-  ListName,
   ListSoft,
   ListTable,
-  LiveAge,
   Notice,
   PageHeader,
   Panel,
   SkeletonSummary,
-  type ListColumn,
 } from "@opusprojects/unified-ui";
-import { PROJECT_LABELS, taskHealth } from "@opusprojects/unified-client";
 import type { Schemas } from "../../api/client";
-import {
-  useApplications,
-  useCredentials,
-  useProjects,
-} from "../../api/queries";
+import { useApplications, useCredentials } from "../../api/queries";
 import { CredentialOverview, DetailTitle } from "@opusprojects/unified-ui";
 import { ICONS } from "../../sections";
 import { applicationColumns } from "../applications/columns";
+import { ProjectTable } from "../../shared/ProjectTable";
 import { credentialUsers, usedBy } from "./model";
 
 type Credential = Schemas["CredentialInfo"];
@@ -86,67 +78,7 @@ export function CredentialDetailPage() {
 // and connector pages list theirs.
 function Users({ credential }: { credential: Credential }) {
   const applications = useApplications();
-  const projects = useProjects();
   const apps = new Map((applications.data ?? []).map((a) => [a.name, a]));
-  const repos = new Map((projects.data ?? []).map((p) => [p.name, p]));
-  const none = <ListSoft>–</ListSoft>;
-  const nameCell = (
-    section: string,
-    name: string,
-    description?: string | null,
-  ) => (
-    <ListName
-      name={description ?? name}
-      id={name}
-      link={(className, children) => (
-        <Link
-          className={className}
-          to={`/${section}/${encodeURIComponent(name)}`}
-        >
-          {children}
-        </Link>
-      )}
-    />
-  );
-
-  type ProjectRow = { name: string; project?: Schemas["ProjectInfo"] };
-  const projectColumns: ListColumn<ProjectRow>[] = [
-    {
-      key: "name",
-      label: "Project",
-      role: "name",
-      title: (r) => r.name,
-      render: (r) => nameCell("projects", r.name, r.project?.description),
-    },
-    {
-      key: "pulled",
-      label: "Last pull",
-      render: (r) =>
-        r.project ? (
-          <LiveAge
-            seconds={r.project.sync_health?.last_success_age_seconds}
-            at={projects.dataUpdatedAt}
-          />
-        ) : (
-          none
-        ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      role: "state",
-      render: (r) =>
-        r.project ? (
-          <HealthPill
-            state={taskHealth(r.project.sync_health)}
-            labels={PROJECT_LABELS}
-          />
-        ) : (
-          none
-        ),
-    },
-  ];
-
   const {
     applications: appNames,
     projects: projectNames,
@@ -185,13 +117,7 @@ function Users({ credential }: { credential: Credential }) {
           title="Projects"
           hint="The projects using this credential: their credential names it, and they clone and pull their repository with it."
         >
-          <ListTable
-            columns={projectColumns}
-            rows={projectNames.map((n) => ({ name: n, project: repos.get(n) }))}
-            rowKey={(r) => r.name}
-            empty="No project uses it."
-            noun="projects"
-          />
+          <ProjectTable names={projectNames} empty="No project uses it." />
         </Panel>
       )}
     </>

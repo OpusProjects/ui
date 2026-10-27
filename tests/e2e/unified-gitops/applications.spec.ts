@@ -352,3 +352,15 @@ test("ages keep counting between polls", async ({ page }) => {
   await expect(lastCheck).not.toHaveText(before, { timeout: 4000 });
   expect(await lastCheck.innerText()).toMatch(/^2\ds ago$/);
 });
+
+// History is the last table on an application's page.
+test("History is the last table on an application's page", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/applications/synced");
+  await page.getByRole("heading", { name: /^History/ }).waitFor();
+  const last = await page
+    .locator("main section h2, main section h3")
+    .last()
+    .evaluate((h) => h.firstChild?.textContent ?? h.textContent);
+  expect(last).toBe("History");
+});
