@@ -1,6 +1,7 @@
 // How a credential is described the same way in every unified-* app. What
 // USES a credential differs (sources there, applications here), so each app counts
 // its users itself and passes the count in.
+import { countOf } from "./format";
 import type { HealthState } from "./health";
 
 // A credential that does not resolve is the problem to see first: whatever
@@ -26,14 +27,19 @@ export interface CredentialSource {
   env_vars: string[];
   secret_file?: string | null;
   file_keys: { path: string }[];
+  // Set on a `type: vault` credential only: the Vault it is.
+  vault_connection?: { address: string } | null;
 }
 
 // Where the secrets are read from, in a line: the env vars, the Vault path,
-// the JSON file, or (for a credential made only of files) their paths.
+// the JSON file, or (for a credential made only of files) their paths. A
+// Vault itself has no vault_path: its line is its address.
 export function credentialOrigin(credential: CredentialSource): string {
   switch (credential.backend) {
     case "vault":
-      return `Vault: ${credential.vault_path ?? ""}`;
+      return credential.vault_connection
+        ? credential.vault_connection.address
+        : `Vault: ${credential.vault_path ?? ""}`;
     case "env":
       return credential.env_vars.join(", ");
     case "file":
@@ -52,7 +58,7 @@ export function describeUsers(
 ): string {
   const parts = counts
     .filter(([n]) => n > 0)
-    .map(([n, [one, many]]) => `${n} ${n === 1 ? one : many}`);
+    .map(([n, [one, many]]) => countOf(n, one, many));
   if (ldap) parts.push("the LDAP login");
   return parts.length > 0 ? parts.join(", ") : "Nothing";
 }

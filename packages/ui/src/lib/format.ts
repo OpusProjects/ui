@@ -31,20 +31,10 @@ export function formatEvery(seconds: number | null | undefined): string | null {
   return seconds == null ? null : `every ${formatSpan(seconds)}`;
 }
 
-// A count as people read it: thousands grouped with commas, 1,023. Fixed to
-// English rather than the browser's locale: toLocaleString() follows the
-// language setting, and in Spanish it writes 1023 (no grouping under ten
-// thousand) and 10.000, so the same page read differently per reader.
-const COUNT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-
-export function formatCount(n: number): string {
-  return COUNT.format(n);
-}
-
-// A count with its noun, singular for one: "1 host", "1,023 hosts".
-export function countOf(n: number, one: string, many = `${one}s`): string {
-  return `${formatCount(n)} ${n === 1 ? one : many}`;
-}
+// Counts are worded in the client package, whose describeUsers says them
+// too (it cannot import from here: this package depends on it). Re-exported
+// so every component keeps importing its wording from this one file.
+export { countOf, formatCount } from "@opusprojects/unified-client";
 
 // A cron expression (UTC, with an optional seconds field first) in words,
 // as an interval reads: "every 2h", "daily at 04:15 UTC", "Mon–Fri at 06:00
@@ -70,8 +60,11 @@ export function formatSchedule(expression: string): string | null {
   const nums = (f: string, names: string[] = []) => {
     const out: number[] = [];
     for (const item of f.split(",")) {
+      // A name is matched whole: on its first three letters alone, FRI#2,
+      // FRIL and MON-FRI/2 all read as plain Fri or Mon. Anything not
+      // understood is NaN, so the expression is shown as written.
       const value = (v: string) => {
-        const named = names.findIndex((n) => n === v.slice(0, 3).toLowerCase());
+        const named = v ? names.indexOf(v.toLowerCase()) : -1;
         return named >= 0 ? named : /^\d+$/.test(v) ? Number(v) : NaN;
       };
       const range = /^(\w+)-(\w+)$/.exec(item);
@@ -162,10 +155,12 @@ export function formatSchedule(expression: string): string | null {
     if (any(dow)) return `daily at ${times}`;
     // Monday to Sunday, Sunday as 7 whether written 0 or 7, so a range
     // ending on Sunday stays one ("Fri–Sun"); all seven are every day.
-    const days = nums(dow, DAYS)?.map((d) => d % 7 || 7);
-    if (!days) return null;
+    // Deduplicated after the mapping, or 0,7 reads "Sun and Sun".
+    const named = nums(dow, DAYS);
+    if (!named) return null;
+    const days = [...new Set(named.map((d) => d % 7 || 7))];
     days.sort((a, b) => a - b);
-    if (new Set(days).size === 7) return `daily at ${times}`;
+    if (days.length === 7) return `daily at ${times}`;
     const runs =
       days.length > 2 && days.every((d, i) => i === 0 || d === days[i - 1] + 1)
         ? `${DAY_NAMES[days[0]]}–${DAY_NAMES[days[days.length - 1]]}`

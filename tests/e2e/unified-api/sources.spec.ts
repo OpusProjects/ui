@@ -473,6 +473,29 @@ test("cron schedules read in words", async ({ page }) => {
   );
 });
 
+// A named form the words cannot say (the second Friday) is shown as
+// written, never cut down to "every Fri".
+test("a cron too irregular for words is shown as written", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  const scheduled = detail(sources.find((s) => s.source_id === "src-alpha")!);
+  scheduled.gathering = {
+    ...scheduled.gathering!,
+    schedule: "0 0 * * FRI#2",
+    sync_interval_seconds: null,
+  };
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: scheduled })
+      : route.fallback(),
+  );
+  await page.goto("/sources/src-alpha");
+  await expect(
+    page.locator("code", { hasText: "0 0 * * FRI#2" }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("every Fri")).toHaveCount(0);
+});
+
 // Order: a menu after the toolbar's buttons. Worst first by default (the
 // health order, in the page's own words), A to Z and the rest on a click,
 // remembered for the list.
@@ -519,6 +542,20 @@ test("the order menu reorders the cards and remembers it", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
   await expect(order).toBeFocused();
+
+  // Closed, the menu leaves the page's keys alone: End still scrolls.
+  await page.evaluate(() => {
+    (window as unknown as { seen: boolean[] }).seen = [];
+    window.addEventListener("keydown", (e) =>
+      (window as unknown as { seen: boolean[] }).seen.push(e.defaultPrevented),
+    );
+  });
+  for (const key of ["Home", "End", "ArrowUp", "Escape"])
+    await page.keyboard.press(key);
+  await expect(menu).toHaveCount(0);
+  expect(
+    await page.evaluate(() => (window as unknown as { seen: boolean[] }).seen),
+  ).toEqual([false, false, false, false]);
 });
 
 test("other lists order by name only, A to Z first", async ({ page }) => {

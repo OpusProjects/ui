@@ -261,7 +261,7 @@ export const topology: Schemas["Topology"] = {
   ],
 };
 
-const settings: Schemas["Settings"] = {
+export const settings: Schemas["Settings"] = {
   version: "9.9.9",
   uptime_seconds: 5400,
   server: {

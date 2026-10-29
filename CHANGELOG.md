@@ -24,6 +24,7 @@ unified-ui version it builds into its image.
 - Cron schedules read in words, as intervals do: "daily at 04:15 UTC", "every 4h", "every 2h, at :15", "Mon–Fri at 06:00 UTC", "yearly on 1 Jan at 00:00 UTC", the expression on hover (`formatSchedule` and `Schedule` in `@opusprojects/unified-ui`); on a source's card and page and a project's, where a project on a schedule showed nothing on its card. One too irregular to say plainly is shown as written.
 - unified-api connector page: its Sources table is the one every other page lists sources with (Source, Hosts, Groups, Data from, State), in place of its own (Source, Timeout, State). A source's own timeout shows on its page.
 - Configuration, both apps: the Secrets card lists one row per Vault (its name, linking to its page, its address and its cache), in place of the secret cache, the single Vault's settings and the credentials count; with no Vault it says every secret is read from environment variables or files.
+- A Vault's credential page (both apps) shows its Address, Mount, Login (the token's variable, or its Kubernetes role), Timeout and Cache, and reads from "This is a Vault"; Login replaces the separate Token from. Its card reads from its address, where it said "Vault:" with nothing after it.
 
 ### Fixed
 
@@ -34,6 +35,11 @@ unified-ui version it builds into its image.
 - Metrics: the API routes table scrolled sideways at 1280px when a route was long. A table too narrow for its columns now cuts its widest text column short with an ellipsis, the whole value on hover.
 - Overview (both apps): its first row of cards filled in one by one as each list arrived, the row reflowing each time. Each card now holds its place as a placeholder of its size while its list loads (`AreaCardSkeleton`); a restricted key gets none for the lists it may not read.
 - Counts group thousands with a comma everywhere in both apps, 1,023 rather than 1023: cards, facts, tables, health summaries, the overview, pagination, "+N more", run and sync messages. They followed the browser's language, which in Spanish wrote 1023 and 10.000; one `formatCount` (and `countOf`, "1,023 hosts") in `@opusprojects/unified-ui` now formats them all the same way.
+- Cron schedules with a named form the words cannot say are shown as written: `FRI#2`, `FRIL` and `MON-FRI/2` read as "every Fri" or "every Mon", names being matched on their first three letters; and `0,7` read "Sun and Sun".
+- Configuration, Secrets card (both apps): config.yaml's deprecated `secrets.cache_ttl_seconds`, a cache over every credential, is a row of its own, and the card no longer says env and file credentials are read fresh on every use while it is set; the deprecated config.yaml Vault shows that cache, or 60s without it, in place of "–". A failed credentials request shows its error rather than "Loading…" forever.
+- The Order menu's button no longer swallows Home, End, ArrowUp and Escape while the menu is closed, so they scroll the page again; ArrowDown still opens it.
+- Counts in "used by" lines (credential pages) and in a connector's script summary ("Shell script, 1,023 lines") group thousands and take the singular for one, as every other count does. `formatCount` and `countOf` now live in `@opusprojects/unified-client`, re-exported by `@opusprojects/unified-ui` as before.
+- unified-api source page: at a fractional width just under 676px the hosts list and the selected host stayed side by side and overflowed by half a pixel; they now stack below 676px.
 
 ## [0.5.0] - 2026-10-27
 

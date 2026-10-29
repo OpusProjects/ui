@@ -230,10 +230,134 @@ test("each Vault is a row of the Secrets card, with its readers on its page", as
 
   await row.getByRole("link").first().click();
   await expect(page).toHaveURL(/\/credentials\/cred-vault$/);
-  await expect(page.getByText("VAULT_TOKEN")).toBeVisible();
+  // Its overview says where the Vault is and how it logs in, once: Login
+  // carries the token variable, so there is no separate "Token from".
+  // By the label at the start of its term: a hint after it may name others.
+  const fact = (label: string) =>
+    page.locator("dl > div", {
+      has: page.locator("dt", { hasText: new RegExp(`^${label}`) }),
+    });
+  await expect(fact("Read from").locator("dd")).toHaveText("This is a Vault");
+  await expect(fact("Address").locator("dd")).toHaveText(
+    "https://vault.example.net:8200",
+  );
+  await expect(fact("Mount").locator("dd")).toHaveText("secret");
+  await expect(fact("Login").locator("dd")).toHaveText(
+    "Token from VAULT_TOKEN",
+  );
+  await expect(fact("Timeout").locator("dd")).toHaveText("10s");
+  await expect(fact("Cache").locator("dd")).toHaveText("5m");
+  await expect(fact("Token from")).toHaveCount(0);
   const readerRow = page.getByRole("row", { name: /Device42/ });
   await expect(readerRow).toContainText("infra/d42");
   await expect(readerRow.getByRole("link", { name: "cred-d42" })).toBeVisible();
+});
+
+// A Vault's card says where it is: it has no vault_path, so "Read from"
+// is its address rather than an empty "Vault:".
+test("a Vault's card reads from its address", async ({ page }) => {
+  await mockApi(page);
+  const vault = {
+    ...credentials[0],
+    credential_id: "cred-vault",
+    name: "Team Vault",
+    type: "vault",
+    backend: "vault",
+    env_vars: [],
+    vault: null,
+    vault_path: null,
+    vault_connection: {
+      address: "https://vault.example.net:8200",
+      mount: "kv",
+      auth: "kubernetes",
+      kubernetes_role: "unified-api",
+      token_env: null,
+      timeout_seconds: 10,
+      cache_ttl_seconds: 0,
+    },
+  };
+  await page.route(/\/api\/v1\/credentials$/, (route) =>
+    route.fulfill({ json: [...credentials, vault] }),
+  );
+  await page.goto("/credentials");
+  const card = page.locator("article", {
+    has: page.getByRole("heading", { name: "cred-vault" }),
+  });
+  const from = card.locator("dl > div", {
+    has: page.locator("dt", { hasText: "Read from" }),
+  });
+  await expect(from.locator("dd")).toHaveText("https://vault.example.net:8200");
+
+  await page.goto("/credentials/cred-vault");
+  const fact = (label: string) =>
+    page
+      .locator("dl > div", {
+        has: page.locator("dt", { hasText: new RegExp(`^${label}`) }),
+      })
+      .locator("dd");
+  await expect(fact("Login")).toHaveText("Kubernetes role unified-api");
+  await expect(fact("Cache")).toHaveText("None");
+});
+
+// config.yaml's deprecated secrets settings: its cache is over every
+// credential, a row of its own; its Vault keeps that value, or 60s unset.
+test("the Secrets card shows config.yaml's deprecated cache and Vault", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const { settings } = await import("./fixtures/api");
+  const withVault = (cache: number | null) => ({
+    ...settings,
+    secrets: {
+      cache_ttl_seconds: cache,
+      vault: {
+        address: "https://old-vault.example.net:8200",
+        auth: "token",
+        mount: "secret",
+        timeout_seconds: 10,
+        token_env: "VAULT_TOKEN",
+      },
+    },
+  });
+  let answer = withVault(120);
+  await page.route(/\/api\/v1\/settings$/, (route) =>
+    route.fulfill({ json: answer }),
+  );
+
+  await page.goto("/config");
+  const secrets = page.locator("section", { hasText: "Secrets" }).last();
+  const all = secrets.getByRole("row", { name: /All credentials/ });
+  await expect(all).toContainText("All credentials (config.yaml, deprecated)");
+  await expect(all).toContainText("–");
+  await expect(all).toContainText("2m");
+  await expect(
+    secrets.getByRole("row", { name: /^config\.yaml \(deprecated\)/ }),
+  ).toContainText("2m");
+
+  answer = withVault(null);
+  await page.reload();
+  await expect(
+    secrets.getByRole("row", { name: /^config\.yaml \(deprecated\)/ }),
+  ).toContainText("1m");
+  await expect(
+    secrets.getByRole("row", { name: /All credentials/ }),
+  ).toHaveCount(0);
+});
+
+// The credentials failing to load says why, not "Loading…" forever.
+test("the Secrets card shows why the credentials did not load", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.route(/\/api\/v1\/credentials$/, (route) =>
+    route.fulfill({ status: 500, json: { error: "credentials exploded" } }),
+  );
+  await page.goto("/config");
+  const secrets = page.locator("section", { hasText: "Secrets" }).last();
+  await expect(secrets).toContainText("credentials exploded", {
+    timeout: 15000,
+  });
+  await expect(secrets).not.toContainText("Loading…");
 });
 
 // A public repository is cloned with no credentials: its card still has the
