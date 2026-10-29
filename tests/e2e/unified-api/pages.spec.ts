@@ -235,3 +235,19 @@ test("each Vault is a row of the Secrets card, with its readers on its page", as
   await expect(readerRow).toContainText("infra/d42");
   await expect(readerRow.getByRole("link", { name: "cred-d42" })).toBeVisible();
 });
+
+// A public repository is cloned with no credentials: its card still has the
+// row, saying None, so every project card has the same rows.
+test("a project with no credentials says None on its card", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/projects");
+  const card = page.locator("article", {
+    has: page.getByRole("heading", { name: "prj-inventory" }),
+  });
+  const row = card.locator("dl > div", {
+    has: page.locator("dt", { hasText: "Credentials" }),
+  });
+  await expect(row.locator("dd")).toHaveText("None");
+});
