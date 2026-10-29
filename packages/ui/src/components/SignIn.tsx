@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { formatCount } from "../lib/format";
 import { Fact } from "./Health";
 import { Badge, ChipList, Panel } from "./Page";
 import detail from "./Detail.module.css";
@@ -123,7 +124,7 @@ export function SignInPanels({
           // the directory's settings above every time.
           <details className={common.fold}>
             <summary title="Who may sign in with LDAP, and what they may use. Combined: admin in any matching rule is admin. Someone no rule names cannot sign in, even with the right password.">
-              LDAP access rules ({ldap.access.length})
+              LDAP access rules ({formatCount(ldap.access.length)})
               <ChevronDown aria-hidden />
             </summary>
             <div className={common.plainWrap}>

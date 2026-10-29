@@ -194,6 +194,53 @@ test("the metrics page has calls and check health by application", async ({
   );
 });
 
+// An application whose name is too long for the panel is cut short with its
+// whole name on hover, in both tables; the state pills beside it never are,
+// and neither table scrolls sideways.
+test("a long application name is cut short, whole on hover", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await mockApi(page);
+  const { METRICS } = await import("./fixtures/api");
+  const long = `broken-${"very-long-application-name-".repeat(8)}end`;
+  let scrape = 0;
+  await page.route(/\/metrics$/, (route) =>
+    route.request().resourceType() === "document"
+      ? route.fallback()
+      : route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: METRICS(++scrape).replaceAll('"broken"', `"${long}"`),
+        }),
+  );
+  await page.goto("/metrics");
+  for (const heading of [
+    "Requests by application",
+    "Check health by application",
+  ]) {
+    const panel = page.locator("section", { hasText: heading });
+    const name = panel.locator("tbody [data-col]", { hasText: "broken-" });
+    await expect(name).toHaveAttribute("title", long);
+    await expect(name).toHaveAttribute("data-clip", "true");
+    await expect
+      .poll(() =>
+        panel
+          .locator("table")
+          .evaluate(
+            (t) => t.parentElement!.scrollWidth - t.parentElement!.clientWidth,
+          ),
+      )
+      .toBe(0);
+  }
+  const checks = page.locator("section", {
+    hasText: "Check health by application",
+  });
+  await expect(
+    checks.locator("[data-clip]", { hasText: "failed" }),
+  ).toHaveCount(0);
+});
+
 // A connector's card counts failing requests, sampled while the page is open.
 test("the overview flags a connector whose requests fail", async ({ page }) => {
   await mockApi(page);

@@ -34,7 +34,7 @@ const HINTS = {
   secretKeys:
     "secret_keys. The names the connector receives the secrets under; never their values.",
   usedBy:
-    "What names this credential: sources (credentials), projects (credential), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
+    "What names this credential: sources (credentials), projects (credentials), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
 };
 
 export function CredentialDetailPage() {
@@ -99,7 +99,7 @@ export function CredentialDetailPage() {
           {credential.used_by.projects.length > 0 && (
             <Panel
               title="Projects"
-              hint="The projects using this credential: their credential names it, and they clone and pull their repository with it."
+              hint="The projects using this credential: their credentials name it, and they clone and pull their repository with it."
             >
               <ProjectTable ids={credential.used_by.projects} />
             </Panel>

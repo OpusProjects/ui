@@ -19,6 +19,14 @@ export interface ListColumn<T> {
   title?: (row: T) => string | undefined;
 }
 
+// The columns that cut their text short when it is too long: the name, and
+// a fact with a title (the whole value on hover). Every cell of such a column
+// clips, also one that has no title (a sync that worked, beside the long
+// error of one that failed), which is cut short like the rest rather than
+// spilling into the next column. Never a state: its pills are always whole.
+const clips = <T,>(column: ListColumn<T>) =>
+  column.role === "name" || (column.title != null && column.role !== "state");
+
 // The name's least share: unified-api's sources table (36%, then three
 // facts of 21%) is the reference every list follows.
 const NAME_SHARE = 36;
@@ -28,20 +36,55 @@ const NAME_SHARE = 36;
 // shares (`widths`).
 const MIN_GAP = 24;
 
+// The least a column that cuts its text short is cut to: below it there is
+// too little left to read, and the table falls back to even shares instead.
+const MIN_CLIP = 48;
+
+// The widest each clip column may be so that, all together, they take no
+// more than `room`: the narrow ones keep their width, and the widest are
+// cut to one level, the most that fits.
+function level(clips: number[], room: number) {
+  const sorted = [...clips].sort((a, b) => a - b);
+  let left = room;
+  for (let i = 0; i < sorted.length; i++) {
+    const share = left / (sorted.length - i);
+    if (sorted[i] > share) return share;
+    left -= sorted[i];
+  }
+  return Infinity;
+}
+
 // Width of each column, in percent, from what the cells hold: each column
 // as wide as its widest cell (header included) plus one gap, the same gap
 // after every column, so the space between columns reads even whatever
-// their contents. The name counts for at most its 36% (a longer one is cut
-// short, whole on hover); the last column ends at the right edge. Null when
-// the gaps would be under MIN_GAP: then the even shares below.
-function fitted(content: number[], nameAt: number, total: number) {
-  const capped = content.map((width, i) =>
+// their contents. The columns that cut their text short (the name, and any
+// with a title: the whole value is on hover) give way: the name counts for
+// at most its 36%, and when the rest still do not fit with MIN_GAP between
+// them, the widest of them are cut to what does. The last column ends at the
+// right edge. Null only when the other columns alone leave no room, whatever
+// the clip columns hold: then the even shares below.
+function fitted(
+  content: number[],
+  clip: boolean[],
+  nameAt: number,
+  total: number,
+) {
+  const gaps = content.length - 1;
+  if (gaps === 0 || total === 0) return null;
+  let capped = content.map((width, i) =>
     i === nameAt ? Math.min(width, (total * NAME_SHARE) / 100) : width,
   );
-  const gaps = capped.length - 1;
-  if (gaps === 0 || total === 0) return null;
+  const clipped = capped.filter((_, i) => clip[i]);
+  const room =
+    total -
+    gaps * MIN_GAP -
+    capped.filter((_, i) => !clip[i]).reduce((a, b) => a + b, 0);
+  if (room < clipped.length * MIN_CLIP) return null;
+  const most = level(clipped, room);
+  capped = capped.map((width, i) => (clip[i] ? Math.min(width, most) : width));
   const gap = (total - capped.reduce((a, b) => a + b, 0)) / gaps;
-  if (gap < MIN_GAP) return null;
+  // Rounding only: the cut above leaves exactly MIN_GAP.
+  if (gap < MIN_GAP - 0.01) return null;
   return capped.map(
     (width, i) =>
       `${Number((((i === gaps ? width : width + gap) / total) * 100).toFixed(4))}%`,
@@ -86,6 +129,43 @@ const inline = (cell: Element) =>
     getComputedStyle(c).display.startsWith("inline"),
   );
 
+// The width a cell's content takes, whole: what its column is sized to.
+// Rounded up, from the fractional width: scrollWidth is a whole number that
+// can round down, so a 121.4px pill got a 121px column, the table grew by the
+// difference and a sub-pixel horizontal scrollbar appeared wherever
+// scrollbars take space (Windows). Only widths that do not depend on the
+// column count, or each pass would widen it a little more: a cell's own width
+// while it leaves room in its column (one that fills it is capped, or
+// stretches to it); else its scrollWidth, as before; and an inline child that
+// overflows the cell (a pill whose text widened after the measure), which
+// stops counting once the column holds it. DataTable measures the same way.
+export function naturalWidth(cell: HTMLElement) {
+  const own = cell.getBoundingClientRect().width;
+  return Math.ceil(
+    Math.max(
+      cell.scrollWidth,
+      own < room(cell) - 0.5 ? own : 0,
+      ...inline(cell)
+        .map((c) => c.getBoundingClientRect().width)
+        .filter((w) => w > own),
+    ),
+  );
+}
+
+// Whether a cell's content asks for more than its column gives it: it fills
+// the column, or something in it passes its edge. Only then does a cell that
+// changed size need the columns measured again. One that still leaves room
+// (an age ticking from "9s ago" to "10s ago", inside the gap after it)
+// does not, or every column moved a little each time an age grew a digit.
+const cramped = (cell: Element) => {
+  const own = cell.getBoundingClientRect().width;
+  return (
+    own >= room(cell) - 0.5 ||
+    cell.scrollWidth > cell.clientWidth ||
+    inline(cell).some((c) => c.getBoundingClientRect().width > own)
+  );
+};
+
 export function ListTable<T>({
   columns,
   rows,
@@ -123,40 +203,30 @@ export function ListTable<T>({
       const content = columns.map(() => 0);
       el.querySelectorAll<HTMLElement>("[data-col]").forEach((cell) => {
         const i = Number(cell.dataset.col);
-        // Rounded up, from the fractional width: scrollWidth is a whole
-        // number that can round down, so a 121.4px pill got a 121px column,
-        // the table grew by the difference and a sub-pixel horizontal
-        // scrollbar appeared wherever scrollbars take space (Windows). Only
-        // widths that do not depend on the column count, or each pass would
-        // widen it a little more: a cell's own width while it leaves room in
-        // its column (one that fills it is capped, or stretches to it); else
-        // its scrollWidth, as before; and an inline child that overflows the
-        // cell (a pill whose text widened after the measure), which stops
-        // counting once the column holds it.
-        const own = cell.getBoundingClientRect().width;
-        const natural = Math.max(
-          cell.scrollWidth,
-          own < room(cell) - 0.5 ? own : 0,
-          ...inline(cell)
-            .map((c) => c.getBoundingClientRect().width)
-            .filter((w) => w > own),
-        );
-        content[i] = Math.max(content[i], Math.ceil(natural));
+        content[i] = Math.max(content[i], naturalWidth(cell));
       });
       const nameAt = columns.findIndex((c) => c.role === "name");
       // And the table's width rounded down, for the same reason.
       const total = Math.floor(box.getBoundingClientRect().width);
-      const next = fitted(content, nameAt, total);
+      const next = fitted(content, columns.map(clips), nameAt, total);
       setMeasured((prev) =>
         JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
       );
     };
     measure();
-    const observer = new ResizeObserver(measure);
+    const observer = new ResizeObserver((entries) => {
+      const changed = entries.some(({ target }) => {
+        if (target === box) return true;
+        const cell = target.closest("[data-col]");
+        return cell != null && cramped(cell);
+      });
+      if (changed) measure();
+    });
     observer.observe(box);
     // What the cells hold too: text that widens after the first measure (a
     // pill whose label changed) does not resize the box, and a cell is capped
-    // at its column, so its content is what grows.
+    // at its column, so its content is what grows. Measured again only when
+    // it no longer fits (`cramped`).
     el.querySelectorAll("[data-col]").forEach((cell) => {
       observer.observe(cell);
       for (const child of inline(cell)) observer.observe(child);
@@ -198,8 +268,13 @@ export function ListTable<T>({
           <thead>
             <tr>
               {columns.map((column, i) => (
-                <th key={column.key} scope="col" data-role={column.role}>
-                  {fit(i, column.label)}
+                <th
+                  key={column.key}
+                  scope="col"
+                  data-role={column.role}
+                  title={clips(column) ? column.label : undefined}
+                >
+                  {fit(i, column.label, clips(column))}
                 </th>
               ))}
             </tr>
@@ -227,11 +302,7 @@ export function ListTable<T>({
                       data-role={column.role}
                       title={title}
                     >
-                      {fit(
-                        i,
-                        content,
-                        Boolean(title) && column.role !== "state",
-                      )}
+                      {fit(i, content, clips(column))}
                     </td>
                   );
                 })}

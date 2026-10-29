@@ -29,7 +29,7 @@ const HINTS = {
   secretKeys:
     "secret_keys. The names the connector receives the secrets under (CREDENTIAL_<KEY>); never their values.",
   usedBy:
-    "What names this credential: applications (credentials), projects (credential), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
+    "What names this credential: applications (credentials), projects (credentials), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
 };
 
 export function CredentialDetailPage() {
@@ -133,7 +133,7 @@ function Users({ credential }: { credential: Credential }) {
       {projectNames.length > 0 && (
         <Panel
           title="Projects"
-          hint="The projects using this credential: their credential names it, and they clone and pull their repository with it."
+          hint="The projects using this credential: their credentials name it, and they clone and pull their repository with it."
         >
           <ProjectTable names={projectNames} empty="No project uses it." />
         </Panel>

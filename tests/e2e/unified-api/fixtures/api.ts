@@ -73,6 +73,7 @@ export const detail = (
   history: [
     {
       started_at: Math.floor(Date.now() / 1000) - 120,
+      age_seconds: 120,
       duration_ms: 4210,
       trigger: "manual",
       by: "key-ops",
@@ -82,6 +83,7 @@ export const detail = (
     },
     {
       started_at: Math.floor(Date.now() / 1000) - 3600,
+      age_seconds: 3600,
       duration_ms: 300000,
       trigger: "scheduled",
       scope: "full",
@@ -148,6 +150,7 @@ export const projects: Schemas["ProjectInfo"][] = [
     history: [
       {
         started_at: Math.floor(Date.now() / 1000) - 60,
+        age_seconds: 60,
         duration_ms: 820,
         trigger: "manual",
         by: "key-ops",
@@ -156,6 +159,7 @@ export const projects: Schemas["ProjectInfo"][] = [
       },
       {
         started_at: Math.floor(Date.now() / 1000) - 1800,
+        age_seconds: 1800,
         duration_ms: 310,
         trigger: "scheduled",
         revision_before: "1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -283,7 +287,9 @@ export const settings: Schemas["Settings"] = {
     consecutive_failures: 0,
   },
   projects: { dir: "/var/lib/unified-api/projects" },
-  secrets: { cache_ttl_seconds: 60, vault: null },
+  // A 0.37 instance with no `secrets:` block left in config.yaml: every
+  // Vault is a credential, so no outer cache and nothing deprecated.
+  secrets: { cache_ttl_seconds: null, deprecated: false, vault: null },
   config_api: { enabled: false },
   restart_pending: [],
 };

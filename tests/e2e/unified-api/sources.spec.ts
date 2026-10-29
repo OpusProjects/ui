@@ -459,7 +459,11 @@ test("cron schedules read in words", async ({ page }) => {
   const words = card.getByText("daily at 04:15 UTC");
   await expect(words).toBeVisible();
   await expect(words).toHaveAttribute("title", "cron (UTC): 15 4 * * *");
-  await expect(card).not.toContainText("15 4 * * *");
+  // In words on screen, the expression for a screen reader (which cannot
+  // hover) only.
+  const reader = words.getByText("(cron 15 4 * * *, UTC)");
+  await expect(reader).toBeAttached();
+  expect((await reader.boundingBox())!.width).toBeLessThanOrEqual(1);
 
   await page.goto("/sources/src-alpha");
   await expect(page.getByText("daily at 04:15 UTC")).toBeVisible();
@@ -630,6 +634,144 @@ for (const cached of [true, false]) {
     expect(gap).toBeGreaterThanOrEqual(16);
   });
 }
+
+// One sync's long error (a script's whole traceback) is cut short in its
+// cell, whole on hover, and never widens the table: it once made the panel
+// 11,334px wide in a 934px box. So is a sync that covered many hosts, named
+// in part. Whatever the window, at 1280px as in the narrow fallback.
+for (const width of [1280, 520]) {
+  test(`a long error or host list never scrolls History sideways at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockApi(page);
+    const { detail, sources } = await import("./fixtures/api");
+    const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+    const error = `connector exited with status 1: ${"Traceback line ".repeat(130)}`;
+    const hosts = Array.from({ length: 40 }, (_, i) => `host-${i}.example.net`);
+    const base = detail(alpha);
+    await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+      route.fulfill({
+        json: {
+          ...base,
+          history: [
+            { ...base.history[0], scope: `host:${hosts.join(",")}` },
+            { ...base.history[1], error },
+          ],
+        },
+      }),
+    );
+    await page.goto("/sources/src-alpha");
+    const history = page.locator("section", {
+      has: page.getByRole("heading", { name: /^History/ }),
+    });
+    const rows = history.locator("tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText(
+      "Hosts host-0.example.net, host-1.example.net +38 more",
+    );
+    await expect(
+      rows.nth(0).locator("td", { hasText: "+38 more" }),
+    ).toHaveAttribute("title", `40 hosts: ${hosts.join(", ")}`);
+    await expect(
+      rows.nth(1).locator("td", { hasText: "Traceback" }),
+    ).toHaveAttribute("title", error);
+    const sideways = () =>
+      history
+        .locator("table")
+        .evaluate(
+          (t) => t.parentElement!.scrollWidth - t.parentElement!.clientWidth,
+        );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth,
+        ),
+      )
+      .toBe(0);
+    if (width === 1280) await expect.poll(sideways).toBe(0);
+    // Narrow, the columns that cannot be cut may scroll, but never by the
+    // error's length.
+    else expect(await sideways()).toBeLessThan(200);
+  });
+}
+
+// An age counting on, even a digit wider ("9s ago", "10s ago"), inside the
+// room its column has moves no column: the table is measured again only when
+// a cell outgrows its column, not every time an age ticks.
+test("History's columns hold still as its ages tick", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  const base = detail(sources.find((s) => s.source_id === "src-alpha")!);
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.fulfill({
+      json: {
+        ...base,
+        history: [
+          {
+            ...base.history[0],
+            started_at: Math.floor(Date.now() / 1000) - 7,
+            age_seconds: 7,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/sources/src-alpha");
+  const table = page
+    .locator("section", {
+      has: page.getByRole("heading", { name: /^History/ }),
+    })
+    .locator("table");
+  await expect(table).toHaveAttribute("data-fitted", "");
+  const widths = () =>
+    table.evaluate((t) =>
+      [...t.querySelectorAll("col")].map((c) => c.style.width).join(" "),
+    );
+  const when = table.locator("tbody tr td").nth(1);
+  await expect(when).toHaveText(/^\ds ago$/);
+  const before = await widths();
+  await expect(when).toHaveText(/^1\ds ago$/, { timeout: 8000 });
+  await page.waitForTimeout(500);
+  expect(await widths()).toBe(before);
+});
+
+// A run's age is the server's (age_seconds, counted on from when the answer
+// came), not the browser's clock against started_at: a browser whose clock
+// is an hour off still reads "5s ago" for a run that started five seconds
+// ago. An older instance sends no age_seconds: then started_at it is.
+test("History counts a run's age from the server's", async ({ page }) => {
+  await mockApi(page);
+  const { detail, sources } = await import("./fixtures/api");
+  const alpha = sources.find((s) => s.source_id === "src-alpha")!;
+  const base = detail(alpha);
+  await page.route(/\/api\/v1\/sources\/src-alpha$/, (route) =>
+    route.fulfill({
+      json: {
+        ...base,
+        history: [
+          {
+            ...base.history[0],
+            started_at: Math.floor(Date.now() / 1000) - 3600,
+            age_seconds: 5,
+          },
+          base.history[1],
+        ],
+      },
+    }),
+  );
+  await page.goto("/sources/src-alpha");
+  const rows = page
+    .locator("section", {
+      has: page.getByRole("heading", { name: /^History/ }),
+    })
+    .locator("tbody tr");
+  const when = (row: number) => rows.nth(row).locator("td").nth(1);
+  await expect(when(0)).toHaveText(/^1?\ds ago$/);
+  await expect(when(1)).toHaveText(/^1h( \d+s)? ago$/);
+});
 
 // A credential's projects are a table, as its sources are (and as
 // unified-gitops lists a credential's projects): linked by name, with the

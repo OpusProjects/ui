@@ -208,3 +208,14 @@
   font-family: var(--uu-font-mono);
   font-size: 12px;
 }
+
+/* Text for screen readers only, as Page's: what a hover says, for those who
+   cannot hover (Schedule's cron expression). */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -1,4 +1,4 @@
-import { countOf } from "../lib/format";
+import { countOf, formatCount } from "../lib/format";
 import { HealthPill } from "./Health";
 import { ListSoft, ListTable, type ListColumn } from "./ListTable";
 import { LiveAge } from "./LiveAge";
@@ -10,6 +10,9 @@ import detail from "./Detail.module.css";
 // pull. The fields a kind does not have are absent.
 export interface RunLike {
   started_at: number;
+  // Seconds since it started, as the server measured them when it answered:
+  // absent from an older instance, which leaves the browser's clock.
+  age_seconds?: number | null;
   duration_ms: number;
   trigger: string;
   by?: string | null;
@@ -34,16 +37,39 @@ const triggerOf = (run: RunLike) => {
   return run.by ? `${word} by ${run.by}` : word;
 };
 
-// What a sync covered: "Full", "Host web01", "Hosts a, b", "Group racks".
+// What a sync covered: "Full", "Host web01", "Hosts a, b", "Group racks";
+// past a few hosts, "Hosts a, b +38 more", every one of them on hover.
+const COVERED_HOSTS = 2;
+const hostsOf = (scope?: string | null) => {
+  const [kind, target = ""] = (scope ?? "").split(/:(.*)/s);
+  return kind === "host" ? target.split(",") : null;
+};
 const coveredOf = (scope?: string | null) => {
   if (!scope || scope === "full") return "Full";
-  const [kind, target = ""] = scope.split(/:(.*)/s);
-  if (kind === "host") {
-    const hosts = target.split(",");
-    return `${hosts.length === 1 ? "Host" : "Hosts"} ${hosts.join(", ")}`;
+  const hosts = hostsOf(scope);
+  if (hosts) {
+    const word = hosts.length === 1 ? "Host" : "Hosts";
+    const more = hosts.length - COVERED_HOSTS;
+    return more > 1
+      ? `${word} ${hosts.slice(0, COVERED_HOSTS).join(", ")} +${formatCount(more)} more`
+      : `${word} ${hosts.join(", ")}`;
   }
+  const [kind, target = ""] = scope.split(/:(.*)/s);
   return kind === "group" ? `Group ${target}` : scope;
 };
+// The hover on what it covered: the whole list, when the cell shortened it
+// or may be cut short.
+const coveredTitle = (scope?: string | null) => {
+  if (!scope || scope === "full") return undefined;
+  const hosts = hostsOf(scope);
+  return hosts
+    ? `${countOf(hosts.length, "host")}: ${hosts.join(", ")}`
+    : coveredOf(scope);
+};
+
+// What a sync that worked brought: "1,234 hosts, 12 groups".
+const broughtOf = (run: RunLike) =>
+  `${countOf(run.hosts ?? 0, "host")}, ${countOf(run.groups ?? 0, "group")}`;
 
 // The moment it started, in UTC, for the hover on its age.
 const startedAt = (unixSeconds: number) =>
@@ -58,9 +84,13 @@ export function RunHistory({
   runs,
   kind,
   gitUrl,
+  at,
 }: {
   runs: RunLike[];
   kind: "sync" | "pull";
+  // When the answer holding the runs arrived (its query's dataUpdatedAt):
+  // each run's age_seconds is counted on from it, as the facts above are.
+  at?: number;
   // A pull's commits link to their page when the repository has one.
   gitUrl?: string;
 }) {
@@ -72,7 +102,11 @@ export function RunHistory({
       label: "When",
       render: (run) => (
         <span title={startedAt(run.started_at)}>
-          <LiveAge since={run.started_at} />
+          {run.age_seconds != null ? (
+            <LiveAge seconds={run.age_seconds} at={at} />
+          ) : (
+            <LiveAge since={run.started_at} />
+          )}
         </span>
       ),
     },
@@ -81,17 +115,18 @@ export function RunHistory({
           {
             key: "covered",
             label: "Covered",
+            title: (run: RunLike) => coveredTitle(run.scope),
             render: (run: RunLike) => coveredOf(run.scope),
           },
           {
             key: "detail",
             label: "Brought",
-            title: (run: RunLike) => run.error ?? undefined,
+            title: (run: RunLike) => run.error ?? broughtOf(run),
             render: (run: RunLike) =>
               failed(run) ? (
                 <span className={detail.soft}>{run.error}</span>
               ) : (
-                `${countOf(run.hosts ?? 0, "host")}, ${countOf(run.groups ?? 0, "group")}`
+                broughtOf(run)
               ),
           },
         ]
