@@ -38,7 +38,7 @@ feature PR ──squash──▶ main ──▶ release-please updates the open 
    same workflow then runs CI on it (see [below](#when-the-release-pr-has-no-checks)).
 4. **Merging it is the release.** Squash-merge it once its checks are green; the
    workflow then creates the tag `vX.Y.Z` and the GitHub Release titled `vX.Y.Z`, with the CHANGELOG
-   section as its notes. unified-ui publishes no image of its own.
+   section as its notes. The ui repository publishes no image of its own.
 
 Never create a tag or a GitHub Release by hand: the next release PR would not
 know about it, and a hand-made release is authored by a person rather than the
@@ -145,9 +145,9 @@ gh workflow run ci.yaml --ref release-please--branches--main
 
 ## How unified-api and unified-gitops pick it up
 
-unified-ui is versioned on its own; each tool builds a pinned unified-ui version into its image.
+ui is versioned on its own; each tool builds a pinned ui version into its image.
 
-That pin is `UI_REF` in the tool's `docker/Dockerfile`. A new unified-ui release
+That pin is `UI_REF` in the tool's `docker/Dockerfile`. A new ui release
 reaches users when a unified-api or unified-gitops release bumps that pin in a
 `build:` pull request, so a UI change that needs a newer API route ships
 together with the API that has it.

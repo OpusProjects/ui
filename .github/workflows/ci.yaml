@@ -1,4 +1,4 @@
-name: unified-ui CI
+name: ui CI
 
 on:
   pull_request:

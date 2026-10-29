@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OpusProjects/unified-ui.git",
+    "url": "https://github.com/OpusProjects/ui.git",
     "directory": "packages/ui"
   },
   "type": "module",
