@@ -24,7 +24,9 @@ gh pr create --base main
   `feat: add a hosts and groups switch to the source page`, `fix: popover
 widening the page`. Types in use: `feat`, `fix`, `perf`, `refactor`, `docs`,
   `test`, `build`, `ci`, `chore`.
-- Release commits are the exception: `Release x.y.z`, matching the tag.
+- The squashed title is the CHANGELOG line and decides the next version, so
+  write it for someone reading the release notes: what changes for them. See
+  [docs/releasing.md](docs/releasing.md).
 - Body (when the change needs explaining): plain prose, _what_ and _why_, wrapped
   at ~72 columns. The problem first, then the change.
 
@@ -64,6 +66,7 @@ that a simpler version had. Comments are in English.
 
 ## Releases
 
-See [docs/releasing.md](docs/releasing.md): one release PR that moves the
-`Unreleased` entries in [CHANGELOG.md](CHANGELOG.md) under the new version,
-then a tag after the squash merge.
+Releases are cut by release-please; no one bumps a version, edits the CHANGELOG
+or pushes a tag by hand. Every merge into `main` updates one open
+`chore: release vX.Y.Z` pull request, and merging it creates the tag and the
+GitHub Release. See [docs/releasing.md](docs/releasing.md).

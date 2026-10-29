@@ -37,8 +37,9 @@ assumptions breaks the typecheck too.
 
 ## CI
 
-`.github/workflows/ci.yaml` runs on every pull request, on pushes to `main` and on version tags:
+`.github/workflows/ci.yaml` runs on every pull request, on pushes to `main`, and when dispatched on the release PR:
 
 - `test`: `prettier --check .`, typecheck, build, and the Playwright suite
 - `build-image`: builds the demo image from `docker/Dockerfile`
-- `release`: on a `v*` tag only, once both pass, the GitHub Release (see [releasing](releasing.md))
+
+Releases run from `.github/workflows/release.yml` instead (see [releasing](releasing.md)).

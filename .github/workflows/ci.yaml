@@ -4,7 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
-    tags: ["v*"]
+  # release.yml dispatches this on the release PR's branch: a push made with
+  # GITHUB_TOKEN starts no workflow, and the PR needs its required checks.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -37,34 +39,3 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: docker build -f docker/Dockerfile .
-
-  # On a version tag, once the checks pass: the GitHub Release, with its notes
-  # taken from this version's CHANGELOG section. Never created by hand.
-  release:
-    needs: [test, build-image]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-      - name: Extract changelog section for this version
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v start="## [$version]" '
-            substr($0, 1, length(start)) == start { flag = 1; next }
-            flag && substr($0, 1, 4) == "## [" { exit }
-            flag { print }
-          ' CHANGELOG.md > release-notes.md
-          if [ ! -s release-notes.md ]; then
-            echo "See CHANGELOG.md for details." > release-notes.md
-          fi
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
-            --notes-file release-notes.md \
-            --verify-tag
