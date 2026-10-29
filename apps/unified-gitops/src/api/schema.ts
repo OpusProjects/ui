@@ -648,6 +648,8 @@ export interface components {
       /** @description Whether the LDAP login's service account binds with it */
       ldap: boolean;
       projects: string[];
+      /** @description Webhooks that send with it */
+      webhooks: string[];
     };
     Delivery: {
       application?: string | null;
@@ -880,6 +882,13 @@ export interface components {
       revision: string;
     };
     RunInfo: {
+      /**
+       * Format: int64
+       * @description Seconds since it started, measured on this instance when the answer
+       *     was built: what a client counts a live age from, so its own clock
+       *     being off does not move it (as `sync_health`'s ages)
+       */
+      age_seconds: number;
       /** @description Who asked, for a manual pull: the API key's name or the signed-in user */
       by?: string | null;
       /** Format: int64 */
@@ -928,6 +937,8 @@ export interface components {
        *     set (a Vault credential now has its own `cache_ttl_seconds`)
        */
       cache_ttl_seconds?: number | null;
+      /** @description Whether config.yaml still has the deprecated `secrets:` block */
+      deprecated: boolean;
       vault?: components["schemas"]["VaultSettings"] | null;
     };
     ServerSettings: {
@@ -1019,7 +1030,12 @@ export interface components {
       address: string;
       /** @description `token` or `kubernetes` */
       auth: string;
-      /** Format: int64 */
+      /**
+       * Format: int64
+       * @description How long a value read from this Vault is reused, as in effect: the
+       *     deprecated config.yaml `secrets.cache_ttl_seconds` while it is set,
+       *     else this Vault's own (default 60). 0 = no cache
+       */
       cache_ttl_seconds: number;
       kubernetes_role?: string | null;
       /** @description The KV v2 mount `vault_path` values live under */

@@ -106,7 +106,11 @@ export function SourceDetailPage() {
               title="History"
               hint="The last syncs of this source, newest first, kept in memory since this instance started (up to 50; a restart starts over): why each ran and who asked, what it covered and brought, and how long it took."
             >
-              <RunHistory runs={detail.data.history} kind="sync" />
+              <RunHistory
+                runs={detail.data.history}
+                kind="sync"
+                at={detail.dataUpdatedAt}
+              />
             </Panel>
           )}
         </>

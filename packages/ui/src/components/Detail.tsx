@@ -39,14 +39,21 @@ export function DetailTitle({
 }
 
 // A cron schedule in words ("daily at 04:15 UTC"), the expression itself on
-// hover; one too irregular to put in words is shown as written.
+// hover; one too irregular to put in words is shown as written. A hover is
+// out of reach from a keyboard or a screen reader, so the expression is also
+// in text only those read ("(cron 15 4 * * *, UTC)"), as Page's search
+// labels itself.
 export function Schedule({ cron }: { cron: string }) {
   const words = formatSchedule(cron);
   return words ? (
-    <span title={`cron (UTC): ${cron}`}>{words}</span>
+    <span title={`cron (UTC): ${cron}`}>
+      {words}
+      <span className={styles.visuallyHidden}> (cron {cron}, UTC)</span>
+    </span>
   ) : (
     <code className={styles.mono} title="cron (UTC)">
       {cron}
+      <span className={styles.visuallyHidden}> (cron, UTC)</span>
     </code>
   );
 }

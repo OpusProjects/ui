@@ -209,6 +209,7 @@ const projects: Schemas["ProjectInfo"][] = [
     history: [
       {
         started_at: Math.floor(Date.now() / 1000) - 60,
+        age_seconds: 60,
         duration_ms: 640,
         trigger: "check",
         revision_before: "aaaaaaa1111111111111111111111111111111111",
@@ -216,6 +217,7 @@ const projects: Schemas["ProjectInfo"][] = [
       },
       {
         started_at: Math.floor(Date.now() / 1000) - 3600,
+        age_seconds: 3600,
         duration_ms: 30000,
         trigger: "scheduled",
         error: "git fetch: could not resolve host",
@@ -241,6 +243,7 @@ const credentials: Schemas["CredentialInfo"][] = [
       credentials: [],
       applications: ["drifted"],
       projects: ["prj-state"],
+      webhooks: [],
       ldap: false,
     },
   },
@@ -387,7 +390,9 @@ const settings: Schemas["Settings"] = {
   },
   state: { dir: "/var/lib/unified-gitops/state" },
   projects: { dir: "/var/lib/unified-gitops/projects" },
-  secrets: { cache_ttl_seconds: 60, vault: null },
+  // A 0.4 instance with no `secrets:` block left in config.yaml: every
+  // Vault is a credential, so no outer cache and nothing deprecated.
+  secrets: { cache_ttl_seconds: null, deprecated: false, vault: null },
   config_api: { enabled: false },
   restart_pending: [],
 };
@@ -410,7 +415,7 @@ const authFor = (role: "admin" | "restricted"): Schemas["AuthInfo"] => ({
 
 // Each scrape answers with more calls made to the systems than the last, so
 // the overview's chart has a rate to draw: 6 reads and 2 writes a scrape.
-const METRICS = (
+export const METRICS = (
   scrape: number,
 ) => `# TYPE unified_gitops_connector_calls_total counter
 unified_gitops_connector_calls_total{application="drifted",connector="kv",command="list",outcome="success"} ${6 * scrape}

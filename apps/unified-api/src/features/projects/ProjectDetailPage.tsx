@@ -135,6 +135,7 @@ export function ProjectDetailPage() {
                 runs={project.history}
                 kind="pull"
                 gitUrl={project.git_url}
+                at={projects.dataUpdatedAt}
               />
             </Panel>
           )}

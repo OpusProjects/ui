@@ -40,6 +40,15 @@ unified-ui version it builds into its image.
 - The Order menu's button no longer swallows Home, End, ArrowUp and Escape while the menu is closed, so they scroll the page again; ArrowDown still opens it.
 - Counts in "used by" lines (credential pages) and in a connector's script summary ("Shell script, 1,023 lines") group thousands and take the singular for one, as every other count does. `formatCount` and `countOf` now live in `@opusprojects/unified-client`, re-exported by `@opusprojects/unified-ui` as before.
 - unified-api source page: at a fractional width just under 676px the hosts list and the selected host stayed side by side and overflowed by half a pixel; they now stack below 676px.
+- Tables no longer scroll sideways for a long cell: a column with a hover (an error, what a sync covered, a path, an address) gives way like the name, cut short with the whole value on hover, so a 2,000-character sync error no longer made History 11,334px wide in a 934px panel; until measured, and on a screen too narrow for the other columns, such a cell still clips rather than widening the table. History's Covered names at most two hosts ("Hosts a, b +38 more"), every one on hover.
+- Table columns no longer shift as an age ticks ("9s ago", "10s ago"): the columns are measured again only when a cell outgrows the room its column has, not whenever its text changes.
+- History's When counts from the run's `age_seconds` (unified-api 0.37.0, unified-gitops 0.4.0), measured by the server as the facts above it are, rather than from the browser's clock; an older instance still counts from `started_at`.
+- Configuration, Secrets card: config.yaml's Vault and its cache over every credential are called deprecated only when the instance says so (`settings.secrets.deprecated`); on unified-api 0.36 or unified-gitops 0.3, where that block is the normal setup, they read "config.yaml" and "All credentials (config.yaml)". A Vault credential shows the cache the API reports as in effect.
+- unified-gitops Metrics: an application name cut short in Requests by application or Check health by application has its whole name on hover; a metrics table only ever cuts a column that has a hover, never a pill.
+- Metrics tables size their columns from each cell's real width rounded up and the panel's rounded down, and again when a font arrives late, so a cell no longer overhangs its column by a fraction of a pixel.
+- Credential pages (both apps): the hints say a project names its credential with `credentials`, as the item now does, not `credential`.
+- A cron schedule's expression, shown on hover, is also read out by screen readers ("(cron 15 4 * * *, UTC)").
+- Configuration: the LDAP access rules count groups thousands with a comma, as every other count does.
 
 ## [0.5.0] - 2026-10-27
 

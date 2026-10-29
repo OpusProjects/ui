@@ -321,17 +321,23 @@ export interface VaultRow {
 export interface DeprecatedSecrets {
   cache_ttl_seconds?: number | null;
   vault?: { address: string } | null;
+  // True when config.yaml still has the `secrets:` block that Vault
+  // credentials replace. Absent from an older instance (unified-api 0.36,
+  // unified-gitops 0.3), where that block is the normal setup, not a
+  // deprecated one: only `true` calls it deprecated.
+  deprecated?: boolean | null;
 }
 
-// What a deprecated config.yaml Vault keeps what it read for when
-// secrets.cache_ttl_seconds is not set, as 0.36 did.
+// What config.yaml's Vault keeps what it read for when
+// secrets.cache_ttl_seconds is not set, as 0.36 did and 0.37 still does.
 const DEPRECATED_VAULT_CACHE = 60;
 
 // Where secrets can come from besides the environment: one row per Vault,
 // its address and how long it keeps what it read. Its login, mount and the
-// credentials read from it are on its own page. The deprecated config.yaml
-// settings get rows of their own: its Vault, and its cache, which is over
-// every credential (env and file ones too), not over one Vault.
+// credentials read from it are on its own page; its cache is the one the API
+// says is in effect. config.yaml's secrets settings get rows of their own:
+// its Vault, and its cache, which is over every credential (env and file ones
+// too), not over one Vault. Called deprecated only when the instance says so.
 export function SecretsPanel({
   vaults: credentialVaults,
   secrets,
@@ -346,13 +352,14 @@ export function SecretsPanel({
   error?: string | null;
 }) {
   const allCache = secrets.cache_ttl_seconds ?? null;
+  const deprecated = secrets.deprecated === true;
   const vaults: VaultRow[] = [
     ...credentialVaults,
     ...(secrets.vault
       ? [
           {
             id: null,
-            name: "config.yaml (deprecated)",
+            name: deprecated ? "config.yaml (deprecated)" : "config.yaml",
             address: secrets.vault.address,
             cache_ttl_seconds: allCache ?? DEPRECATED_VAULT_CACHE,
           },
@@ -362,7 +369,9 @@ export function SecretsPanel({
       ? [
           {
             id: null,
-            name: "All credentials (config.yaml, deprecated)",
+            name: deprecated
+              ? "All credentials (config.yaml, deprecated)"
+              : "All credentials (config.yaml)",
             address: null,
             cache_ttl_seconds: allCache,
           },
@@ -424,7 +433,7 @@ export function SecretsPanel({
       hint={`The Vaults credentials can be read from (type: vault credentials, named by their vault), and how long each keeps what it read: also how long a rotation there takes to be seen. Everything else is read from environment variables or files, ${
         allCache == null
           ? "fresh on every use."
-          : "kept as long as config.yaml's deprecated secrets.cache_ttl_seconds says, as every credential is."
+          : `kept as long as config.yaml's ${deprecated ? "deprecated " : ""}secrets.cache_ttl_seconds says, as every credential is.`
       }`}
     >
       {error && <p className={detail.error}>{error}</p>}

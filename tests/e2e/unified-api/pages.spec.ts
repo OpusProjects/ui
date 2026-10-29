@@ -299,49 +299,73 @@ test("a Vault's card reads from its address", async ({ page }) => {
   await expect(fact("Cache")).toHaveText("None");
 });
 
-// config.yaml's deprecated secrets settings: its cache is over every
-// credential, a row of its own; its Vault keeps that value, or 60s unset.
-test("the Secrets card shows config.yaml's deprecated cache and Vault", async ({
+// config.yaml's secrets settings: its cache is over every credential, a row
+// of its own; its Vault keeps that value, or 60s unset. Called deprecated
+// only when the instance says so (0.37): on an older one (no `deprecated`)
+// it is the normal setup, named plainly.
+for (const deprecated of [true, undefined]) {
+  test(`the Secrets card shows config.yaml's cache and Vault${deprecated ? ", deprecated" : ", older instance"}`, async ({
+    page,
+  }) => {
+    await mockApi(page);
+    const { settings } = await import("./fixtures/api");
+    const withVault = (cache: number | null) => ({
+      ...settings,
+      secrets: {
+        cache_ttl_seconds: cache,
+        deprecated,
+        vault: {
+          address: "https://old-vault.example.net:8200",
+          auth: "token",
+          mount: "secret",
+          timeout_seconds: 10,
+          token_env: "VAULT_TOKEN",
+        },
+      },
+    });
+    let answer = withVault(120);
+    await page.route(/\/api\/v1\/settings$/, (route) =>
+      route.fulfill({ json: answer }),
+    );
+    const tag = deprecated ? ", deprecated" : "";
+    const vaultRow = deprecated
+      ? /^config\.yaml \(deprecated\)/
+      : /^config\.yaml(?! \(deprecated)/;
+
+    await page.goto("/config");
+    const secrets = page.locator("section", { hasText: "Secrets" }).last();
+    const all = secrets.getByRole("row", { name: /All credentials/ });
+    await expect(all).toContainText(`All credentials (config.yaml${tag})`);
+    await expect(all).toContainText("–");
+    await expect(all).toContainText("2m");
+    await expect(secrets.getByRole("row", { name: vaultRow })).toContainText(
+      "2m",
+    );
+    if (!deprecated) await expect(secrets).not.toContainText("deprecated");
+
+    answer = withVault(null);
+    await page.reload();
+    await expect(secrets.getByRole("row", { name: vaultRow })).toContainText(
+      "1m",
+    );
+    await expect(
+      secrets.getByRole("row", { name: /All credentials/ }),
+    ).toHaveCount(0);
+  });
+}
+
+// A 0.37 instance (the fixture) with only Vault credentials: no config.yaml
+// rows, and nothing called deprecated.
+test("the Secrets card of a current instance has no config.yaml rows", async ({
   page,
 }) => {
   await mockApi(page);
-  const { settings } = await import("./fixtures/api");
-  const withVault = (cache: number | null) => ({
-    ...settings,
-    secrets: {
-      cache_ttl_seconds: cache,
-      vault: {
-        address: "https://old-vault.example.net:8200",
-        auth: "token",
-        mount: "secret",
-        timeout_seconds: 10,
-        token_env: "VAULT_TOKEN",
-      },
-    },
-  });
-  let answer = withVault(120);
-  await page.route(/\/api\/v1\/settings$/, (route) =>
-    route.fulfill({ json: answer }),
-  );
-
   await page.goto("/config");
   const secrets = page.locator("section", { hasText: "Secrets" }).last();
-  const all = secrets.getByRole("row", { name: /All credentials/ });
-  await expect(all).toContainText("All credentials (config.yaml, deprecated)");
-  await expect(all).toContainText("–");
-  await expect(all).toContainText("2m");
-  await expect(
-    secrets.getByRole("row", { name: /^config\.yaml \(deprecated\)/ }),
-  ).toContainText("2m");
-
-  answer = withVault(null);
-  await page.reload();
-  await expect(
-    secrets.getByRole("row", { name: /^config\.yaml \(deprecated\)/ }),
-  ).toContainText("1m");
-  await expect(
-    secrets.getByRole("row", { name: /All credentials/ }),
-  ).toHaveCount(0);
+  await expect(secrets).toContainText(
+    "No Vault: every secret is read from environment variables or files.",
+  );
+  await expect(secrets).not.toContainText("config.yaml");
 });
 
 // The credentials failing to load says why, not "Loading…" forever.

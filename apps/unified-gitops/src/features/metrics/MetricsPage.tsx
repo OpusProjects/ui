@@ -254,6 +254,7 @@ function CallTable({ samples }: { samples: Sample[] }) {
     {
       key: "application",
       label: "Application",
+      title: (r) => r.application,
       render: (r) => <code className={styles.mono}>{r.application}</code>,
     },
     {
@@ -337,6 +338,7 @@ function CheckTable({ samples }: { samples: Sample[] }) {
     {
       key: "application",
       label: "Application",
+      title: (r) => r.application,
       render: (r) => <code className={styles.mono}>{r.application}</code>,
     },
     {

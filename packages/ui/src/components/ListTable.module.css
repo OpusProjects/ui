@@ -146,6 +146,17 @@ a.name:hover {
   text-overflow: ellipsis;
 }
 
+/* Until measured, and when even the columns that do not cut their text leave
+   no room (the browser's own layout then), such a cell asks for no width of
+   its own and takes what its column is given: otherwise one 2,000-character
+   error widened the table to the whole of it, thousands of pixels sideways.
+   ListTable measures it by its scrollWidth, which is the whole text either
+   way. */
+.table:not([data-fitted]) tbody .clip {
+  width: 0;
+  min-width: 100%;
+}
+
 /* The pager, inside the panel under the last row, set off by the same
    line as the header row: the table is framed top and bottom alike.
    Nothing to page, no pager and no line. */

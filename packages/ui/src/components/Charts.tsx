@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { InfoHint } from "./InfoHint";
+import { naturalWidth } from "./ListTable";
 import styles from "./Charts.module.css";
 
 // Small charts drawn as SVG by hand. Three forms are all an operations page
@@ -481,6 +482,8 @@ export interface Column<T> {
   numeric?: boolean;
   render: (row: T) => ReactNode;
   // The whole value on hover, for a cell cut short when the table is narrow.
+  // Only a column with one is ever cut short: without it the rest of the
+  // value could not be read at all (and a pill is never cut).
   title?: (row: T) => string;
 }
 
@@ -498,9 +501,15 @@ const MIN_TEXT = 120;
 // content is aligned away from it: after a left-aligned column's content,
 // before a right-aligned (numeric) one's. Between a numeric column and a
 // left-aligned one neither side has room, so the second is padded. Null when
-// the gaps would be under MIN_GAP even with the widest text column cut short
-// (`clip`, ending in an ellipsis) down to MIN_TEXT.
-function evenColumns(content: number[], numeric: boolean[], total: number) {
+// the gaps would be under MIN_GAP even with the widest column that can be cut
+// short (`clippable`: text with its whole value on hover) cut, ending in an
+// ellipsis, down to MIN_TEXT.
+function evenColumns(
+  content: number[],
+  numeric: boolean[],
+  clippable: boolean[],
+  total: number,
+) {
   const gaps = content.length - 1;
   const inner = total - 2 * EDGE;
   if (gaps <= 0 || inner <= 0) return null;
@@ -510,7 +519,9 @@ function evenColumns(content: number[], numeric: boolean[], total: number) {
   if (gap < MIN_GAP) {
     // Too wide as it is: a long route or name gives way rather than the
     // panel scrolling sideways for a few pixels.
-    const text = content.map((_, i) => i).filter((i) => !numeric[i]);
+    const text = content
+      .map((_, i) => i)
+      .filter((i) => !numeric[i] && clippable[i]);
     if (text.length === 0) return null;
     const widest = text.reduce((a, b) => (content[b] > content[a] ? b : a));
     const short = (MIN_GAP - gap) * gaps;
@@ -556,14 +567,18 @@ export function DataTable<T>({
     if (!el || !box) return;
     const measure = () => {
       const content = columns.map(() => 0);
+      // Each cell's real width rounded up, and the box's rounded down, as
+      // ListTable measures: scrollWidth and clientWidth are whole numbers,
+      // so a cell of 80.4px got an 80px column and overhung it.
       el.querySelectorAll<HTMLElement>("[data-col]").forEach((cell) => {
         const i = Number(cell.dataset.col);
-        content[i] = Math.max(content[i], cell.scrollWidth);
+        content[i] = Math.max(content[i], naturalWidth(cell));
       });
       const next = evenColumns(
         content,
         columns.map((c) => !!c.numeric),
-        box.clientWidth,
+        columns.map((c) => c.title != null),
+        Math.floor(box.getBoundingClientRect().width),
       );
       setWidths((prev) =>
         JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
@@ -572,7 +587,13 @@ export function DataTable<T>({
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
-    return () => observer.disconnect();
+    // And a font arriving late, which widens every cell at once.
+    const fonts = document.fonts;
+    fonts?.addEventListener("loadingdone", measure);
+    return () => {
+      observer.disconnect();
+      fonts?.removeEventListener("loadingdone", measure);
+    };
   });
 
   // Each cell's content in one measurable box, as wide as it naturally is.
