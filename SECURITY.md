@@ -14,7 +14,7 @@ Only the latest release line receives security fixes.
 Please **do not open a public issue** for security problems.
 
 Use GitHub's private vulnerability reporting instead:
-[Report a vulnerability](https://github.com/OpusProjects/unified-ui/security/advisories/new)
+[Report a vulnerability](https://github.com/OpusProjects/ui/security/advisories/new)
 — it opens a private thread with the maintainers.
 
 Include what you can: affected page or component, reproduction steps, and
