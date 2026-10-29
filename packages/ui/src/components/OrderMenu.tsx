@@ -83,6 +83,10 @@ export function OrderMenu({
     button.current?.focus();
   };
   const onKey = (event: React.KeyboardEvent) => {
+    // Closed, the keys are the page's: Home, End and the arrows scroll it,
+    // and Escape may close something around it. ArrowDown on the button
+    // opens the menu, in the button's own handler.
+    if (!open) return;
     const at = items.current.findIndex((i) => i === document.activeElement);
     const move = (to: number) =>
       items.current[(to + options.length) % options.length]?.focus();

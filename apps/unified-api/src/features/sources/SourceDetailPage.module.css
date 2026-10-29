@@ -63,9 +63,10 @@
   scrollbar-color: var(--uu-line-strong) transparent;
 }
 
-/* Too narrow for both columns at their least (300 + 16 + 360): one above
-   the other. */
-@container (max-width: 675px) {
+/* Too narrow for both columns at their least (300 + 16 + 360 = 676px): one
+   above the other. A range rather than max-width: 675px, which leaves a
+   fractional width such as 675.5px with two columns that overflow. */
+@container (width < 676px) {
   .browser {
     grid-template-columns: minmax(0, 1fr);
   }

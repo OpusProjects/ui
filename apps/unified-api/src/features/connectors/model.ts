@@ -1,6 +1,6 @@
 import type { HealthState } from "@opusprojects/unified-client";
 import type { Schemas } from "../../api/client";
-import { formatCount } from "@opusprojects/unified-ui";
+import { countOf, formatCount } from "@opusprojects/unified-ui";
 
 // How connectors are judged and described, shared by their list, their own
 // page and a project's page, so a card and the page it opens never disagree.
@@ -136,7 +136,7 @@ export function commandSummary(command: string | null | undefined): string {
   if (!command) return "None";
   const lines = commandLines(command);
   return lines.length > 1
-    ? `${scriptKind(command)} script, ${lines.length} lines`
+    ? `${scriptKind(command)} script, ${countOf(lines.length, "line")}`
     : (lines[0] ?? "None");
 }
 

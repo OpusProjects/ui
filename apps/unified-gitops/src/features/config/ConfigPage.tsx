@@ -110,8 +110,8 @@ export function ConfigPage() {
 
 function ServerPanels({ settings }: { settings: Settings }) {
   const { server, state, projects, config_api } = settings;
-  // Every Vault: the type: vault credentials, and the deprecated
-  // config.yaml one when it is still set.
+  // Every Vault credential; the panel adds config.yaml's deprecated
+  // settings itself.
   const credentials = useCredentials();
   const vaults: VaultRow[] = [
     ...(credentials.data ?? []).flatMap((c) =>
@@ -126,16 +126,6 @@ function ServerPanels({ settings }: { settings: Settings }) {
           ]
         : [],
     ),
-    ...(settings.secrets.vault
-      ? [
-          {
-            id: null,
-            name: "config.yaml (deprecated)",
-            address: settings.secrets.vault.address,
-            cache_ttl_seconds: settings.secrets.cache_ttl_seconds ?? null,
-          },
-        ]
-      : []),
   ];
   const projectList = useProjects().data;
   const checkouts = projectList
@@ -210,7 +200,12 @@ function ServerPanels({ settings }: { settings: Settings }) {
         </dl>
       </Panel>
 
-      <SecretsPanel vaults={vaults} loading={!credentials.data} />
+      <SecretsPanel
+        vaults={vaults}
+        secrets={settings.secrets}
+        loading={credentials.isPending}
+        error={credentials.error?.message}
+      />
     </>
   );
 }

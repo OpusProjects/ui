@@ -64,7 +64,7 @@ export function CredentialsPage<T extends CredentialLike>({
       good="working"
       search={(c) => {
         const v = view(c);
-        return `${v.id} ${v.title} ${v.description ?? ""} ${c.env_vars.join(" ")} ${c.vault_path ?? ""}`;
+        return `${v.id} ${v.title} ${v.description ?? ""} ${c.env_vars.join(" ")} ${c.vault_path ?? ""} ${c.vault_connection?.address ?? ""}`;
       }}
       name={(c) => view(c).title}
       placeholder={placeholder}
@@ -124,6 +124,15 @@ const HINTS = {
   "Vault path": "vault_path. The KV v2 secret read, under that Vault's mount.",
   "Token from":
     "env_vars.token. The variable holding the token this Vault is logged in to with (or Kubernetes auth, when none is listed).",
+  Address: "address. The Vault's URL, every request to it sent there.",
+  Mount:
+    "mount. The KV v2 mount the vault_path of every credential read from this Vault is under (secret when not set).",
+  Login:
+    "env_vars.token or kubernetes_role. A token read from that variable on every login, so rotating it needs no restart; or the pod's service account, exchanged for a token under that Kubernetes role.",
+  Timeout:
+    "timeout_seconds. How long one request to this Vault may take before the read fails.",
+  Cache:
+    "cache_ttl_seconds. How long a value read from this Vault is reused: also how long a rotation there takes to be seen. None reads it on every use.",
   "Secret file":
     "secret_file. The JSON file read, and its fields picked by secret_keys.",
   Files:
@@ -134,6 +143,17 @@ export interface CredentialDetailLike extends CredentialLike {
   type: string;
   backend: string;
   vault?: string | null;
+  // Set on a `type: vault` credential only: how it reaches and logs in to
+  // that Vault.
+  vault_connection?: {
+    address: string;
+    mount: string;
+    auth: string;
+    kubernetes_role?: string | null;
+    token_env?: string | null;
+    timeout_seconds: number;
+    cache_ttl_seconds: number;
+  } | null;
   secret_keys: string[];
   file_keys: { name: string; path: string }[];
   used_by: { ldap: boolean };
@@ -153,49 +173,87 @@ export function CredentialOverview({
   usedBy: string;
   hints: { type: string; secretKeys: string; usedBy: string };
 }) {
-  // A Vault connection hands nothing to a script: what it shows is how it
-  // logs in.
+  // A Vault connection hands nothing to a script: what it shows is where it
+  // is and how it logs in. Login says where its token comes from, so the
+  // bare "Token from" is only left for an answer without the connection.
   const isVault = credential.type === "vault";
-  const location = isVault ? (
-    <Fact label="Token from" hint={HINTS["Token from"]}>
-      {credential.env_vars.length > 0 ? (
-        <ValueList values={credential.env_vars} mono />
-      ) : (
-        "Kubernetes auth"
-      )}
-    </Fact>
-  ) : credential.backend === "vault" ? (
-    <>
-      <Fact label="Vault" hint={HINTS.Vault}>
-        {credential.vault ? (
-          <Link
-            className={commonStyles.link}
-            to={`/credentials/${encodeURIComponent(credential.vault)}`}
+  const connection = credential.vault_connection;
+  const location =
+    isVault && connection ? (
+      <>
+        <Fact label="Address" hint={HINTS.Address}>
+          <code
+            className={`${detail.mono} ${detail.clipText}`}
+            title={connection.address}
           >
-            {credential.vault}
-          </Link>
+            {connection.address}
+          </code>
+        </Fact>
+        <Fact label="Mount" hint={HINTS.Mount}>
+          <code className={detail.mono}>{connection.mount}</code>
+        </Fact>
+        <Fact label="Login" hint={HINTS.Login}>
+          {connection.auth === "kubernetes" ? (
+            <>
+              Kubernetes role{" "}
+              <code className={detail.mono}>{connection.kubernetes_role}</code>
+            </>
+          ) : (
+            <>
+              Token from{" "}
+              <code className={detail.mono}>{connection.token_env}</code>
+            </>
+          )}
+        </Fact>
+        <Fact label="Timeout" hint={HINTS.Timeout}>
+          {formatSpan(connection.timeout_seconds)}
+        </Fact>
+        <Fact label="Cache" hint={HINTS.Cache}>
+          {connection.cache_ttl_seconds === 0
+            ? "None"
+            : formatSpan(connection.cache_ttl_seconds)}
+        </Fact>
+      </>
+    ) : isVault ? (
+      <Fact label="Token from" hint={HINTS["Token from"]}>
+        {credential.env_vars.length > 0 ? (
+          <ValueList values={credential.env_vars} mono />
         ) : (
-          "config.yaml (deprecated)"
+          "Kubernetes auth"
         )}
       </Fact>
-      <Fact label="Vault path" hint={HINTS["Vault path"]}>
-        <code className={detail.mono}>{credential.vault_path}</code>
+    ) : credential.backend === "vault" ? (
+      <>
+        <Fact label="Vault" hint={HINTS.Vault}>
+          {credential.vault ? (
+            <Link
+              className={commonStyles.link}
+              to={`/credentials/${encodeURIComponent(credential.vault)}`}
+            >
+              {credential.vault}
+            </Link>
+          ) : (
+            "config.yaml (deprecated)"
+          )}
+        </Fact>
+        <Fact label="Vault path" hint={HINTS["Vault path"]}>
+          <code className={detail.mono}>{credential.vault_path}</code>
+        </Fact>
+      </>
+    ) : credential.backend === "env" ? (
+      <Fact label="Env variables" hint={HINTS["Env variables"]}>
+        <ValueList values={credential.env_vars} mono />
       </Fact>
-    </>
-  ) : credential.backend === "env" ? (
-    <Fact label="Env variables" hint={HINTS["Env variables"]}>
-      <ValueList values={credential.env_vars} mono />
-    </Fact>
-  ) : credential.backend === "file" ? (
-    <Fact label="Secret file" hint={HINTS["Secret file"]}>
-      <code
-        className={`${detail.mono} ${detail.clipText}`}
-        title={credential.secret_file ?? ""}
-      >
-        {credential.secret_file}
-      </code>
-    </Fact>
-  ) : null;
+    ) : credential.backend === "file" ? (
+      <Fact label="Secret file" hint={HINTS["Secret file"]}>
+        <code
+          className={`${detail.mono} ${detail.clipText}`}
+          title={credential.secret_file ?? ""}
+        >
+          {credential.secret_file}
+        </code>
+      </Fact>
+    ) : null;
 
   return (
     <Panel
@@ -213,7 +271,9 @@ export function CredentialOverview({
           {credential.type}
         </Fact>
         <Fact label="Read from" hint={HINTS["Read from"]}>
-          {BACKENDS[credential.backend] ?? credential.backend}
+          {isVault
+            ? "This is a Vault"
+            : (BACKENDS[credential.backend] ?? credential.backend)}
         </Fact>
         <Fact label="Used by" hint={hints.usedBy}>
           {usedBy}
@@ -248,24 +308,67 @@ export function CredentialOverview({
 }
 
 // One Vault on the Configuration page: a `type: vault` credential (linked to
-// its page), or the deprecated config.yaml secrets.vault (no page: `id` null).
+// its page), or a row from config.yaml's deprecated secrets settings (no
+// page: `id` null; no address for the cache over every credential).
 export interface VaultRow {
   id: string | null;
   name: string;
-  address: string;
+  address: string | null;
   cache_ttl_seconds: number | null;
 }
 
+// config.yaml's deprecated secrets settings, as the settings answer them.
+export interface DeprecatedSecrets {
+  cache_ttl_seconds?: number | null;
+  vault?: { address: string } | null;
+}
+
+// What a deprecated config.yaml Vault keeps what it read for when
+// secrets.cache_ttl_seconds is not set, as 0.36 did.
+const DEPRECATED_VAULT_CACHE = 60;
+
 // Where secrets can come from besides the environment: one row per Vault,
 // its address and how long it keeps what it read. Its login, mount and the
-// credentials read from it are on its own page.
+// credentials read from it are on its own page. The deprecated config.yaml
+// settings get rows of their own: its Vault, and its cache, which is over
+// every credential (env and file ones too), not over one Vault.
 export function SecretsPanel({
-  vaults,
+  vaults: credentialVaults,
+  secrets,
   loading,
+  error,
 }: {
+  // The `type: vault` credentials.
   vaults: VaultRow[];
+  secrets: DeprecatedSecrets;
   loading?: boolean;
+  // Why the credentials could not be read, instead of a "Loading…" forever.
+  error?: string | null;
 }) {
+  const allCache = secrets.cache_ttl_seconds ?? null;
+  const vaults: VaultRow[] = [
+    ...credentialVaults,
+    ...(secrets.vault
+      ? [
+          {
+            id: null,
+            name: "config.yaml (deprecated)",
+            address: secrets.vault.address,
+            cache_ttl_seconds: allCache ?? DEPRECATED_VAULT_CACHE,
+          },
+        ]
+      : []),
+    ...(allCache != null
+      ? [
+          {
+            id: null,
+            name: "All credentials (config.yaml, deprecated)",
+            address: null,
+            cache_ttl_seconds: allCache,
+          },
+        ]
+      : []),
+  ];
   const columns: ListColumn<VaultRow>[] = [
     {
       key: "name",
@@ -293,8 +396,13 @@ export function SecretsPanel({
     {
       key: "address",
       label: "Address",
-      title: (v) => v.address,
-      render: (v) => <code className={detail.mono}>{v.address}</code>,
+      title: (v) => v.address ?? undefined,
+      render: (v) =>
+        v.address == null ? (
+          <ListSoft>–</ListSoft>
+        ) : (
+          <code className={detail.mono}>{v.address}</code>
+        ),
     },
     {
       key: "cache",
@@ -313,16 +421,23 @@ export function SecretsPanel({
   return (
     <Panel
       title="Secrets"
-      hint="The Vaults credentials can be read from (type: vault credentials, named by their vault), and how long each keeps what it read: also how long a rotation there takes to be seen. Everything else is read from environment variables or files, fresh on every use."
+      hint={`The Vaults credentials can be read from (type: vault credentials, named by their vault), and how long each keeps what it read: also how long a rotation there takes to be seen. Everything else is read from environment variables or files, ${
+        allCache == null
+          ? "fresh on every use."
+          : "kept as long as config.yaml's deprecated secrets.cache_ttl_seconds says, as every credential is."
+      }`}
     >
+      {error && <p className={detail.error}>{error}</p>}
       <ListTable
         columns={columns}
         rows={vaults}
-        rowKey={(v) => v.id ?? "config.yaml"}
+        rowKey={(v) => v.id ?? v.name}
         empty={
           loading
             ? "Loading…"
-            : "No Vault: every secret is read from environment variables or files."
+            : error
+              ? "The credentials could not be read."
+              : "No Vault: every secret is read from environment variables or files."
         }
         noun="Vaults"
       />

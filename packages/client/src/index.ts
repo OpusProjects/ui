@@ -24,6 +24,7 @@ export {
   storedTheme,
   type Theme,
 } from "./theme";
+export { countOf, formatCount } from "./format";
 export { useListFilter, type ListOrder } from "./listFilter";
 export {
   PROJECT_LABELS,
