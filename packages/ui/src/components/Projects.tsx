@@ -182,16 +182,20 @@ export function ProjectsPage<T extends ProjectLike>({
             <Fact label="Commit">
               <Commit gitUrl={project.git_url} revision={project.revision} />
             </Fact>
-            {v.credential && (
-              <Fact label="Credential">
+            {/* Always the row, so every card has the same rows: a public
+                repository is cloned with no credential, said as None. */}
+            <Fact label="Credentials">
+              {v.credential ? (
                 <Link
                   className={styles.link}
                   to={`/credentials/${encodeURIComponent(v.credential)}`}
                 >
                   {v.credential}
                 </Link>
-              </Fact>
-            )}
+              ) : (
+                "None"
+              )}
+            </Fact>
             <Fact label="Last pull">
               <LiveAge
                 seconds={project.sync_health?.last_success_age_seconds}
@@ -225,8 +229,8 @@ const HINTS = {
   Branch: "branch. The branch the checkout follows.",
   Commit:
     "The commit the checkout is at: what this instance reads now. Each pull moves it to the branch's latest commit; a link opens it when the repository has a web page.",
-  Credential:
-    "credential. What the clone and pulls authenticate with, when the repository needs it.",
+  Credentials:
+    "credentials. What the clone and pulls authenticate with, when the repository needs it: None for a public one.",
   "Last attempt":
     "When this project was last pulled, whether it worked or not.",
   Schedule:
@@ -305,7 +309,7 @@ export function ProjectOverview({
         <Fact label="Commit" hint={HINTS.Commit}>
           <Commit gitUrl={project.git_url} revision={project.revision} />
         </Fact>
-        <Fact label="Credential" hint={HINTS.Credential}>
+        <Fact label="Credentials" hint={HINTS.Credentials}>
           {credential ? (
             <Link
               className={detail.link}
