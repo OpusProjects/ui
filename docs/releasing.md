@@ -1,21 +1,153 @@
 # Releasing
 
-unified-ui is versioned on its own, with [Semantic Versioning](https://semver.org/). While it is
-pre-1.0, anything added or breaking is a MINOR release and fixes only are a PATCH.
+Releases are cut by [release-please](https://github.com/googleapis/release-please) in GitHub Actions: no version number,
+changelog line or tag is ever typed by hand, and nothing is built or published from a laptop.
 
-## Cutting a version
+- [How a release happens](#how-a-release-happens)
+- [Versions](#versions)
+- [What goes in the CHANGELOG](#what-goes-in-the-changelog)
+- [Changing the wording before a release](#changing-the-wording-before-a-release)
+- [Correcting a merged title](#correcting-a-merged-title)
+- [Forcing a specific version](#forcing-a-specific-version)
+- [When the release PR has no checks](#when-the-release-pr-has-no-checks)
+- [How unified-api and unified-gitops pick it up](#how-unified-api-and-unified-gitops-pick-it-up)
 
-1. On a branch named `release/x.y.z`, rename `## [Unreleased]` in `CHANGELOG.md` to
-   `## [x.y.z] - YYYY-MM-DD`, leave a fresh empty `## [Unreleased]` above it, update the link refs
-   at the bottom, and set `"version"` in the three `package.json` files
-2. Open the PR, wait for the checks, squash-merge it
-3. Pull `main` and tag the squashed commit: `git tag vx.y.z && git push origin vx.y.z`
+---
 
-The tag runs CI once more, and the `release` job creates the GitHub Release with the notes from
-that version's CHANGELOG section. Never create a release by hand.
+## How a release happens
 
-## How unified-api picks it up
+Every merge into `main` updates one open pull request, and merging that pull request is the release.
 
-unified-api builds a pinned unified-ui version into its image: `UI_REF` in its
-`docker/Dockerfile`. A new unified-ui release reaches users when a unified-api release bumps that
-pin, so a UI change that needs a newer API route ships together with the API that has it.
+```
+feature PR ──squash──▶ main ──▶ release-please updates the open "chore: release vX.Y.Z" PR
+                                              │
+                           you merge it ──────┘
+                                              ▼
+                     tag vX.Y.Z + GitHub Release
+```
+
+1. Every pull request merged into `main` has a Conventional Commit title
+   (`feat: ...`, `fix: ...`); see [CONTRIBUTING.md](../CONTRIBUTING.md).
+2. After each merge, the **Release** workflow (`.github/workflows/release.yml`)
+   runs release-please. It keeps **one** pull request open, titled
+   `chore: release vX.Y.Z`, that bumps the four `package.json` files and `package-lock.json`, adds the
+   section for that version at the top of `CHANGELOG.md`, and updates
+   `.release-please-manifest.json`.
+3. That open pull request is the "unreleased" list: its diff shows exactly what
+   the next release contains. It is opened by `github-actions[bot]`, and the
+   same workflow then runs CI on it (see [below](#when-the-release-pr-has-no-checks)).
+4. **Merging it is the release.** Squash-merge it once its checks are green; the
+   workflow then creates the tag `vX.Y.Z` and the GitHub Release titled `vX.Y.Z`, with the CHANGELOG
+   section as its notes. unified-ui publishes no image of its own.
+
+Never create a tag or a GitHub Release by hand: the next release PR would not
+know about it, and a hand-made release is authored by a person rather than the
+bot, which cannot be corrected later without deleting it.
+
+---
+
+## Versions
+
+Versions follow [Semantic Versioning](https://semver.org/) with a `v` on the tag, and the project is pre-1.0.
+
+| Merged title                                             | Next version          | Example           |
+| -------------------------------------------------------- | --------------------- | ----------------- |
+| `fix:` or `perf:`                                        | PATCH                 | `0.6.0` → `0.6.1` |
+| `feat:`                                                  | MINOR                 | `0.6.0` → `0.7.0` |
+| `feat!:`, `fix!:`, or a `BREAKING CHANGE:` footer        | MINOR while pre-1.0   | `0.6.0` → `0.7.0` |
+| `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:` | no release on its own | —                 |
+
+A pull request with only hidden types merged since the last release opens no
+release PR; it ships with the next `feat:` or `fix:`.
+
+---
+
+## What goes in the CHANGELOG
+
+The CHANGELOG is written from the squashed titles, so a pull request's title is its changelog line.
+
+| Type                                                        | CHANGELOG section  |
+| ----------------------------------------------------------- | ------------------ |
+| `feat`                                                      | Added              |
+| `fix`                                                       | Fixed              |
+| `perf`                                                      | Changed            |
+| `revert`                                                    | Reverted           |
+| a `!` or `BREAKING CHANGE:`                                 | ⚠ BREAKING CHANGES |
+| `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `style` | not listed         |
+
+Write the title for the person reading the release notes: what changes for them,
+not how the code got there. `fix: a sync that times out keeps the last good
+data` is a changelog line; `fix: review findings` is not.
+
+---
+
+## Changing the wording before a release
+
+The release PR's CHANGELOG section can be edited like any other file before it is merged.
+
+Edit `CHANGELOG.md` on its branch (`release-please--branches--main`) and push.
+That edit is lost when release-please rebuilds the branch after the next merge
+into `main`, so make it just before merging the release. Once the release exists,
+its GitHub Release notes can also be edited directly.
+
+---
+
+## Correcting a merged title
+
+A merged pull request with the wrong title is corrected at its source, in its description.
+
+A `feat:` that should have been a `fix:` (which would bump MINOR instead of
+PATCH), or a title that reads badly in the CHANGELOG, is fixed by adding this to
+the merged pull request's description; the next run of the Release workflow
+reads it instead of the title:
+
+```
+BEGIN_COMMIT_OVERRIDE
+fix: the title it should have had
+END_COMMIT_OVERRIDE
+```
+
+Re-run the Release workflow from the Actions tab to apply it without waiting for the next merge.
+
+---
+
+## Forcing a specific version
+
+A version other than the computed one, such as `1.0.0`, is set in `release-please-config.json`.
+
+Set `"release-as"` at the top level in a pull request with a `feat:` or `fix:`
+title and merge it; release-please then proposes exactly that version. Remove
+the setting again in the next pull request after the release, or every later
+release is proposed as that same version.
+
+```json
+  "release-type": "simple",
+  "release-as": "1.0.0",
+```
+
+---
+
+## When the release PR has no checks
+
+The release PR is pushed with `GITHUB_TOKEN`, and GitHub starts no workflow from such a push.
+
+`release.yml` therefore dispatches the CI workflow (`ci.yaml`) on the release
+branch right after release-please updates it, and those runs report on the PR's
+head commit, which is what branch protection requires. If the checks are ever
+missing, open Actions → the CI workflow → **Run workflow** on the
+`release-please--branches--main` branch, or run:
+
+```bash
+gh workflow run ci.yaml --ref release-please--branches--main
+```
+
+---
+
+## How unified-api and unified-gitops pick it up
+
+unified-ui is versioned on its own; each tool builds a pinned unified-ui version into its image.
+
+That pin is `UI_REF` in the tool's `docker/Dockerfile`. A new unified-ui release
+reaches users when a unified-api or unified-gitops release bumps that pin in a
+`build:` pull request, so a UI change that needs a newer API route ships
+together with the API that has it.

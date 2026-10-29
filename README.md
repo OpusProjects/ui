@@ -33,14 +33,14 @@ keep no state of their own, and both are built from the same packages, so they l
 
 ## 📚 Documentation
 
-| Document                           | What it covers                                                        |
-| ---------------------------------- | --------------------------------------------------------------------- |
-| [Layout](docs/layout.md)           | The workspace, the two packages and the apps, and where new code goes |
-| [Development](docs/development.md) | Dev server, API types, typecheck, build, end-to-end tests and CI      |
-| [Sign-in](docs/sign-in.md)         | How the UI signs in, sessions and CSRF on writes                      |
-| [Demo image](docs/demo.md)         | The UI behind nginx, pointed at any instance, and its safety rules    |
-| [Design tokens](docs/design.md)    | The `--uu-*` variables, light and dark, and the four health states    |
-| [Releasing](docs/releasing.md)     | Versions, the CHANGELOG, tags, and how a tool picks up a release      |
+| Document                           | What it covers                                                         |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| [Layout](docs/layout.md)           | The workspace, the two packages and the apps, and where new code goes  |
+| [Development](docs/development.md) | Dev server, API types, typecheck, build, end-to-end tests and CI       |
+| [Sign-in](docs/sign-in.md)         | How the UI signs in, sessions and CSRF on writes                       |
+| [Demo image](docs/demo.md)         | The UI behind nginx, pointed at any instance, and its safety rules     |
+| [Design tokens](docs/design.md)    | The `--uu-*` variables, light and dark, and the four health states     |
+| [Releasing](docs/releasing.md)     | release-please, versions, the CHANGELOG, how a tool picks up a release |
 
 ---
 
