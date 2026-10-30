@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, unwrap } from "./client";
 
-// Status changes with every check (and with a person pressing Sync), so the
-// lists poll. Fifteen seconds is well under the shortest check interval
-// anyone configures.
+// Runs and sends happen whenever a commit lands (or a person presses Run
+// now), so the lists poll.
 const POLL_MS = 15_000;
 
 export function useApiIndex() {
@@ -14,40 +13,50 @@ export function useApiIndex() {
   });
 }
 
-export function useApplications() {
+// Every API item the caller may see, each with its last run: a commit can
+// start one at any time, so the list polls.
+export function useApis() {
   return useQuery({
-    queryKey: ["applications"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/applications")),
+    queryKey: ["apis"],
+    queryFn: async () => unwrap(await api.GET("/api/v1/apis")),
     refetchInterval: POLL_MS,
   });
 }
 
-// One application whole: its pending plan and its run history.
-export function useApplication(id: string, enabled = true) {
+// One API item with its recent runs, for its page.
+export function useApi(id: string) {
   return useQuery({
-    queryKey: ["application", id],
-    enabled,
+    queryKey: ["apis", id],
     queryFn: async () =>
-      unwrap(
-        await api.GET("/api/v1/applications/{id}", {
-          params: { path: { id } },
-        }),
-      ),
+      unwrap(await api.GET("/api/v1/apis/{id}", { params: { path: { id } } })),
     refetchInterval: POLL_MS,
-  });
-}
-
-// Admin-only, like the rest below: a restricted key is refused once, and
-// the pages that use them say so.
-export function useConnectors() {
-  return useQuery({
-    queryKey: ["connectors"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/connectors")),
-    staleTime: 60_000,
     retry: false,
   });
 }
 
+export function useScripts() {
+  return useQuery({
+    queryKey: ["scripts"],
+    queryFn: async () => unwrap(await api.GET("/api/v1/scripts")),
+    refetchInterval: POLL_MS,
+  });
+}
+
+export function useScript(id: string) {
+  return useQuery({
+    queryKey: ["scripts", id],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/v1/scripts/{id}", { params: { path: { id } } }),
+      ),
+    refetchInterval: POLL_MS,
+    retry: false,
+  });
+}
+
+// A restricted key reads only its own projects. The ones below are
+// admin-only: a restricted key is refused once, and the pages that use
+// them say so.
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],

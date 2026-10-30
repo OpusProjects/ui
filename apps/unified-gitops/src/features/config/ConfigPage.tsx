@@ -16,10 +16,13 @@ import {
 import { ValueList } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
 import {
+  useApis,
   useAuth,
   useCredentials,
   useProjects,
+  useScripts,
   useSettings,
+  useWebhooks,
 } from "../../api/queries";
 import { Clip, detailStyles as common, onOff } from "@opusprojects/unified-ui";
 import { ICONS } from "../../sections";
@@ -50,16 +53,13 @@ const HINTS: Record<string, string> = {
   "Browser origins":
     "server.cors_allowed_origins. Other websites allowed to call this API from a browser. None means no CORS at all.",
   "Shutdown grace":
-    "server.shutdown_grace_seconds. On shutdown, how long a running sync gets to finish its operations before the process exits anyway.",
+    "server.shutdown_grace_seconds. On shutdown, how long running API calls, scripts and webhook sends get to finish before the process exits anyway.",
   "Request size":
     "server.max_body_bytes. The largest request body accepted, such as a configuration push.",
-  "State folder":
-    "state.dir. Where the local copy of every system's current settings is written, one YAML file per application and kind." +
-    AT_START,
   "Projects folder":
     "projects.dir. Where the git projects are cloned." + AT_START,
   Checkouts:
-    "The configured git projects with a clone on this instance's disk. One missing has no desired state to compare.",
+    "The configured git projects with a clone on this instance's disk. One missing has no changes to act on until its first pull works.",
   "Config API":
     "config_api.enabled. Whether the configuration files can be read, pushed and reloaded over /api/v1/config." +
     AT_START,
@@ -100,7 +100,12 @@ export function ConfigPage() {
               admins.
             </EmptyState>
           )}
-          {settings.data && <ServerPanels settings={settings.data} />}
+          {settings.data && (
+            <ServerPanels
+              settings={settings.data}
+              apiKeys={auth.data.api_keys?.length}
+            />
+          )}
           <SignIn auth={auth.data} />
         </>
       )}
@@ -108,8 +113,14 @@ export function ConfigPage() {
   );
 }
 
-function ServerPanels({ settings }: { settings: Settings }) {
-  const { server, state, projects, config_api } = settings;
+function ServerPanels({
+  settings,
+  apiKeys,
+}: {
+  settings: Settings;
+  apiKeys?: number;
+}) {
+  const { server, projects, config_api } = settings;
   // Every Vault credential; the panel adds config.yaml's deprecated
   // settings itself.
   const credentials = useCredentials();
@@ -185,9 +196,6 @@ function ServerPanels({ settings }: { settings: Settings }) {
 
       <Panel title="Storage">
         <dl className={common.facts}>
-          <Fact label="State folder" hint={HINTS["State folder"]}>
-            {state.dir ? <Clip value={state.dir} /> : "Unknown"}
-          </Fact>
           <Fact label="Projects folder" hint={HINTS["Projects folder"]}>
             {projects.dir ? <Clip value={projects.dir} /> : "Unknown"}
           </Fact>
@@ -200,6 +208,8 @@ function ServerPanels({ settings }: { settings: Settings }) {
         </dl>
       </Panel>
 
+      <ItemsPanel apiKeys={apiKeys} />
+
       <SecretsPanel
         vaults={vaults}
         secrets={settings.secrets}
@@ -207,6 +217,66 @@ function ServerPanels({ settings }: { settings: Settings }) {
         error={credentials.error?.message}
       />
     </>
+  );
+}
+
+// How many of each item are in force, each linking to its section: the
+// configuration at a glance, as a reload reports it.
+function ItemsPanel({ apiKeys }: { apiKeys?: number }) {
+  const count = (list?: unknown[]) => (list ? formatCount(list.length) : "…");
+  const projects = useProjects().data;
+  const apis = useApis().data;
+  const scripts = useScripts().data;
+  const webhooks = useWebhooks().data;
+  const credentials = useCredentials().data;
+  const row = (label: string, to: string, value: string, hint: string) => (
+    <Fact label={label} hint={hint}>
+      <Link className={common.link} to={to}>
+        {value}
+      </Link>
+    </Fact>
+  );
+  return (
+    <Panel title="Items">
+      <dl className={common.facts}>
+        {row(
+          "Projects",
+          "/projects",
+          count(projects),
+          "projects. The git repositories watched.",
+        )}
+        {row(
+          "APIs",
+          "/apis",
+          count(apis),
+          "apis. Items that call an API with what a commit changed.",
+        )}
+        {row(
+          "Scripts",
+          "/scripts",
+          count(scripts),
+          "scripts. Items that run a script when a commit changes what they watch.",
+        )}
+        {row(
+          "Webhooks",
+          "/webhooks",
+          count(webhooks),
+          "webhooks. Requests that tell a project's events.",
+        )}
+        {row(
+          "Credentials",
+          "/credentials",
+          count(credentials),
+          "credentials. Where secrets are read from; never their values.",
+        )}
+        <Fact
+          label="API keys"
+          hint="api_keys. The keys that may call this instance, by name and role; listed under Sign-in below."
+        >
+          {apiKeys != null ? formatCount(apiKeys) : "…"}
+        </Fact>
+      </dl>
+    </Panel>
   );
 }
 
@@ -221,11 +291,11 @@ function SignIn({ auth }: { auth: AuthInfo }) {
           ...ldap,
           access: ldap.access.map((rule) => ({
             ...rule,
-            scope: rule.applications,
+            scope: rule.projects,
           })),
         }
       }
-      apiKeys={api_keys?.map((key) => ({ ...key, scope: key.applications }))}
+      apiKeys={api_keys?.map((key) => ({ ...key, scope: key.projects }))}
       bindAccountLink={(id, className) => (
         <Link
           className={className}

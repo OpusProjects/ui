@@ -10,17 +10,17 @@ import {
 import type { Schemas } from "../api/client";
 import { useWebhooks } from "../api/queries";
 import {
+  hostOf,
   sentEvent,
-  TYPE_WORDS,
   webhookLabels,
   webhookState,
 } from "../features/webhooks/model";
 
 type Webhook = Schemas["WebhookSummary"];
 
-// A set of webhooks, each with its type, its last send and its state, and a
-// link to its page: those that hear a project, as a webhook's card says the
-// same. `hears` picks them from the list.
+// A set of webhooks, each with where it sends, its last send and its state,
+// and a link to its page: those that hear a project, or send with a
+// credential. `hears` picks them from the list.
 export function WebhookTable({
   hears,
   empty,
@@ -53,7 +53,12 @@ export function WebhookTable({
         />
       ),
     },
-    { key: "type", label: "Type", render: (n) => TYPE_WORDS[n.type] },
+    {
+      key: "destination",
+      label: "Sends to",
+      title: (n) => n.destination,
+      render: (n) => hostOf(n.destination),
+    },
     {
       key: "last",
       label: "Last send",

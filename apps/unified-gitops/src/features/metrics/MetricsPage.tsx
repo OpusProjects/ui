@@ -37,101 +37,91 @@ export function MetricsPage() {
   );
 }
 
-// How many applications are in a status: the gauge is 1 on each
-// application's current status and 0 on the others.
-const inStatus = (samples: Sample[], status: string) =>
-  sum(
-    samples,
-    `${PREFIX}_application_status`,
-    (labels) => labels.status === status,
-  );
-
 function MetricsContent({ scrapes }: { scrapes: Scrape[] }) {
   const samples = scrapes.at(-1)!.samples;
-  const applications = new Set(
-    select(samples, `${PREFIX}_application_status`).map(
-      (s) => s.labels.application,
-    ),
-  ).size;
-  const pending = sum(samples, `${PREFIX}_application_pending_operations`);
+  const runs = sum(samples, RUNS);
+  const failedRuns = sum(samples, RUNS, failed);
+  const sends = sum(samples, SENDS);
+  const failedSends = sum(samples, SENDS, failed);
 
   return (
     <>
       <KpiRow>
         <StatTile
-          label="Applications"
-          value={formatCount(applications)}
-          hint={`Applications configured, from ${PREFIX}_application_status, one series per application and status.`}
+          label="Runs"
+          value={formatCount(runs)}
+          hint={`API and script runs since this instance started, dry runs left out. From ${RUNS}.`}
         />
         <StatTile
-          label="Synced"
-          value={formatCount(inStatus(samples, "synced"))}
-          hint="Applications whose last check found every declared object as declared."
+          label="Failed runs"
+          value={formatCount(failedRuns)}
+          hint="Runs that failed: a request or an execution that did not work, or a run that could not start."
         />
         <StatTile
-          label="Failed"
-          value={formatCount(inStatus(samples, "failed"))}
-          hint="Applications whose last check or sync could not finish."
+          label="Webhook sends"
+          value={formatCount(sends)}
+          hint={`Messages sent to receivers since this instance started, tests included; retries of one count once. From ${SENDS}.`}
         />
         <StatTile
-          label="Changes to apply"
-          value={formatCount(pending)}
-          hint={`Operations the last checks found and nobody has applied yet, all applications together. From ${PREFIX}_application_pending_operations.`}
+          label="Failed sends"
+          value={formatCount(failedSends)}
+          hint="Sends the receiver never took, after every attempt."
         />
       </KpiRow>
 
       <ProcessPanels scrapes={scrapes} />
-      <CallPanels scrapes={scrapes} />
+      <RunPanels scrapes={scrapes} />
 
       <MetricsRow>
         <Panel
-          title="Requests by application"
-          hint={`${CALLS} and ${DURATION}, by application, since this instance started: what it read and wrote on each application, what failed, and how long it took to answer. A p95 of “< 5 ms” falls in the histogram's lowest bucket.`}
-          description="Reads, writes and failures on each application, busiest first."
+          title="Runs by item"
+          hint={`${RUNS} and ${DURATION}, by item, since this instance started: how often each API and script ran, how many runs failed, and how long one took. A p95 of “< 5 ms” falls in the histogram's lowest bucket.`}
+          description="Runs and failures of each item, busiest first."
         >
-          <CallTable samples={samples} />
+          <RunTable samples={samples} />
         </Panel>
         <Panel
-          title="Check health by application"
-          hint={`${PREFIX}_application_consecutive_failures and _last_success_age_seconds: checks or syncs that failed in a row, and how long since one finished. Failing applications first.`}
-          description="Failed checks in a row, and the last one that worked."
+          title="Pull health by project"
+          hint={`${PREFIX}_project_sync_consecutive_failures and _last_success_age_seconds: pulls that failed in a row, and how long since one worked. Failing projects first.`}
+          description="Failed pulls in a row, and the last one that worked."
         >
-          <CheckTable samples={samples} />
+          <PullTable samples={samples} />
         </Panel>
       </MetricsRow>
     </>
   );
 }
 
-const CALLS = `${PREFIX}_connector_calls_total`;
-const DURATION = `${PREFIX}_connector_call_duration_seconds`;
+const RUNS = `${PREFIX}_runs_total`;
+const DURATION = `${PREFIX}_run_duration_seconds`;
+const SENDS = `${PREFIX}_webhooks_total`;
 const COLLECTING =
   "Collecting: the first point appears after two samples, ten seconds apart.";
 type LabelFilter = (labels: Record<string, string>) => boolean;
-const reads: LabelFilter = (l) => l.command === "list";
-const writes: LabelFilter = (l) => l.command === "apply";
+const ofApis: LabelFilter = (l) => l.kind === "api";
+const ofScripts: LabelFilter = (l) => l.kind === "script";
 const failed: LabelFilter = (l) => l.outcome === "error";
 
-// What this instance does to the systems, through their connectors. Its own
-// HTTP routes are mostly this app polling it; these calls are its work.
-function CallPanels({ scrapes }: { scrapes: Scrape[] }) {
-  const calls = scrapes.slice(1).map((scrape, i) => {
+// What this instance does: its API and script runs. Its own HTTP routes are
+// mostly this app polling it; these runs are its work.
+function RunPanels({ scrapes }: { scrapes: Scrape[] }) {
+  const runs = scrapes.slice(1).map((scrape, i) => {
     const perMinute = (filter?: LabelFilter) =>
-      rate(scrapes[i], scrape, CALLS, filter) * 60;
+      rate(scrapes[i], scrape, RUNS, filter) * 60;
     const line = (value: number, one: string, many: string) =>
       `${compact(value)} ${value === 1 ? one : many}`;
     return {
       at: scrape.at,
       value: perMinute(),
       details: [
-        line(perMinute(reads), "read", "reads"),
-        line(perMinute(writes), "write", "writes"),
+        line(perMinute(ofApis), "API run", "API runs"),
+        line(perMinute(ofScripts), "script run", "script runs"),
         line(perMinute(failed), "failed", "failed"),
       ],
     };
   });
-  // Mean time per call over the minute before each sample: time spent in
-  // connectors divided by calls made. A minute without calls is a gap, bridged.
+  // Mean time per run over the minute before each sample: time spent in
+  // runs divided by runs made. A minute without runs is a gap, bridged.
   const WINDOW_MS = 60_000;
   const durations = scrapes.slice(1).map((scrape, i) => {
     const from =
@@ -144,54 +134,54 @@ function CallPanels({ scrapes }: { scrapes: Scrape[] }) {
       return count > 0 ? growth(`${DURATION}_sum`, filter) / count : null;
     };
     const all = mean();
-    const read = mean(reads);
-    const write = mean(writes);
+    const apis = mean(ofApis);
+    const scripts = mean(ofScripts);
     return {
       at: scrape.at,
       value: all === null ? null : all * 1000,
       details: [
-        ...(read === null ? [] : [`reads ${milliseconds(read)}`]),
-        ...(write === null ? [] : [`writes ${milliseconds(write)}`]),
+        ...(apis === null ? [] : [`APIs ${milliseconds(apis)}`]),
+        ...(scripts === null ? [] : [`scripts ${milliseconds(scripts)}`]),
       ],
     };
   });
-  const latestRate = calls.at(-1)?.value ?? null;
+  const latestRate = runs.at(-1)?.value ?? null;
   const latestDuration =
     [...durations].reverse().find((p) => p.value !== null)?.value ?? null;
 
   return (
     <MetricsRow>
       <Panel
-        title="Requests sent to applications (per minute)"
-        hint={`The rate of ${CALLS} between samples, times 60: every request this instance made to an application through its connector. list reads one kind, apply writes one change, describe starts each run. The tooltip splits it into reads, writes and failures.`}
+        title="Runs (per minute)"
+        hint={`The rate of ${RUNS} between samples, times 60: every run of an API or script item, dry runs left out. The tooltip splits it into API runs, script runs and failures.`}
         description={
           latestRate === null ? (
-            "Requests made to the applications, through their connectors."
+            "Runs of the API and script items."
           ) : (
             <>
-              Requests made to the applications, through their connectors:{" "}
+              Runs of the API and script items:{" "}
               <strong>{compact(latestRate)} per minute</strong> now.
             </>
           )
         }
       >
         <LineChart
-          points={calls}
+          points={runs}
           series={3}
-          label="Requests sent to applications (per minute)"
+          label="Runs (per minute)"
           format={(v) => `${compact(v)} per minute`}
           empty={COLLECTING}
         />
       </Panel>
       <Panel
-        title="Connector response time"
-        hint={`At each sample, the growth of ${DURATION}_sum over the past minute divided by the growth of its _count: how long an application took to answer, script start-up included. The tooltip splits reads from writes. A minute without requests is bridged.`}
+        title="Run time"
+        hint={`At each sample, the growth of ${DURATION}_sum over the past minute divided by the growth of its _count: how long a run took, every request or execution in it together. The tooltip splits APIs from scripts. A minute without runs is bridged.`}
         description={
           latestDuration === null ? (
-            "Mean time a request took over the last minute."
+            "Mean time a run took over the last minute."
           ) : (
             <>
-              Mean time a request took over the last minute:{" "}
+              Mean time a run took over the last minute:{" "}
               <strong>{milliseconds(latestDuration / 1000)}</strong> now.
             </>
           )
@@ -200,9 +190,9 @@ function CallPanels({ scrapes }: { scrapes: Scrape[] }) {
         <LineChart
           points={durations}
           series={7}
-          label="Mean connector response time"
+          label="Mean run time"
           format={(v) => milliseconds(v / 1000)}
-          gapLabel="No requests"
+          gapLabel="No runs"
           connectGaps
           tickFormat={(v) => `${compact(v)} ms`}
           empty={COLLECTING}
@@ -212,62 +202,64 @@ function CallPanels({ scrapes }: { scrapes: Scrape[] }) {
   );
 }
 
-interface CallRow {
-  application: string;
-  reads: number;
-  writes: number;
+interface RunRow {
+  item: string;
+  kind: string;
+  runs: number;
   failed: number;
   mean: number | null;
   p95: ReturnType<typeof histogramQuantile>;
 }
 
-// "< 5 ms" when every call fit the lowest bucket: the histogram cannot say
+// "< 5 ms" when every run fit the lowest bucket: the histogram cannot say
 // more, and a precise-looking 4.8 ms would.
-function p95Text(q: CallRow["p95"]) {
+function p95Text(q: RunRow["p95"]) {
   if (q === null) return "–";
   const text = milliseconds(q.value).replace(".0 ms", " ms");
   return q.below ? `< ${text}` : text;
 }
 
-// The outgoing equivalent of an API routes table: per application, what was
-// done to its system and how the system answered.
-function CallTable({ samples }: { samples: Sample[] }) {
-  const apps = new Set(select(samples, CALLS).map((s) => s.labels.application));
-  const rows: CallRow[] = [...apps].map((application) => {
-    const of: LabelFilter = (l) => l.application === application;
+const KIND_WORDS: Record<string, string> = { api: "API", script: "Script" };
+
+// The outgoing equivalent of an API routes table: per item, how often it
+// ran, what failed, and how long it took.
+function RunTable({ samples }: { samples: Sample[] }) {
+  const items = new Map(
+    select(samples, RUNS).map((s) => [
+      `${s.labels.kind}/${s.labels.item}`,
+      { kind: s.labels.kind, item: s.labels.item },
+    ]),
+  );
+  const rows: RunRow[] = [...items.values()].map(({ kind, item }) => {
+    const of: LabelFilter = (l) => l.kind === kind && l.item === item;
     const count = sum(samples, `${DURATION}_count`, of);
     return {
-      application,
-      reads: sum(samples, CALLS, (l) => of(l) && reads(l)),
-      writes: sum(samples, CALLS, (l) => of(l) && writes(l)),
-      failed: sum(samples, CALLS, (l) => of(l) && failed(l)),
+      item,
+      kind,
+      runs: sum(samples, RUNS, of),
+      failed: sum(samples, RUNS, (l) => of(l) && failed(l)),
       mean: count > 0 ? sum(samples, `${DURATION}_sum`, of) / count : null,
       p95: histogramQuantile(0.95, samples, DURATION, of),
     };
   });
-  rows.sort(
-    (a, b) =>
-      b.reads + b.writes - (a.reads + a.writes) ||
-      a.application.localeCompare(b.application),
-  );
-  const columns: Column<CallRow>[] = [
+  rows.sort((a, b) => b.runs - a.runs || a.item.localeCompare(b.item));
+  const columns: Column<RunRow>[] = [
     {
-      key: "application",
-      label: "Application",
-      title: (r) => r.application,
-      render: (r) => <code className={styles.mono}>{r.application}</code>,
+      key: "item",
+      label: "Item",
+      title: (r) => r.item,
+      render: (r) => <code className={styles.mono}>{r.item}</code>,
     },
     {
-      key: "reads",
-      label: "Reads",
-      numeric: true,
-      render: (r) => formatCount(r.reads),
+      key: "kind",
+      label: "Kind",
+      render: (r) => KIND_WORDS[r.kind] ?? r.kind,
     },
     {
-      key: "writes",
-      label: "Writes",
+      key: "runs",
+      label: "Runs",
       numeric: true,
-      render: (r) => formatCount(r.writes),
+      render: (r) => formatCount(r.runs),
     },
     {
       key: "failed",
@@ -286,64 +278,58 @@ function CallTable({ samples }: { samples: Sample[] }) {
   if (rows.length === 0)
     return (
       <p className={styles.soft}>
-        No requests yet: the first check of each application makes them.
+        No runs yet: a commit that changes what an item watches starts one.
       </p>
     );
   return (
-    <DataTable columns={columns} rows={rows} rowKey={(r) => r.application} />
+    <DataTable
+      columns={columns}
+      rows={rows}
+      rowKey={(r) => `${r.kind}/${r.item}`}
+    />
   );
 }
 
-interface CheckRow {
-  application: string;
+interface PullRow {
+  project: string;
   failures: number;
   lastSuccess: number | null;
-  lastCheck: number | null;
 }
 
-// Is anything quietly stuck? Applications whose checks keep failing, and how
-// long since one last worked.
-function CheckTable({ samples }: { samples: Sample[] }) {
-  const value = (name: string, application: string) => {
+// Is anything quietly stuck? Projects whose pulls keep failing, and how
+// long since one last worked: their changes reach nothing meanwhile.
+function PullTable({ samples }: { samples: Sample[] }) {
+  const FAILURES = `${PREFIX}_project_sync_consecutive_failures`;
+  const AGE = `${PREFIX}_project_sync_last_success_age_seconds`;
+  const value = (name: string, project: string) => {
     const found = select(samples, name).find(
-      (s) => s.labels.application === application,
+      (s) => s.labels.project === project,
     );
     return found ? found.value : null;
   };
-  const apps = new Set(
-    select(samples, `${PREFIX}_application_status`).map(
-      (s) => s.labels.application,
-    ),
+  const projects = new Set(
+    select(samples, FAILURES).map((s) => s.labels.project),
   );
-  const rows: CheckRow[] = [...apps].map((application) => ({
-    application,
-    failures:
-      value(`${PREFIX}_application_consecutive_failures`, application) ?? 0,
-    lastSuccess: value(
-      `${PREFIX}_application_last_success_age_seconds`,
-      application,
-    ),
-    lastCheck: value(
-      `${PREFIX}_application_last_check_age_seconds`,
-      application,
-    ),
+  const rows: PullRow[] = [...projects].map((project) => ({
+    project,
+    failures: value(FAILURES, project) ?? 0,
+    lastSuccess: value(AGE, project),
   }));
   rows.sort(
-    (a, b) =>
-      b.failures - a.failures || a.application.localeCompare(b.application),
+    (a, b) => b.failures - a.failures || a.project.localeCompare(b.project),
   );
   const ago = (seconds: number | null) =>
     seconds === null ? "–" : `${formatSpan(seconds)} ago`;
-  const columns: Column<CheckRow>[] = [
+  const columns: Column<PullRow>[] = [
     {
-      key: "application",
-      label: "Application",
-      title: (r) => r.application,
-      render: (r) => <code className={styles.mono}>{r.application}</code>,
+      key: "project",
+      label: "Project",
+      title: (r) => r.project,
+      render: (r) => <code className={styles.mono}>{r.project}</code>,
     },
     {
       key: "state",
-      label: "Runs",
+      label: "Pulls",
       render: (r) =>
         r.failures > 0 ? (
           <HealthPill
@@ -355,12 +341,6 @@ function CheckTable({ samples }: { samples: Sample[] }) {
         ),
     },
     {
-      key: "lastCheck",
-      label: "Last check",
-      numeric: true,
-      render: (r) => ago(r.lastCheck),
-    },
-    {
       key: "lastSuccess",
       label: "Last success",
       numeric: true,
@@ -368,8 +348,6 @@ function CheckTable({ samples }: { samples: Sample[] }) {
     },
   ];
   if (rows.length === 0)
-    return <p className={styles.soft}>No applications configured.</p>;
-  return (
-    <DataTable columns={columns} rows={rows} rowKey={(r) => r.application} />
-  );
+    return <p className={styles.soft}>No projects configured.</p>;
+  return <DataTable columns={columns} rows={rows} rowKey={(r) => r.project} />;
 }

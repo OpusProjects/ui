@@ -12,10 +12,11 @@ import {
   SkeletonSummary,
 } from "@opusprojects/unified-ui";
 import type { Schemas } from "../../api/client";
-import { useApplications, useCredentials } from "../../api/queries";
+import { useCredentials } from "../../api/queries";
 import { CredentialOverview, DetailTitle } from "@opusprojects/unified-ui";
 import { ICONS } from "../../sections";
-import { applicationColumns } from "../applications/columns";
+import { ActionTable } from "../../shared/ActionTable";
+import { WebhookTable } from "../../shared/WebhookTable";
 import { ProjectTable } from "../../shared/ProjectTable";
 import { credentialState, credentialUsers, usedBy } from "./model";
 import { CREDENTIAL_LABELS } from "@opusprojects/unified-client";
@@ -25,11 +26,11 @@ type Credential = Schemas["CredentialInfo"];
 // The overview's hints that are this app's own: what receives the secrets,
 // and what can name a credential.
 const HINTS = {
-  type: "type. username_password, token or ssh_key: what the connector or the git pull expects to receive; or vault, a Vault other credentials are read from.",
+  type: "type. username_password, token or ssh_key: what an API call, a webhook, a script or a git pull expects to receive; or vault, a Vault other credentials are read from.",
   secretKeys:
-    "secret_keys. The names the connector receives the secrets under (CREDENTIAL_<KEY>); never their values.",
+    "secret_keys. The names its secrets go by: the fields an API's or a webhook's auth reads, and a script's CREDENTIAL_<KEY> variables; never their values.",
   usedBy:
-    "What names this credential: applications (credentials), projects (credentials), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
+    "What names this credential: projects, API items, script items and webhooks (credential, and the auth that reads it), the LDAP login (bind_credential) and, for a Vault, the credentials read from it (vault).",
 };
 
 export function CredentialDetailPage() {
@@ -78,28 +79,31 @@ export function CredentialDetailPage() {
   );
 }
 
-// Who receives these secrets, one table per kind of user, as the project
-// and connector pages list theirs.
+// Who receives these secrets, one table per kind of user, as a project's
+// page lists what acts on it.
 function Users({ credential }: { credential: Credential }) {
-  const applications = useApplications();
-  const apps = new Map((applications.data ?? []).map((a) => [a.name, a]));
   const {
-    applications: appNames,
-    projects: projectNames,
+    credentials: readers,
+    projects,
+    apis,
+    scripts,
+    webhooks,
     ldap,
   } = credential.used_by;
-  const readers = credential.used_by.credentials ?? [];
   if (
-    readers.length === 0 &&
-    appNames.length === 0 &&
-    projectNames.length === 0 &&
+    readers.length +
+      projects.length +
+      apis.length +
+      scripts.length +
+      webhooks.length ===
+      0 &&
     !ldap
   )
     return (
       <Panel title="Used by">
         <ListSoft>
-          Nothing uses this credential: no application, project or login names
-          it.
+          Nothing uses this credential: no project, API, script, webhook or
+          login names it.
         </ListSoft>
       </Panel>
     );
@@ -113,29 +117,43 @@ function Users({ credential }: { credential: Credential }) {
           <ReaderTable names={readers} />
         </Panel>
       )}
-      {appNames.length > 0 && (
+      {projects.length > 0 && (
         <Panel
-          title="Applications"
-          hint="The applications using this credential: their credentials name it, and their connector receives these secrets on every run."
+          title="Projects"
+          hint="The projects using this credential: they clone and pull their repository with it."
         >
-          <ListTable
-            columns={applicationColumns(
-              "connector",
-              applications.dataUpdatedAt,
-            )}
-            rows={appNames.map((n) => ({ name: n, app: apps.get(n) }))}
-            rowKey={(r) => r.name}
-            empty="No application uses it."
-            noun="applications"
+          <ProjectTable names={projects} empty="No project uses it." />
+        </Panel>
+      )}
+      {apis.length > 0 && (
+        <Panel
+          title="APIs"
+          hint="The API items using this credential: their auth sends it with every request."
+        >
+          <ActionTable kind="api" names={apis} empty="No API uses it." />
+        </Panel>
+      )}
+      {scripts.length > 0 && (
+        <Panel
+          title="Scripts"
+          hint="The script items given this credential: its fields reach the script as CREDENTIAL_<FIELD> variables."
+        >
+          <ActionTable
+            kind="script"
+            names={scripts}
+            empty="No script uses it."
           />
         </Panel>
       )}
-      {projectNames.length > 0 && (
+      {webhooks.length > 0 && (
         <Panel
-          title="Projects"
-          hint="The projects using this credential: their credentials name it, and they clone and pull their repository with it."
+          title="Webhooks"
+          hint="The webhooks using this credential: to authenticate, to sign the body, or as a client certificate."
         >
-          <ProjectTable names={projectNames} empty="No project uses it." />
+          <WebhookTable
+            hears={(n) => webhooks.includes(n.name)}
+            empty="No webhook uses it."
+          />
         </Panel>
       )}
     </>

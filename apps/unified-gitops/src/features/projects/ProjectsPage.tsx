@@ -18,9 +18,9 @@ export function ProjectsPage() {
       })}
       pull={pull}
       icon={ICONS.projects}
-      description="Git repositories with desired state and connector scripts, pulled before each check."
+      description="Git repositories: when one pulls a commit, the APIs, scripts and webhooks watching it act on what changed."
       placeholder="Search by name, description or repository"
-      empty="Declare the git repository holding your desired state under projects: in the configuration."
+      empty="Declare a git repository to watch under projects: in the configuration."
     />
   );
 }

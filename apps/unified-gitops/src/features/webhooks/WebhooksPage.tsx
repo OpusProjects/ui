@@ -21,18 +21,10 @@ import { ICONS } from "../../sections";
 import {
   LABELS,
   webhookLabels,
-  TYPE_WORDS,
-  applicationsText,
-  applicationsLabel,
-  projectsText,
-  projectsLabel,
-  selectsApplications,
-  selectsProjects,
   hostOf,
   webhookState,
   searchText,
   sentEvent,
-  templateText,
 } from "./model";
 
 export function WebhooksPage() {
@@ -53,7 +45,7 @@ export function WebhooksPage() {
       <PageHeader
         icon={ICONS.webhooks}
         title="Webhooks"
-        description="When an application or its repository changes, drifts or fails, a webhook can send what changed to an endpoint."
+        description="When a project pulls a commit, fails to pull, or one of its API or script runs works or fails, a webhook sends an HTTP request about it."
       />
       {webhooks.isPending && (
         <>
@@ -81,7 +73,7 @@ export function WebhooksPage() {
             filter={filter}
             orders={orderOptions()}
             label="Search webhooks"
-            placeholder="Search by name, description, destination, application, project or event"
+            placeholder="Search by name, description, destination, project, event, path or label"
           />
           {filter.visible.length === 0 ? (
             <EmptyState
@@ -92,7 +84,7 @@ export function WebhooksPage() {
               }
             >
               {items.length === 0
-                ? "Declare one under webhooks: in the configuration: the events to report, the applications or projects to listen to, and a webhook or a job template to send them to."
+                ? "Declare one under webhooks: in the configuration: the project to listen to, the events to report, and the request that tells them."
                 : "Clear the search or the filter to see every webhook."}
             </EmptyState>
           ) : (
@@ -114,24 +106,12 @@ export function WebhooksPage() {
                     </Link>
                   )}
                 >
-                  <Fact label="Type">{TYPE_WORDS[n.type]}</Fact>
-                  {selectsProjects(n) && (
-                    <Fact label={projectsLabel(n)}>{projectsText(n)}</Fact>
-                  )}
-                  {(selectsApplications(n) || !selectsProjects(n)) && (
-                    <Fact label={applicationsLabel(n)}>
-                      {applicationsText(n)}
-                    </Fact>
-                  )}
-                  {templateText(n) ? (
-                    <Fact label="Starts">{templateText(n)}</Fact>
-                  ) : (
-                    <Fact label="Sends to">
-                      <code className={styles.mono} title={n.destination}>
-                        {hostOf(n.destination)}
-                      </code>
-                    </Fact>
-                  )}
+                  <Fact label="Project">{n.project}</Fact>
+                  <Fact label="Sends to">
+                    <code className={styles.mono} title={n.destination}>
+                      {n.request.method} {hostOf(n.destination)}
+                    </code>
+                  </Fact>
                   <Fact label="Last send">
                     {n.last ? (
                       <>

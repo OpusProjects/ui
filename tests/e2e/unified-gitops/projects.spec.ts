@@ -4,26 +4,26 @@ import { mockApi } from "./fixtures/api";
 test("a project card's title opens the project's page", async ({ page }) => {
   await mockApi(page);
   await page.goto("/projects");
-  const title = page.getByRole("link", { name: "prj-state", exact: true });
-  await expect(title).toHaveAttribute("href", "/projects/prj-state");
+  const title = page.getByRole("link", { name: "prj-infra", exact: true });
+  await expect(title).toHaveAttribute("href", "/projects/prj-infra");
   await title.click();
-  await expect(page).toHaveURL("/projects/prj-state");
-  await expect(page.locator("h1")).toContainText("prj-state");
+  await expect(page).toHaveURL("/projects/prj-infra");
+  await expect(page.locator("h1")).toContainText("prj-infra");
 });
 
 test("a project's page shows its overview, never its token", async ({
   page,
 }) => {
   await mockApi(page);
-  await page.goto("/projects/prj-state");
+  await page.goto("/projects/prj-infra");
   // The header says what the project is, in its own words.
   await expect(
-    page.locator("header").getByText("Desired state", { exact: true }),
+    page.locator("header").getByText("Infrastructure", { exact: true }),
   ).toBeVisible();
   const overview = page.locator("section", { hasText: "Overview" });
   await expect(
-    overview.getByRole("link", { name: "git.example.com/ops/state" }),
-  ).toHaveAttribute("href", "https://git.example.com/ops/state");
+    overview.getByRole("link", { name: "git.example.com/ops/infra" }),
+  ).toHaveAttribute("href", "https://git.example.com/ops/infra");
   await expect(
     overview.getByRole("link", { name: "cred-store" }),
   ).toHaveAttribute("href", "/credentials/cred-store");
@@ -34,7 +34,7 @@ test("a project's page shows its overview, never its token", async ({
 
 test("Pull pulls the project, with the CSRF token", async ({ page }) => {
   const calls = await mockApi(page);
-  await page.goto("/projects/prj-state");
+  await page.goto("/projects/prj-infra");
   // A page action, beside the title.
   await page
     .locator("main > header, main header")
@@ -42,37 +42,68 @@ test("Pull pulls the project, with the CSRF token", async ({ page }) => {
     .getByRole("button", { name: "Pull", exact: true })
     .click();
   await expect(page.getByRole("status")).toHaveText("Pulled");
-  expect(calls.writes[0].path).toBe("/api/v1/projects/prj-state/sync");
+  expect(calls.writes[0].path).toBe("/api/v1/projects/prj-infra/sync");
   expect(calls.writes[0].headers["x-csrf-token"]).toBe("e2e-csrf");
 });
 
-test("a project's page lists the applications and connectors using it", async ({
+test("a project's page lists the APIs, scripts and webhooks acting on it", async ({
   page,
 }) => {
   await mockApi(page);
-  await page.goto("/projects/prj-state");
-  // One table per kind of user, as unified-api lists a project's sources.
-  const apps = page.locator("section", {
-    has: page.getByRole("heading", { name: /^Applications / }),
-  });
-  const appRows = apps.locator("tbody tr");
-  await expect(appRows).toHaveCount(3);
-  const drifted = appRows.filter({ hasText: "drifted" });
-  await expect(drifted).toContainText("Out of sync");
-  // The name is the link, the description under it.
+  await page.goto("/projects/prj-infra");
+  const panel = (name: RegExp) =>
+    page.locator("section", { has: page.getByRole("heading", { name }) });
+  // One table per kind, as unified-api lists a project's sources.
+  const apis = panel(/^APIs/).locator("tbody tr");
+  await expect(apis).toHaveCount(3);
+  const groups = apis.filter({ hasText: "groups" });
+  await expect(groups).toContainText("Failing");
+  await expect(groups).toContainText("POST https://portainer.example.com");
+  // The name is the link, the description over it.
   await expect(
-    drifted.getByRole("link", { name: "drifted", exact: true }),
-  ).toHaveAttribute("href", "/applications/drifted");
-  await expect(drifted.getByText("drifted", { exact: true })).toBeVisible();
+    groups.getByRole("link", { name: "groups", exact: true }),
+  ).toHaveAttribute("href", "/apis/groups");
+  await expect(groups.getByText("Portainer groups")).toBeVisible();
+  await expect(apis.filter({ hasText: "audit" })).toContainText("Disabled");
 
-  const connectors = page.locator("section", {
-    has: page.getByRole("heading", { name: /^Connectors / }),
-  });
-  const kv = connectors.locator("tbody tr").filter({ hasText: "kv" });
+  const scripts = panel(/^Scripts/).locator("tbody tr");
+  await expect(scripts).toHaveCount(1);
+  await expect(scripts).toContainText("prj-scripts: dns/reload.sh");
   await expect(
-    kv.getByRole("link", { name: "kv", exact: true }),
-  ).toHaveAttribute("href", "/connectors/kv");
-  await expect(kv).toContainText("connectors/kv.py");
+    scripts.getByRole("link", { name: "reload-dns", exact: true }),
+  ).toHaveAttribute("href", "/scripts/reload-dns");
+
+  const hooks = panel(/^Webhooks/).locator("tbody tr");
+  await expect(hooks).toHaveCount(3);
+  await expect(hooks.filter({ hasText: "wh-failures" })).toContainText(
+    "alerts.example.com",
+  );
+  // History stays the last table.
+  await expect
+    .poll(() =>
+      page
+        .locator("main section h2, main section h3")
+        .last()
+        .evaluate((h) => h.firstChild?.textContent ?? h.textContent),
+    )
+    .toBe("History");
+});
+
+test("a project nothing acts on says so", async ({ page }) => {
+  await mockApi(page);
+  const { projects } = await import("./fixtures/api");
+  await page.route(/\/api\/v1\/projects$/, (route) =>
+    route.fulfill({
+      json: projects.map((p) => ({
+        ...p,
+        used_by: { apis: [], scripts: [], webhooks: [] },
+      })),
+    }),
+  );
+  await page.goto("/projects/prj-infra");
+  await expect(
+    page.getByText("Nothing acts on this project's changes"),
+  ).toBeVisible();
 });
 
 test("an unknown project says so", async ({ page }) => {
@@ -84,14 +115,12 @@ test("an unknown project says so", async ({ page }) => {
   ).toHaveAttribute("href", "/projects");
 });
 
-test("a restricted key is refused the project page, with the reason", async ({
-  page,
-}) => {
+test("a restricted key sees its own projects only", async ({ page }) => {
   await mockApi(page, "restricted");
-  await page.goto("/projects/prj-state");
-  await expect(page.getByRole("alert")).toContainText(
-    "Could not load this project",
-  );
+  await page.goto("/projects");
+  await expect(page.locator("article h2")).toHaveText(["prj-infra"]);
+  await page.goto("/projects/prj-scripts");
+  await expect(page.getByText("No such project")).toBeVisible();
 });
 
 // A pull restarts the project's ages from the new answer, even when it
@@ -100,7 +129,7 @@ test("a restricted key is refused the project page, with the reason", async ({
 test("a Pull restarts Last attempt and Last success", async ({ page }) => {
   await page.clock.install();
   await mockApi(page);
-  await page.goto("/projects/prj-state");
+  await page.goto("/projects/prj-infra");
   await page.waitForLoadState("networkidle");
   const fact = (label: string) =>
     page
@@ -133,7 +162,7 @@ test("Pull all pulls every project and restarts their Last pull", async ({
   await page.waitForLoadState("networkidle");
   const lastPull = page
     .locator("article", {
-      has: page.getByRole("heading", { name: "prj-state" }),
+      has: page.getByRole("heading", { name: "prj-infra" }),
     })
     .locator("dl > div", { has: page.locator("dt", { hasText: "Last pull" }) });
   await expect(lastPull).toContainText("20s ago");
@@ -141,67 +170,26 @@ test("Pull all pulls every project and restarts their Last pull", async ({
   await expect(lastPull).toContainText("30s ago");
 
   await page.getByRole("button", { name: "Pull all" }).click();
-  await expect(page.getByRole("status").first()).toContainText("1 project");
-  expect(calls.writes.map((w) => w.path)).toEqual([
-    "/api/v1/projects/prj-state/sync",
+  await expect(page.getByRole("status").first()).toContainText("2 projects");
+  expect(calls.writes.map((w) => w.path).sort()).toEqual([
+    "/api/v1/projects/prj-infra/sync",
+    "/api/v1/projects/prj-scripts/sync",
   ]);
   await expect(lastPull).toContainText("20s ago");
 });
 
-// A project's last pulls in unified-gitops too, the pull before a check
-// among them.
+// A project's last pulls: why each ran, the commits it moved between, and
+// why one failed.
 test("a project's page lists its last pulls", async ({ page }) => {
   await mockApi(page);
-  await page.goto("/projects/prj-state");
+  await page.goto("/projects/prj-infra");
   const history = page.locator("section", {
     has: page.getByRole("heading", { name: /^History/ }),
   });
   const rows = history.locator("tbody tr");
   await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toContainText("Before a check");
+  await expect(rows.nth(0)).toContainText("Scheduled");
   await expect(rows.nth(0)).toContainText("aaaaaaa → bbbbbbb");
   await expect(rows.nth(1)).toContainText("could not resolve host");
   await expect(rows.nth(1)).toContainText("Failed");
-});
-
-// A project lists the webhooks hearing it, and a webhook the projects it
-// hears, both as tables; History stays the last table on each.
-test("a project's webhooks and a webhook's projects are tables", async ({
-  page,
-}) => {
-  await mockApi(page);
-  const { webhooks } = await import("./fixtures/api");
-  const hearing = webhooks().map((n) =>
-    n.name === "wh-ascender-drift" ? { ...n, projects: ["prj-state"] } : n,
-  );
-  await page.route(/\/api\/v1\/webhooks(\?.*)?$/, (route) =>
-    route.fulfill({ json: hearing }),
-  );
-  await page.route(/\/api\/v1\/webhooks\/wh-ascender-drift$/, (route) =>
-    route.fulfill({
-      json: {
-        ...hearing.find((n) => n.name === "wh-ascender-drift"),
-        history: [],
-      },
-    }),
-  );
-  const panel = (name: RegExp) =>
-    page.locator("section", { has: page.getByRole("heading", { name }) });
-  const lastHeading = () =>
-    page
-      .locator("main section h2, main section h3")
-      .last()
-      .evaluate((h) => h.firstChild?.textContent ?? h.textContent);
-
-  await page.goto("/projects/prj-state");
-  // It, and any webhook hearing all projects.
-  const hooks = panel(/^Webhooks/).locator("tbody tr");
-  await expect(hooks.filter({ hasText: "wh-ascender-drift" })).toHaveCount(1);
-  await expect.poll(lastHeading).toBe("History");
-
-  await page.goto("/webhooks/wh-ascender-drift");
-  const projects = panel(/^Projects/).locator("tbody tr");
-  await expect(projects).toHaveCount(1);
-  await expect(projects).toContainText("prj-state");
-  await expect.poll(lastHeading).toBe("History");
 });

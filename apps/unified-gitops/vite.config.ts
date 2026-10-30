@@ -24,7 +24,7 @@ function crossSite(req: import("node:http").IncomingMessage) {
 
 // Routes the page calls that belong to unified-gitops rather than to the UI.
 const proxied = [
-  "/api",
+  "/api/",
   "/swagger-ui",
   "/api-docs",
   "/metrics",

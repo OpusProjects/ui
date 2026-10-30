@@ -17,9 +17,9 @@ export function CredentialsPage() {
         users: credentialUsers(c),
       })}
       icon={ICONS.credentials}
-      description="Secrets for connectors and git pulls: where each is read from, and whether it resolves."
+      description="Secrets for API calls, scripts, webhooks and git pulls: where each is read from, and whether it resolves."
       placeholder="Search by name, description, variable or Vault path"
-      empty="Declare one under credentials: in the configuration when an application, a project or the LDAP login needs a secret."
+      empty="Declare one under credentials: in the configuration when a project, an API, a script, a webhook or the LDAP login needs a secret."
     />
   );
 }

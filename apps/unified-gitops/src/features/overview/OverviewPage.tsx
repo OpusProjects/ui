@@ -22,26 +22,25 @@ import {
   CREDENTIAL_LABELS,
   PROJECT_LABELS,
   taskHealth,
-  useMetrics,
 } from "@opusprojects/unified-client";
 import {
-  useApplications,
+  useApis,
   useAuth,
-  useConnectors,
   useCredentials,
   useWebhooks,
   useProjects,
+  useScripts,
   useSettings,
 } from "../../api/queries";
 import { ICONS } from "../../sections";
-import { APP_LABELS, appState } from "../applications/model";
 import { credentialState } from "../credentials/model";
 import { LABELS as WEBHOOK_LABELS, webhookState } from "../webhooks/model";
 import {
-  LABELS as CONNECTOR_LABELS,
-  connectorRequests,
-  requestState,
-} from "../connectors/model";
+  LABELS as ACTION_LABELS,
+  actionState,
+  type Action,
+  type Run,
+} from "../../shared/runs";
 
 const link = (to: string, content: ReactNode, className: string) => (
   <Link to={to} className={className}>
@@ -49,20 +48,18 @@ const link = (to: string, content: ReactNode, className: string) => (
   </Link>
 );
 
-const appPath = (id: string) => `/applications/${encodeURIComponent(id)}`;
+// Why a run failed, in one line: its own error, or its first failing
+// step's.
+const failure = (run: Run) =>
+  run.error ?? run.steps.find((s) => !s.ok)?.error ?? null;
 
-// The front page: whether git and the systems agree, and where they do not.
-// Every number comes from the same rules as the page it links to. Areas a
-// restricted key may not see (projects, credentials) are left out.
+// The front page: whether this instance's projects pull, and whether what
+// acts on their changes works. Every number comes from the same rules as
+// the page it links to. Areas a restricted key may not see (webhooks,
+// credentials) are left out.
 export function OverviewPage() {
-  const applications = useApplications();
-  // Admin-only, like projects: a restricted key gets no card.
-  const connectors = useConnectors();
-  const { scrapes } = useMetrics();
-  const requests = (connectors.data ?? []).map((c) => ({
-    name: c.name,
-    requests: connectorRequests(scrapes, c.name),
-  }));
+  const apis = useApis();
+  const scripts = useScripts();
   const projects = useProjects();
   const credentials = useCredentials();
   const webhooks = useWebhooks();
@@ -70,35 +67,31 @@ export function OverviewPage() {
   // Unknown yet counts as admin, as the menu does: the common caller.
   const admin = useAuth().data?.me.role !== "restricted";
 
-  const apps = applications.data ?? [];
   const issues: Issue[] = [];
-  for (const app of apps) {
-    if (app.status === "failed")
-      issues.push({
-        key: `app-${app.name}`,
-        severity: 0,
-        text: (
-          <>
-            Application <b>{app.name}</b> failed
-            {app.sync_health?.last_error && `: ${app.sync_health.last_error}`}
-          </>
-        ),
-        to: appPath(app.name),
-      });
-    else if (app.status === "out_of_sync")
-      issues.push({
-        key: `app-${app.name}`,
-        severity: 1,
-        text: (
-          <>
-            Application <b>{app.name}</b> is out of sync:{" "}
-            {app.pending_operations}{" "}
-            {app.pending_operations === 1 ? "change" : "changes"} to apply
-          </>
-        ),
-        to: appPath(app.name),
-      });
-  }
+  const failed = (
+    kind: string,
+    section: string,
+    items: Action[] | undefined,
+  ) => {
+    for (const item of items ?? [])
+      if (actionState(item) === "failing" && item.last) {
+        const why = failure(item.last);
+        issues.push({
+          key: `${section}-${item.name}`,
+          severity: 0,
+          text: (
+            <>
+              {kind} <b>{item.name}</b>{" "}
+              {item.last.dry_run ? "would fail" : "failed"}
+              {why && `: ${why}`}
+            </>
+          ),
+          to: `/${section}/${encodeURIComponent(item.name)}`,
+        });
+      }
+  };
+  failed("API", "apis", apis.data);
+  failed("Script", "scripts", scripts.data);
   for (const p of projects.data ?? []) {
     if (taskHealth(p.sync_health) === "failing")
       issues.push({
@@ -109,7 +102,7 @@ export function OverviewPage() {
             Project <b>{p.name}</b> cannot be pulled
           </>
         ),
-        to: "/projects",
+        to: `/projects/${encodeURIComponent(p.name)}`,
       });
   }
   for (const c of credentials.data ?? []) {
@@ -140,20 +133,6 @@ export function OverviewPage() {
         to: `/webhooks/${encodeURIComponent(n.name)}`,
       });
   }
-  for (const { name, requests: r } of requests)
-    if (r && r.failed > 0)
-      issues.push({
-        key: `connector-${name}`,
-        severity: 0,
-        text: (
-          <>
-            Connector <b>{name}</b>: {r.failed} failed{" "}
-            {r.failed === 1 ? "request" : "requests"} in the last {r.minutes}{" "}
-            min
-          </>
-        ),
-        to: `/connectors/${encodeURIComponent(name)}`,
-      });
   const restart = settings.data?.restart_pending ?? [];
   if (restart.length > 0)
     issues.push({
@@ -163,18 +142,16 @@ export function OverviewPage() {
       to: "/config",
     });
 
-  const pending = apps.reduce((n, a) => n + a.pending_operations, 0);
-
   return (
     <>
       <PageHeader
         icon={ICONS.overview}
         title="Overview"
-        description="Whether git and the systems agree, and what needs fixing."
+        description="Whether the projects pull, whether what acts on their changes works, and what needs fixing."
       />
-      {applications.isError && (
+      {apis.isError && (
         <Notice title="Could not check this instance">
-          {applications.error.message}
+          {apis.error.message}
         </Notice>
       )}
 
@@ -184,39 +161,39 @@ export function OverviewPage() {
           is refused: its slot would show and then vanish. */}
       <AreaGrid
         loading={
-          applications.isLoading ||
-          (admin && connectors.isLoading) ||
+          apis.isLoading ||
+          scripts.isLoading ||
+          projects.isLoading ||
           (admin && webhooks.isLoading) ||
-          (admin && projects.isLoading) ||
           (admin && credentials.isLoading)
         }
       >
-        {applications.isLoading ? (
+        {apis.isLoading ? (
           <AreaCardSkeleton />
         ) : (
-          applications.isSuccess && (
+          apis.isSuccess && (
             <AreaCard
-              to="/applications"
+              to="/apis"
               link={link}
-              icon={ICONS.applications}
-              title="Applications"
-              counts={countStates(apps, appState)}
-              labels={APP_LABELS}
-              goodWord="Synced"
+              icon={ICONS.apis}
+              title="APIs"
+              counts={countStates(apis.data, actionState)}
+              labels={ACTION_LABELS}
+              goodWord="Working"
             />
           )
         )}
-        {admin && connectors.isLoading ? (
+        {scripts.isLoading ? (
           <AreaCardSkeleton />
         ) : (
-          connectors.isSuccess && (
+          scripts.isSuccess && (
             <AreaCard
-              to="/connectors"
+              to="/scripts"
               link={link}
-              icon={ICONS.connectors}
-              title="Connectors"
-              counts={countStates(requests, (c) => requestState(c.requests))}
-              labels={CONNECTOR_LABELS}
+              icon={ICONS.scripts}
+              title="Scripts"
+              counts={countStates(scripts.data, actionState)}
+              labels={ACTION_LABELS}
               goodWord="Working"
             />
           )
@@ -236,7 +213,7 @@ export function OverviewPage() {
             />
           )
         )}
-        {admin && projects.isLoading ? (
+        {projects.isLoading ? (
           <AreaCardSkeleton />
         ) : (
           projects.isSuccess && (
@@ -276,32 +253,31 @@ export function OverviewPage() {
 
       <OverviewColumns>
         <NeedsAttention
-          hint="What needs a person, worst first. Red: something broken (an application that failed, a connector whose requests fail, a project that cannot be pulled, a missing credential, a webhook that could not send). Amber: git and a system disagree and nobody has synced yet, or a restart is needed. Each line opens the page to act on."
+          hint="What needs a person, worst first. Red: something broken (an API or script whose last run failed, a project that cannot be pulled, a missing credential, a webhook that could not send). Amber: a restart is needed. Each line opens the page to act on."
           issues={issues}
           link={link}
           failed={
-            applications.isError
-              ? "the list of applications could not be loaded."
-              : undefined
+            apis.isError ? "the list of APIs could not be loaded." : undefined
           }
-          loading={applications.isPending}
+          loading={apis.isPending || scripts.isPending}
         />
         <ThisInstance
-          pending={pending}
+          apis={apis.data}
+          scripts={scripts.data}
           uptime={settings.data?.uptime_seconds}
           at={settings.dataUpdatedAt}
         />
       </OverviewColumns>
 
       <RatePanel
-        title="Requests sent to applications (per minute)"
-        hint="The requests this instance makes to the applications, through their connectors: list reads a kind, apply writes one change, describe starts each run. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
-        metric={CALLS}
-        parts={CALL_PARTS}
+        title="Runs (per minute)"
+        hint="The runs of this instance's API and script items, dry runs left out: a commit that changes what they watch, a schedule, start-up or a person. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
+        metric={RUNS}
+        parts={RUN_PARTS}
       />
       <RatePanel
         title="Requests sent to repositories (per minute)"
-        hint="The requests this instance makes to git servers: a clone the first time a project is checked out, a pull on each of its intervals and before every check, a fetch when a rollback needs an older commit. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
+        hint="The requests this instance makes to git servers: a clone the first time a project is checked out, a pull on each of its intervals or schedules. From its own /metrics, sampled every ten seconds while the app is open; the app keeps the last half hour."
         metric={GIT}
         parts={GIT_PARTS}
         series={7}
@@ -310,15 +286,14 @@ export function OverviewPage() {
   );
 }
 
-// The traffic this instance originates: its own HTTP routes are mostly this
-// app polling it, so they say nothing about what it does.
-const CALLS = "unified_gitops_connector_calls_total";
-// Every call is one of the first three, so they add up to the point's
+// The work this instance does: its own HTTP routes are mostly this app
+// polling it, so they say nothing about what it does.
+const RUNS = "unified_gitops_runs_total";
+// Every run is an API's or a script's, so the two add up to the point's
 // total; failed is counted within them.
-const CALL_PARTS: RatePart[] = [
-  { name: ["read", "reads"], filter: (l) => l.command === "list" },
-  { name: ["write", "writes"], filter: (l) => l.command === "apply" },
-  { name: ["describe", "describes"], filter: (l) => l.command === "describe" },
+const RUN_PARTS: RatePart[] = [
+  { name: ["API run", "API runs"], filter: (l) => l.kind === "api" },
+  { name: ["script run", "script runs"], filter: (l) => l.kind === "script" },
   {
     name: ["failed", "failed"],
     filter: (l) => l.outcome === "error",
@@ -326,7 +301,7 @@ const CALL_PARTS: RatePart[] = [
   },
 ];
 
-// The same, to git servers: every clone, pull and rollback fetch.
+// The same, to git servers: every clone, pull and fetch.
 const GIT = "unified_gitops_git_requests_total";
 const GIT_PARTS: RatePart[] = [
   { name: ["pull", "pulls"], filter: (l) => l.operation === "pull" },
@@ -340,24 +315,26 @@ const GIT_PARTS: RatePart[] = [
 ];
 
 function ThisInstance({
-  pending,
+  apis,
+  scripts,
   uptime,
   at,
 }: {
-  pending: number;
+  apis?: Action[];
+  scripts?: Action[];
   uptime?: number;
   at: number;
 }) {
-  const toApplications = useRatePerMinute(CALLS);
+  const runs = useRatePerMinute(RUNS);
   const toRepositories = useRatePerMinute(GIT);
+  const items = [...(apis ?? []), ...(scripts ?? [])];
+  const failing = items.filter((i) => actionState(i) === "failing").length;
   return (
     <InstancePanel>
-      <Fact label="To apply">
-        {pending} {pending === 1 ? "change" : "changes"}
+      <Fact label="Failing">
+        {failing} of {items.length} {items.length === 1 ? "item" : "items"}
       </Fact>
-      <Fact label="Requests to applications">
-        {perMinuteText(toApplications)}
-      </Fact>
+      <Fact label="Runs">{perMinuteText(runs)}</Fact>
       <Fact label="Requests to repositories">
         {perMinuteText(toRepositories)}
       </Fact>

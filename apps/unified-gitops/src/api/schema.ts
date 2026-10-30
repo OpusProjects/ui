@@ -20,14 +20,14 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/applications": {
+  "/api/v1/apis": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get: operations["list_applications"];
+    get: operations["list_apis"];
     put?: never;
     post?: never;
     delete?: never;
@@ -36,14 +36,14 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/applications/{id}": {
+  "/api/v1/apis/{id}": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get: operations["get_application"];
+    get: operations["get_api"];
     put?: never;
     post?: never;
     delete?: never;
@@ -52,7 +52,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/applications/{id}/refresh": {
+  "/api/v1/apis/{id}/run": {
     parameters: {
       query?: never;
       header?: never;
@@ -61,71 +61,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    post: operations["refresh_application"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/applications/{id}/rollback": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: operations["rollback_application"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/applications/{id}/rollback/preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: operations["preview_rollback"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/applications/{id}/state/{kind}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations["get_application_state"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/applications/{id}/sync": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: operations["sync_application"];
+    post: operations["run_api"];
     delete?: never;
     options?: never;
     head?: never;
@@ -212,22 +148,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/connectors": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations["list_connectors"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/api/v1/credentials": {
     parameters: {
       query?: never;
@@ -276,16 +196,48 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/search": {
+  "/api/v1/scripts": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get: operations["search_objects"];
+    get: operations["list_scripts"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/scripts/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["get_script"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/scripts/{id}/run": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["run_script"];
     delete?: never;
     options?: never;
     head?: never;
@@ -409,11 +361,15 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     AccessRuleInfo: {
-      applications: string[];
       groups: string[];
       name: string;
+      projects: string[];
       role: string;
       users: string[];
+    };
+    ApiDetail: components["schemas"]["ApiSummary"] & {
+      /** @description Its runs since this process started, newest first, at most 50 */
+      history: components["schemas"]["Run"][];
     };
     ApiIndex: {
       /** @description Desired state and how it stands against the live systems */
@@ -442,62 +398,44 @@ export interface components {
       webhooks?: string | null;
     };
     ApiKeyInfo: {
-      applications: string[];
       name: string;
+      projects: string[];
       role: string;
     };
-    ApplicationDetail: components["schemas"]["ApplicationSummary"] & {
-      /** @description The last runs, most recent first (kept in memory, up to 50) */
-      history: components["schemas"]["RunRecord"][];
-      plan?: components["schemas"]["PlanInfo"] | null;
-      /** @description The local copy of the system's current settings, per kind */
-      state: components["schemas"]["SnapshotInfo"][];
-    };
-    ApplicationSummary: {
-      /** @description Applies automatically when out of sync (false: only reports it) */
-      auto_sync: boolean;
-      /**
-       * @description Names of the config keys handed to the connector (values not shown: they
-       *     are not secret, but a URL with a token in it is a mistake to echo)
-       */
-      config_keys: string[];
-      /** @description The connector that talks to the system */
-      connector: string;
-      /** @description Credentials handed to the connector (ids, never values) */
+    ApiSummary: {
+      /** Format: int32 */
+      attempts: number;
+      /** @description none, bearer, basic, header, query, oauth2 or login */
+      auth: string;
+      compare: boolean;
       credentials: string[];
+      /** Format: int64 */
+      debounce_seconds: number;
+      deletes: boolean;
       description?: string | null;
-      /** @description Declared objects already exactly as declared */
-      in_sync: number;
-      /**
-       * Format: int64
-       * @description Seconds since the last run (check or sync, failed or not); null if never
-       */
-      last_checked_age_seconds?: number | null;
+      /** @description Scheme and host only: never a path or query, which can carry a secret */
+      destination: string;
+      enabled: boolean;
+      ignore_paths: string[];
+      labels: {
+        [key: string]: string;
+      };
+      last?: components["schemas"]["Run"] | null;
+      method: string;
       /** @description The item's identity, as in the configuration */
       name: string;
-      /** @description Folder inside the project checkout holding the desired-state YAML */
-      path: string;
-      /** @description Operations the last comparison found still to do */
-      pending_operations: number;
+      /** @description What runs it: change, startup, schedule, manual */
+      on: components["schemas"]["On"][];
+      on_failure: components["schemas"]["OnFailure"];
+      /** @description The files whose change runs it; empty for every file */
+      paths: string[];
+      per: components["schemas"]["Per"];
+      /** @description The watched project */
       project: string;
-      /** @description Deletes objects on the system that git does not declare */
-      prune: boolean;
-      /** @description The commit the last run read */
-      revision?: string | null;
-      rollback?: components["schemas"]["RollbackInfo"] | null;
-      status: components["schemas"]["SyncStatus"];
-      sync_health?: components["schemas"]["SyncHealthInfo"] | null;
+      schedule?: string | null;
       /** Format: int64 */
-      sync_interval_seconds: number;
-      /** @description Objects on the system that git does not declare (prune off) */
-      unmanaged: number;
-    };
-    AppliedOperation: {
-      error?: string | null;
-      key: string;
-      kind: string;
-      ok: boolean;
-      op: components["schemas"]["OpKind"];
+      timeout_seconds: number;
+      upsert: boolean;
     };
     AuthInfo: {
       /** @description The API keys in force, by name and scope — never a secret. Admin only. */
@@ -505,11 +443,6 @@ export interface components {
       ldap?: components["schemas"]["LdapInfo"] | null;
       me: components["schemas"]["Me"];
       methods: components["schemas"]["Methods"];
-    };
-    Change: {
-      field: string;
-      from: Record<string, never>;
-      to: Record<string, never>;
     };
     ConfigApiSettings: {
       /**
@@ -584,31 +517,14 @@ export interface components {
     };
     ConfigSummary: {
       api_keys: number;
-      applications: number;
-      connectors: number;
+      apis: number;
       credentials: number;
       projects: number;
+      scripts: number;
       webhooks: number;
     };
-    ConnectorInfo: {
-      description?: string | null;
-      /** @description The item's identity, as in the configuration */
-      name: string;
-      /**
-       * @description The script: relative to the project's checkout when it has one,
-       *     otherwise a path on this instance's disk
-       */
-      path: string;
-      project?: string | null;
-      /** Format: int64 */
-      timeout_seconds: number;
-      /** @description What kind of connector: `script` (a program run per describe, list and apply) */
-      type: components["schemas"]["ConnectorType"];
-      /** @description Applications that use this connector */
-      used_by: string[];
-    };
     /** @enum {string} */
-    ConnectorType: "script";
+    ContentType: "json" | "form" | "text";
     CredentialInfo: {
       /**
        * @description Where the secrets are read from: `vault`, `env`, `file`, or `files`
@@ -641,18 +557,19 @@ export interface components {
       vault_path?: string | null;
     };
     CredentialUsersInfo: {
-      /** @description Applications whose connector receives it */
-      applications: string[];
+      /** @description API items that call with it */
+      apis: string[];
       /** @description For a `type: vault` credential: the credentials reading from it */
       credentials: string[];
       /** @description Whether the LDAP login's service account binds with it */
       ldap: boolean;
       projects: string[];
+      /** @description Script items given it */
+      scripts: string[];
       /** @description Webhooks that send with it */
       webhooks: string[];
     };
     Delivery: {
-      application?: string | null;
       /** Format: int64 */
       at: number;
       /** Format: int32 */
@@ -675,36 +592,21 @@ export interface components {
     };
     /** @enum {string} */
     Event:
-      | "drift_detected"
-      | "out_of_sync"
-      | "sync_succeeded"
-      | "sync_failed"
-      | "back_in_sync"
       | "commit_pulled"
       | "pull_failed"
-      | "pull_recovered";
+      | "pull_recovered"
+      | "api_succeeded"
+      | "api_failed"
+      | "api_recovered"
+      | "script_succeeded"
+      | "script_failed"
+      | "script_recovered";
     FileKeyInfo: {
       name: string;
       path: string;
     };
-    FoundObject: {
-      application: string;
-      /** @description The field whose value matched, as a dotted path; absent when the key did */
-      field?: string | null;
-      key: string;
-      kind: string;
-      /**
-       * @description Whether git declares it, as of the last check: false for an object on
-       *     the system that git does not list (unmanaged, or a pending delete);
-       *     null before the application's first check
-       */
-      managed?: boolean | null;
-      /**
-       * Format: int64
-       * @description Unix seconds the copy it was found in was read from the system
-       */
-      written_at: number;
-    };
+    /** @enum {string} */
+    Kind: "api" | "script";
     LdapInfo: {
       access: components["schemas"]["AccessRuleInfo"][];
       /** @description credentials.yaml id holding the service account (its secret is not shown) */
@@ -719,8 +621,6 @@ export interface components {
       user_filter: string;
     };
     Me: {
-      /** @description Application ids a restricted caller may see and sync (empty for admin) */
-      applications: string[];
       /**
        * @description The token a browser session sends as `X-CSRF-Token` on every write.
        *     Only for a session (cookie) caller; a header-authenticated caller
@@ -731,6 +631,8 @@ export interface components {
       method: string;
       /** @description The key's name, or `ldap:<username>`. Null on an open instance. */
       name?: string | null;
+      /** @description Project ids a restricted caller may see and pull (empty for admin) */
+      projects: string[];
       role: string;
     };
     Methods: {
@@ -740,33 +642,11 @@ export interface components {
       ldap: boolean;
     };
     /** @enum {string} */
-    OpKind: "create" | "update" | "delete";
-    Operation: {
-      changes?: components["schemas"]["Change"][];
-      file?: string | null;
-      key: string;
-      kind: string;
-      object: Record<string, never>;
-      op: components["schemas"]["OpKind"];
-    };
-    PlanInfo: {
-      /** Format: int64 */
-      checked_age_seconds: number;
-      errors: string[];
-      in_sync: number;
-      operations: components["schemas"]["Operation"][];
-      revision?: string | null;
-      unmanaged: components["schemas"]["Operation"][];
-    };
-    PlanSnapshot: {
-      /** Format: int64 */
-      checked_at: number;
-      errors: string[];
-      in_sync: number;
-      operations: components["schemas"]["Operation"][];
-      revision?: string | null;
-      unmanaged: components["schemas"]["Operation"][];
-    };
+    On: "change" | "startup" | "schedule" | "manual";
+    /** @enum {string} */
+    OnFailure: "continue" | "stop";
+    /** @enum {string} */
+    Per: "file" | "commit";
     ProjectInfo: {
       branch: string;
       /** @description Whether a checkout currently exists on disk */
@@ -816,32 +696,33 @@ export interface components {
       success: boolean;
     };
     ProjectUsers: {
-      /** @description Applications whose desired state lives in this checkout */
-      applications: string[];
-      /** @description Connectors whose script is resolved in this checkout */
-      connectors: string[];
+      /** @description API items that act on its changes */
+      apis: string[];
+      /** @description Script items that act on its changes */
+      scripts: string[];
+      /** @description Webhooks that tell this project's events */
+      webhooks: string[];
     };
     ProjectsSettings: {
       /** @description Where project checkouts live (restart-only) */
       dir?: string | null;
     };
     ReadyStatus: {
-      applications_checked: number;
       /**
-       * @description Applications not compared with their systems yet (their first check
-       *     is still to come, or their checkout is not there yet)
+       * @description Projects not pulled successfully yet (their first pull is still to
+       *     come, or it failed)
        */
-      applications_pending: string[];
-      applications_total: number;
+      projects_pending: string[];
+      projects_pulled: number;
+      projects_total: number;
       ready: boolean;
     };
     ReloadInfo: {
       /** @description How many API keys are in force after the reload */
       api_keys: number;
-      applications: components["schemas"]["DeltaInfo"];
+      apis: components["schemas"]["DeltaInfo"];
       /** @description Sections that changed and are now live */
       applied: string[];
-      connectors: components["schemas"]["DeltaInfo"];
       credentials: components["schemas"]["DeltaInfo"];
       /** Format: int64 */
       generation: number;
@@ -851,35 +732,47 @@ export interface components {
        *     means the write landed and part of it is waiting for one
        */
       restart_required?: string[];
+      scripts: components["schemas"]["DeltaInfo"];
       webhooks: components["schemas"]["DeltaInfo"];
     };
     RequestInfo: {
-      /** @description bearer, basic, none, or header (the credential in `auth_header`) */
+      /** @description none, bearer, basic, header, query, oauth2 or login */
       auth: string;
-      auth_header?: string | null;
+      content_type: components["schemas"]["ContentType"];
       headers: string[];
       method: string;
+      query: string[];
+      rate_limit?: string | null;
       signature_header?: string | null;
-      /** @description true: a body template; false: the default message */
+      /** @description true: a body template; false: the event message as it is */
       templated: boolean;
+      /** @description Whether it follows what it started until a condition holds */
+      waits: boolean;
     };
-    Rollback: {
+    Run: {
+      /** @description The API key's name or the signed-in user, for a manual run */
+      by?: string | null;
+      /** @description A dry run: what would be sent, with nothing sent */
+      dry_run: boolean;
       /** Format: int64 */
-      at: number;
-      revision: string;
-    };
-    RollbackInfo: {
+      duration_ms: number;
+      /** @description Why the run could not start or stopped, beyond its steps' errors */
+      error?: string | null;
+      item: string;
+      kind: components["schemas"]["Kind"];
+      ok: boolean;
+      project: string;
+      /** @description The commit the checkout was at when the run started */
+      revision?: string | null;
+      /** @description A script's: the commit of the project its file is in */
+      script_revision?: string | null;
       /**
        * Format: int64
-       * @description Seconds since the rollback
+       * @description Unix seconds
        */
-      age_seconds: number;
-      /** @description The commit whose desired state was applied */
-      revision: string;
-    };
-    RollbackRequest: {
-      /** @description The commit to roll back to: its id, full or abbreviated (4+ hex characters) */
-      revision: string;
+      started_at: number;
+      steps: components["schemas"]["Step"][];
+      trigger: components["schemas"]["On"];
     };
     RunInfo: {
       /**
@@ -910,26 +803,46 @@ export interface components {
        */
       trigger: string;
     };
-    /** @enum {string} */
-    RunMode: "plan" | "apply";
-    RunRecord: {
-      applied: components["schemas"]["AppliedOperation"][];
-      errors: string[];
-      /** Format: int64 */
-      finished_at: number;
-      /** Format: int64 */
-      id: number;
-      mode: components["schemas"]["RunMode"];
-      operations: components["schemas"]["Operation"][];
-      planned: number;
-      result: components["schemas"]["RunResult"];
-      revision?: string | null;
-      /** Format: int64 */
-      started_at: number;
-      trigger: components["schemas"]["Trigger"];
+    ScriptDetail: components["schemas"]["ScriptSummary"] & {
+      /** @description Its runs since this process started, newest first, at most 50 */
+      history: components["schemas"]["Run"][];
     };
-    /** @enum {string} */
-    RunResult: "succeeded" | "out_of_sync" | "partial" | "failed";
+    ScriptSummary: {
+      /** @description The arguments as written (templates, not rendered) */
+      args: string[];
+      /** Format: int32 */
+      attempts: number;
+      credential?: string | null;
+      /** Format: int64 */
+      debounce_seconds: number;
+      description?: string | null;
+      enabled: boolean;
+      /** @description The names of the variables it sets, never their values */
+      env: string[];
+      file: string;
+      ignore_paths: string[];
+      interpreter?: string | null;
+      labels: {
+        [key: string]: string;
+      };
+      last?: components["schemas"]["Run"] | null;
+      /** @description The item's identity, as in the configuration */
+      name: string;
+      on: components["schemas"]["On"][];
+      on_failure: components["schemas"]["OnFailure"];
+      paths: string[];
+      per: components["schemas"]["Per"];
+      /** @description The watched project */
+      project: string;
+      schedule?: string | null;
+      /** @description The project the file is in */
+      script_project: string;
+      stdin: components["schemas"]["Stdin"];
+      success_exit_codes: number[];
+      /** Format: int64 */
+      timeout_seconds: number;
+      working_dir?: string | null;
+    };
     SecretsSettings: {
       /**
        * Format: int64
@@ -968,7 +881,6 @@ export interface components {
       restart_pending: string[];
       secrets: components["schemas"]["SecretsSettings"];
       server: components["schemas"]["ServerSettings"];
-      state: components["schemas"]["StateSettings"];
       /**
        * Format: int64
        * @description How long this process has been running
@@ -977,26 +889,38 @@ export interface components {
       /** @description The unified-gitops version running */
       version: string;
     };
-    Snapshot: {
-      application: string;
-      items: Record<string, never>[];
-      kind: string;
-      /** Format: int64 */
-      written_at: number;
-    };
-    SnapshotInfo: {
-      application: string;
-      items: number;
-      kind: string;
-      /** Format: int64 */
-      written_at: number;
-    };
-    StateSettings: {
+    /** @enum {string} */
+    Stdin: "none" | "event";
+    Step: {
       /**
-       * @description Where the local copy of each system's current settings is written
-       *     (restart-only)
+       * @description What it did: send, create, update, delete, skip (nothing to change),
+       *     or for a script, run
        */
-      dir?: string | null;
+      action: string;
+      /** Format: int32 */
+      attempts: number;
+      /** @description A dry run's body, as it would be sent */
+      body?: unknown;
+      /** @description With compare: the fields that differed, by name, never their values */
+      changed_fields: string[];
+      /** Format: int64 */
+      duration_ms: number;
+      error?: string | null;
+      /**
+       * Format: int32
+       * @description A script's exit code
+       */
+      exit_code?: number | null;
+      /** @description The file it was about, for a run per file */
+      file?: string | null;
+      method?: string | null;
+      ok: boolean;
+      /** @description A script's output, its end kept when it is long */
+      output?: string | null;
+      /** Format: int32 */
+      status?: number | null;
+      /** @description Scheme, host and path: never the query, which can hold a credential */
+      url?: string | null;
     };
     SyncHealthInfo: {
       /** Format: int32 */
@@ -1007,10 +931,6 @@ export interface components {
       /** Format: int64 */
       last_success_age_seconds?: number | null;
     };
-    /** @enum {string} */
-    SyncStatus: "unknown" | "synced" | "out_of_sync" | "failed" | "rolled_back";
-    /** @enum {string} */
-    Trigger: "schedule" | "manual" | "rollback";
     UiSettings: {
       enabled: boolean;
       /**
@@ -1021,9 +941,16 @@ export interface components {
       /** Format: int64 */
       session_ttl_seconds: number;
     };
-    ValidationResult: {
+    ValidationResult_ConfigSummary: {
       errors?: string[];
-      summary?: components["schemas"]["ConfigSummary"] | null;
+      summary?: {
+        api_keys: number;
+        apis: number;
+        credentials: number;
+        projects: number;
+        scripts: number;
+        webhooks: number;
+      };
       valid: boolean;
     };
     VaultConnectionInfo: {
@@ -1064,15 +991,12 @@ export interface components {
       history: components["schemas"]["Delivery"][];
     };
     WebhookSummary: {
-      /** @description Every application, present and future (`applications: all`) */
-      all_applications: boolean;
-      /** @description Every project, present and future (`projects: all`) */
-      all_projects: boolean;
+      /** Format: int32 */
+      attempts: number;
       /**
-       * @description The applications it listens to, when it names them; empty with
-       *     all_applications false = none
+       * @description Every credential it reads: its own, a signature's, a client
+       *     certificate's
        */
-      applications: string[];
       credentials: string[];
       description?: string | null;
       /**
@@ -1080,37 +1004,30 @@ export interface components {
        *     can carry a receiver's secret
        */
       destination: string;
+      enabled: boolean;
       events: components["schemas"]["Event"][];
-      /**
-       * Format: int64
-       * @description ascender and awx: the job template (or workflow job template) it starts
-       */
-      job_template?: number | null;
+      ignore_paths: string[];
+      labels: {
+        [key: string]: string;
+      };
       last?: components["schemas"]["Delivery"] | null;
       /** @description The item's identity, as in the configuration */
       name: string;
-      /** @description The applications its projects reach right now, sorted */
-      project_applications: string[];
       /**
-       * @description The projects it listens to, when it names them: their own events, and
-       *     those of every application reading from them
+       * @description For commit_pulled: the files a commit must touch to be told; empty
+       *     for every commit
        */
-      projects: string[];
-      request?: components["schemas"]["RequestInfo"] | null;
-      /** Format: int32 */
-      retries: number;
+      paths: string[];
+      /** @description The watched project whose events it tells */
+      project: string;
+      request: components["schemas"]["RequestInfo"];
       /**
        * Format: int64
-       * @description How long one attempt may take, and how many times a send is retried
+       * @description How long one attempt may take, and how many attempts a send makes
        */
       timeout_seconds: number;
-      type: components["schemas"]["WebhookType"];
-      /** Format: int64 */
-      workflow_job_template?: number | null;
     };
-    /** @enum {string} */
-    WebhookType: "webhook" | "ascender" | "awx";
-    WriteResult: {
+    WriteResult_ConfigSummary_ReloadInfo: {
       deleted?: string[];
       /** @description The directory ETag AFTER the write — feed it to the next If-Match */
       etag: string;
@@ -1119,8 +1036,32 @@ export interface components {
        *     previous configuration (no ?reload=true, and something differs)
        */
       reload_pending: boolean;
-      reloaded?: components["schemas"]["ReloadInfo"] | null;
-      summary: components["schemas"]["ConfigSummary"];
+      reloaded?: {
+        /** @description How many API keys are in force after the reload */
+        api_keys: number;
+        apis: components["schemas"]["DeltaInfo"];
+        /** @description Sections that changed and are now live */
+        applied: string[];
+        credentials: components["schemas"]["DeltaInfo"];
+        /** Format: int64 */
+        generation: number;
+        projects: components["schemas"]["DeltaInfo"];
+        /**
+         * @description config.yaml keys this process cannot adopt without a restart. Present
+         *     means the write landed and part of it is waiting for one
+         */
+        restart_required?: string[];
+        scripts: components["schemas"]["DeltaInfo"];
+        webhooks: components["schemas"]["DeltaInfo"];
+      };
+      summary: {
+        api_keys: number;
+        apis: number;
+        credentials: number;
+        projects: number;
+        scripts: number;
+        webhooks: number;
+      };
       written: string[];
     };
   };
@@ -1152,7 +1093,7 @@ export interface operations {
       };
     };
   };
-  list_applications: {
+  list_apis: {
     parameters: {
       query?: never;
       header?: never;
@@ -1161,48 +1102,39 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description The applications this key may see, with their sync status */
+      /** @description Every API item the caller may see: what it watches, where it sends, its last run */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ApplicationSummary"][];
+          "application/json": components["schemas"]["ApiSummary"][];
         };
       };
     };
   };
-  get_application: {
+  get_api: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Application identifier */
+        /** @description API item name */
         id: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description The application, its pending plan and its run history */
+      /** @description One API item, with its recent runs */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ApplicationDetail"];
+          "application/json": components["schemas"]["ApiDetail"];
         };
       };
-      /** @description This key may not access the application */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Application not configured */
+      /** @description No such API item, or not the caller's */
       404: {
         headers: {
           [name: string]: unknown;
@@ -1213,37 +1145,34 @@ export interface operations {
       };
     };
   };
-  refresh_application: {
+  run_api: {
     parameters: {
-      query?: never;
+      query?: {
+        /**
+         * @description Build every request and read what compare and upsert read, but send
+         *     nothing that writes: the run's steps carry the bodies
+         */
+        dry_run?: boolean;
+      };
       header?: never;
       path: {
-        /** @description Application identifier */
+        /** @description API item name */
         id: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Compared desired state with the system now; nothing was changed. The run record says what was found (its errors, if any, say why it could not finish) */
+      /** @description Run now, over every file its trigger selects; the run, also kept in its history */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["RunRecord"];
+          "application/json": components["schemas"]["Run"];
         };
       };
-      /** @description This key may not access the application */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Application not configured */
+      /** @description No such API item, or not the caller's */
       404: {
         headers: {
           [name: string]: unknown;
@@ -1252,191 +1181,8 @@ export interface operations {
           "application/json": components["schemas"]["ErrorBody"];
         };
       };
-    };
-  };
-  rollback_application: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Application identifier */
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RollbackRequest"];
-      };
-    };
-    responses: {
-      /** @description Applied the desired state of that commit, once, as a sync would. The application is then rolled back: checks stop applying (auto_sync paused) until the next manual sync applies HEAD again */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RunRecord"];
-        };
-      };
-      /** @description Not a commit id, or not in the project's history */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description This key may not access the application */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Application not configured */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-    };
-  };
-  preview_rollback: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Application identifier */
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RollbackRequest"];
-      };
-    };
-    responses: {
-      /** @description What a rollback to that commit would change on the system now, field by field. Nothing is applied or recorded */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PlanSnapshot"];
-        };
-      };
-      /** @description Not a commit id, not in the project's history, or its desired state does not load */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description This key may not access the application */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Application not configured */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-    };
-  };
-  get_application_state: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Application identifier */
-        id: string;
-        /** @description Kind of object */
-        kind: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description The local copy of this kind's objects on the application's system, as of its last check */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Snapshot"];
-        };
-      };
-      /** @description This key may not access the application */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Unknown application, or no copy of this kind yet */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-    };
-  };
-  sync_application: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Application identifier */
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Compared, then applied every operation found, one by one. The run record lists each operation and whether it succeeded; `result` is partial when some failed */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RunRecord"];
-        };
-      };
-      /** @description This key may not access the application */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Application not configured */
-      404: {
+      /** @description It does not run by hand (trigger.on has no manual) */
+      409: {
         headers: {
           [name: string]: unknown;
         };
@@ -1526,7 +1272,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["WriteResult"];
+          "application/json": components["schemas"]["WriteResult_ConfigSummary_ReloadInfo"];
         };
       };
       /** @description The pushed directory would not load. Nothing was written */
@@ -1634,7 +1380,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ValidationResult"];
+          "application/json": components["schemas"]["ValidationResult_ConfigSummary"];
         };
       };
       /** @description Not an admin key, or the configuration API is disabled */
@@ -1662,7 +1408,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description Path inside the configuration directory, e.g. applications/storage/isilon-prod.yaml (slashes allowed) */
+        /** @description Path inside the configuration directory, e.g. webhooks/team-a/notify.yaml (slashes allowed) */
         file: string;
       };
       cookie?: never;
@@ -1713,7 +1459,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        /** @description Path inside the configuration directory, e.g. applications/storage/isilon-prod.yaml (slashes allowed) */
+        /** @description Path inside the configuration directory, e.g. webhooks/team-a/notify.yaml (slashes allowed) */
         file: string;
       };
       cookie?: never;
@@ -1731,7 +1477,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["WriteResult"];
+          "application/json": components["schemas"]["WriteResult_ConfigSummary_ReloadInfo"];
         };
       };
       /** @description The directory would not load with this file in it. Nothing was written */
@@ -1789,7 +1535,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        /** @description Path inside the configuration directory, e.g. applications/storage/isilon-prod.yaml (slashes allowed) */
+        /** @description Path inside the configuration directory, e.g. webhooks/team-a/notify.yaml (slashes allowed) */
         file: string;
       };
       cookie?: never;
@@ -1802,7 +1548,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["WriteResult"];
+          "application/json": components["schemas"]["WriteResult_ConfigSummary_ReloadInfo"];
         };
       };
       /** @description The directory would not load without it, or it is config.yaml. Nothing was removed */
@@ -1852,35 +1598,6 @@ export interface operations {
       };
     };
   };
-  list_connectors: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Every connector: its script, where it is read from, its timeout, and the applications using it */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ConnectorInfo"][];
-        };
-      };
-      /** @description API key is not admin */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-    };
-  };
   list_credentials: {
     parameters: {
       query?: never;
@@ -1919,22 +1636,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Configured git projects and their checkout state */
+      /** @description Configured git projects and their checkout state; a restricted caller sees its own */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           "application/json": components["schemas"]["ProjectInfo"][];
-        };
-      };
-      /** @description API key is not admin */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
         };
       };
     };
@@ -1960,16 +1668,7 @@ export interface operations {
           "application/json": components["schemas"]["ProjectSyncResult"];
         };
       };
-      /** @description API key is not admin */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorBody"];
-        };
-      };
-      /** @description Project not configured */
+      /** @description Project not configured, or not the caller's */
       404: {
         headers: {
           [name: string]: unknown;
@@ -1989,31 +1688,96 @@ export interface operations {
       };
     };
   };
-  search_objects: {
+  list_scripts: {
     parameters: {
-      query: {
-        /** @description Text to find in an object's key or in any of its values (case-insensitive) */
-        q: string;
-        /** @description At most this many results (default 20, at most 100) */
-        limit?: number | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Objects on the systems this key may see, matching by key first, then by any value: which application owns each and whether git declares it. Read from the local copies, so no system is called */
+      /** @description Every script item the caller may see: what it watches, what it runs, its last run */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["FoundObject"][];
+          "application/json": components["schemas"]["ScriptSummary"][];
         };
       };
-      /** @description Empty query */
-      400: {
+    };
+  };
+  get_script: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Script item name */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One script item, with its recent runs and their output */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScriptDetail"];
+        };
+      };
+      /** @description No such script item, or not the caller's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  run_script: {
+    parameters: {
+      query?: {
+        /**
+         * @description Build every request and read what compare and upsert read, but send
+         *     nothing that writes: the run's steps carry the bodies
+         */
+        dry_run?: boolean;
+      };
+      header?: never;
+      path: {
+        /** @description Script item name */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Run now, over every file its trigger selects; the run, also kept in its history. A dry run runs nothing and says what would run */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Run"];
+        };
+      };
+      /** @description No such script item, or not the caller's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description It does not run by hand (trigger.on has no manual) */
+      409: {
         headers: {
           [name: string]: unknown;
         };
@@ -2061,7 +1825,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Every webhook: its events, applications, projects and destination, and its last send */
+      /** @description Every webhook: its events, projects and destination, and its last send */
       200: {
         headers: {
           [name: string]: unknown;

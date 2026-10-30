@@ -1,0 +1,47 @@
+/* A run: its facts, its steps, then what a step sent or printed. */
+.run {
+  display: grid;
+  gap: 16px;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--uu-radius-small);
+  background: var(--uu-failing-wash);
+  color: var(--uu-failing);
+  overflow-wrap: anywhere;
+}
+
+.details {
+  display: grid;
+  gap: 12px;
+}
+
+.detail {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--uu-ink);
+  overflow-wrap: anywhere;
+}
+
+.soft {
+  font-weight: 400;
+  color: var(--uu-ink-soft);
+}
+
+/* Inside the dialog: the dialog's own padding, and the scroll a run with
+   many steps needs. */
+.modalBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}

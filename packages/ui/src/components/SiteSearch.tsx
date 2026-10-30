@@ -32,7 +32,7 @@ const LIMIT = 12;
 
 // "Search" in both apps' menus: configured items by name or label first,
 // each opening its page (names that start with the query before those that
-// contain it), then whatever the app searches deeper. A list this key may
+// contain it), then whatever the app searches deeper, if anything. A list this key may
 // not read (an admin-only one, for a restricted key) is left out.
 export function SiteSearch<T>({
   sections,
@@ -40,9 +40,9 @@ export function SiteSearch<T>({
   what,
 }: {
   sections: SearchSection[];
-  deep: DeepSearch<T>;
+  deep?: DeepSearch<T>;
   // What the deep search looks through, for the hint: "hosts by name".
-  what: string;
+  what?: string;
 }) {
   const navigate = useNavigate();
   const client = useQueryClient();
@@ -69,7 +69,11 @@ export function SiteSearch<T>({
     <QuickSearch<Result<T>>
       label="Search"
       placeholder="Search"
-      intro={`Two characters or more: names first, then ${what}.`}
+      intro={
+        deep && what
+          ? `Two characters or more: names first, then ${what}.`
+          : "Two characters or more, to find anything configured by name."
+      }
       noMatch={(query) => `Nothing matches “${query}”.`}
       queryKey="site-search"
       search={async (query) => {
@@ -78,7 +82,7 @@ export function SiteSearch<T>({
         // it, an error) still leaves the name matches, and says so.
         const [configured, found] = await Promise.all([
           items(),
-          deep.search(query).then(
+          (deep?.search(query) ?? Promise.resolve([] as T[])).then(
             (list) => ({ list, error: undefined }),
             (e: unknown) => ({
               list: [] as T[],
@@ -106,17 +110,17 @@ export function SiteSearch<T>({
       itemKey={(result) =>
         "item" in result
           ? `${result.item.section.key}/${result.item.id}`
-          : `deep/${deep.key(result.deep)}`
+          : `deep/${deep!.key(result.deep)}`
       }
       onOpen={(result) =>
         "item" in result
           ? navigate(
               `/${result.item.section.key}/${encodeURIComponent(result.item.id)}`,
             )
-          : deep.open(result.deep)
+          : deep!.open(result.deep)
       }
       renderItem={(result) => {
-        if (!("item" in result)) return deep.render(result.deep);
+        if (!("item" in result)) return deep!.render(result.deep);
         const { item } = result;
         return (
           <>
