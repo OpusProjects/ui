@@ -35,10 +35,11 @@ apps/
 └── unified-gitops/   the unified-gitops UI
     └── src/
         ├── api/            generated schema.ts, typed client, TanStack Query hooks
-        ├── shared/         the router wrapper for DetailTitle
-        └── features/       overview, applications (list, detail with plan and
-                            local copies), connectors, projects, credentials,
-                            metrics, config
+        ├── shared/         what its sections share: runs (Run now, Dry run,
+                            history with steps), item, project and webhook
+                            tables, the name search
+        └── features/       overview, apis, scripts, webhooks, projects,
+                            credentials, metrics, config
 tests/e2e/            Playwright, one folder per app, each against its own mocked API
 docker/               demo image: nginx serving the build and proxying the API
 compose.yaml          local demo: unified-api with its sample config, the UI in front
