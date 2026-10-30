@@ -1,6 +1,6 @@
 {
   "name": "@opusprojects/unified-client",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Non-visual pieces the unified-* UIs share: the API session, health rules, metrics and the stored theme",
   "license": "Apache-2.0",
   "repository": {

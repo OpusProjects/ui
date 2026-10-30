@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 unified-ui is versioned on its own. Each unified-api release pins the
 unified-ui version it builds into its image.
 
+## [0.7.0](https://github.com/OpusProjects/ui/compare/v0.6.0...v0.7.0) (2026-10-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* the gitops app needs unified-gitops 0.5.0's API (apis, scripts, the new webhooks); it no longer works with 0.4 and earlier.
+
+### Added
+
+* show APIs and scripts in the gitops UI, drop applications ([#34](https://github.com/OpusProjects/ui/issues/34)) ([6e38eec](https://github.com/OpusProjects/ui/commit/6e38eeca77223018df805d0abce110e1a77161ae))
+
 ## [0.6.0] - 2026-10-29
 
 ### Added
