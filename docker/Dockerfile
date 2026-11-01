@@ -14,7 +14,7 @@ COPY packages/ packages/
 COPY apps/ apps/
 RUN npm run build:api
 
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /src/apps/unified-api/dist /usr/share/nginx/html
 ENV UNIFIED_API_URL=http://unified-api:8182 \
