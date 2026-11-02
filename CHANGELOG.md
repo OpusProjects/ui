@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 unified-ui is versioned on its own. Each unified-api release pins the
 unified-ui version it builds into its image.
 
+## [0.8.0](https://github.com/OpusProjects/ui/compare/v0.7.0...v0.8.0) (2026-11-02)
+
+
+### Added
+
+* use a braces icon for APIs in the gitops UI ([#41](https://github.com/OpusProjects/ui/issues/41)) ([9eb662b](https://github.com/OpusProjects/ui/commit/9eb662b81b90e79ce41540c9d91414a082321963))
+
 ## [0.7.0](https://github.com/OpusProjects/ui/compare/v0.6.0...v0.7.0) (2026-10-30)
 
 
