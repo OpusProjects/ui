@@ -35,7 +35,7 @@
     "@opusprojects/unified-client": "*",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
-    "lucide-react": "^1.61.0"
+    "lucide-react": "^1.65.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
