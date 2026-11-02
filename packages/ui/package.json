@@ -26,25 +26,25 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@tanstack/react-query": "^5.0.0",
-    "react-router": "^8.5.0"
+    "react-router": "^8.5.1"
   },
   "dependencies": {
-    "@opusprojects/unified-client": "*",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@opusprojects/unified-client": "*",
     "lucide-react": "^1.65.0"
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.105.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "~7.0.2",
-    "vite": "^8.3.5",
-    "@tanstack/react-query": "^5.105.0"
+    "vite": "^8.3.5"
   }
 }
