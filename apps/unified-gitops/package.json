@@ -1,7 +1,7 @@
 {
   "name": "unified-gitops-ui",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 18192 --strictPort",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.2.1",
+    "@vitejs/plugin-react": "^6.1.2",
     "openapi-typescript": "^7.13.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
