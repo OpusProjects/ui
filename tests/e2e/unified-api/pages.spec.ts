@@ -59,7 +59,14 @@ test("this instance counts requests over the last minute", async ({ page }) => {
     })
     .last();
   await expect(panel).toContainText("Counting…");
-  await page.clock.runFor(70_000);
+  // One scrape at a time: since Playwright 1.65 a single long runFor fires
+  // the ten-second scrapes faster than their responses land, so the page
+  // never holds a minute of them.
+  for (let i = 0; i < 7; i++) {
+    const scraped = page.waitForResponse(/\/metrics$/);
+    await page.clock.runFor(10_000);
+    await scraped;
+  }
   await expect(panel).toContainText("in the last minute");
 });
 
