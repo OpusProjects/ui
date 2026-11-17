@@ -117,7 +117,14 @@ test("the overview charts the runs", async ({ page }) => {
   await expect(page.getByText("Runs (per minute)")).toBeVisible();
   await expect(page.getByText("Requests per minute")).toHaveCount(0);
   // Each point counts a whole minute, so the first needs a minute of samples.
-  await page.clock.runFor(70_000);
+  // One scrape at a time: since Playwright 1.65 a single long runFor fires
+  // the ten-second scrapes faster than their responses land, so the page
+  // never holds a minute of them.
+  for (let i = 0; i < 7; i++) {
+    const scraped = page.waitForResponse(/\/metrics$/);
+    await page.clock.runFor(10_000);
+    await scraped;
+  }
   const chart = page.getByLabel(/^Runs \(per minute\), latest/);
   await expect(chart).toBeVisible();
   await chart.focus();
