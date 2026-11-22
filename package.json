@@ -15,7 +15,7 @@
     "dev:gitops": "npm run dev -w unified-gitops-ui"
   },
   "devDependencies": {
-    "@playwright/test": "1.65.0",
+    "@playwright/test": "1.65.1",
     "@types/node": "^26.6.6"
   }
 }
